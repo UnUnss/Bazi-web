@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼接預覽 · Home + Landing 一體滾動</title>
+<!--
+    这是一个独立的「预览」页面：把 home.html 和 landing.html 首尾拼接进同一份文档，
+    直接向下滑就能从 home 区滑到 landing 区，不需要点击跳转。
+    滚动容器是 #scrollRoot（唯一会滚动的元素，html/body 本身不滚动），
+    上面挂了 scroll-snap-type:y mandatory——往下滑一旦超过一半就直接吸附
+    到下一屏，顶部正好停在排盘页导航条，不会停在两屏之间的尴尬位置。
+    圆盘只用一张 assets/disk.png、一个 DOM 节点：它不属于任何一个 section，
+    而是 #scrollRoot 的直接子元素，用 position:absolute 定位（相对
+    #scrollRoot 自己的滚动内容，随内容一起滚动），大小固定为 200vh、
+    圆心正好落在两屏交界处，纯用 vh 做基准（不依赖 vw），所以不管电脑
+    屏幕多宽、手机多窄都不会跑偏或失控变大——第一屏露出上半圆，
+    往下滑吸附到第二屏时露出的正好是下半圆，视觉上是同一个圆盘。
+    这个页面不会影响原来的 home.html / landing.html，只是一个效果预览。
+-->
+<link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
+<script src="i18n.js"></script>
+<style>
+    *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    /*
+     * 滚动吸附（scroll-snap）必须绑在「真正的滚动容器」上才会生效。
+     * 直接把 scroll-snap-type 写在 html 上，在有些浏览器里并不会把 html
+     * 判定为实际滚动元素（尤其是 html/body 都设置了 overflow 之后，
+     * 到底谁是 document.scrollingElement 存在实现差异），吸附经常不生效，
+     * 表现就是「还是原来那种可以停在任意中间位置的自由滚动」。
+     * 所以这里改成显式方案：html/body 完全不滚动（overflow:hidden），
+     * 单独用一个 #scrollRoot 包裹两屏内容，自己 overflow-y:auto 承担滚动，
+     * scroll-snap-type 也写在它自己身上——滚动容器和吸附声明是同一个元素，
+     * 不存在歧义，各浏览器都能可靠触发「一滑到底、直接停在下一屏」的效果。
+     */
+    html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    #scrollRoot {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+        scroll-snap-type: y mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    :root {
+        --ink: #2a1e0a;
+        --ink-soft: #5a4a28;
+        --ink-muted: #8a7a58;
+        --line: rgba(42, 30, 10, 0.28);
+        --mu: #4c7a5a;
+        --huo: #c05220;
+        --tu: #8c7a3c;
+        --jin: #b89028;
+        --shui: #1e4070;
+        --font-kai: "Kaiti SC", "STKaiti", "Kaiti TC", "BiauKai", "KaiTi", "DFKai-SB", "標楷體",
+                    "CooperZhengKai",
+                    serif;
+    }
+
+    body {
+        font-family: var(--font-kai);
+        color: var(--ink);
+        background: #e8dfc8;
+    }
+
+    button, input, select, textarea {
+        font-family: inherit;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       共用圆盘：整份文档里唯一一个 <img src="disk.png">，
+       用文档坐标（position:absolute，父级 body 无定位）定位，
+       跟着页面一起滚动，才能让 home / landing 露出同一个圆的上下两半。
+
+       关键发现：disk.png 实际画布是 2880×1800（宽:高 = 1.6:1），
+       但画面里那个圆盘本身的直径其实正好等于画布的「高」（1800），
+       左右各留了 540px 的空白（因为 mix-blend-mode:darken，空白基本
+       不可见，之前一直没注意到）。之前一直用 width:100%;height:auto
+       去撑满这张「带左右留白」的画布，导致：
+       — 撑出来的宽度其实是圆盘真实直径的 1.6 倍（画布宽=直径×1.6），
+       — 按宽度换算出来的高度，也只有真实直径的 0.625 倍，
+       手机竖屏下用 vh 做下限时，算出来的「高度」远够不到下一屏的
+       分界线（圆盘卡在首屏里出不去），而「宽度」又因为×1.6被继续
+       放大，看起来比真实圆盘宽好几倍，才会有「圆盘充满整个首页」
+       却又「进不了排盘页」的矛盾现象。
+       现在改用一个正方形容器（宽=高=圆盘真实直径），img 用
+       object-fit:cover 只截取画布中间那块正好是圆盘本身的区域，
+       裁掉两侧空白——这样容器的尺寸就是圆盘的真实尺寸，不再放大失真。
+       直径统一用 vh 做基准（150vh，换算下来在常见 16:9 桌面屏正好
+       等于 home.html 原始 135vw 的实际像素值，桌面视觉不变甚至更大），
+       不依赖 vw，因此手机竖屏下也能保证圆心足够靠下、下沿稳定超出
+       首屏 100vh 边界（留出约 50vh 显示在排盘页里），不会出现「进不
+       了第二屏」的问题；同时因为不再有 ×1.6 的虚高宽度，手机上看到
+       的也是圆盘的真实比例，不会误以为它铺满了整个屏幕。
+       ═══════════════════════════════════════════════════════════ */
+    .shared-disk-wrap {
+        --disk-d: 150vh;
+        position: absolute;
+        left: calc(var(--disk-d) * -0.314);
+        top: -0.5vh;
+        width: var(--disk-d);
+        height: var(--disk-d);
+        z-index: 2;
+        pointer-events: none;
+        mix-blend-mode: darken;
+        opacity: 0.3;
+        overflow: hidden;
+        border-radius: 50%;
+    }
+
+    .shared-disk-wrap img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        animation: spin 90s linear infinite;
+        transform-origin: center center;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       第一屏：home.html 的内容（宣纸、卷轴、文字、品牌、CTA）
+       原本全部是 position:fixed（相对视口），这里改成 position:absolute
+       相对 .section-home 自己（因为 .section-home 是 position:relative），
+       这样它们只属于第一屏，不会在滚动时跟着视口移动。
+       ═══════════════════════════════════════════════════════════ */
+    .section-home {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        cursor: default;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+    }
+
+    .home-bg {
+        position: absolute;
+        inset: 0;
+        background: url('assets/bg-paper.jpg') center / cover no-repeat;
+        z-index: 1;
+    }
+
+    .home-scroll {
+        position: absolute;
+        width: 100%;
+        height: auto;
+        left: 0;
+        top: 0;
+        mix-blend-mode: darken;
+        z-index: 3;
+    }
+
+    .home-text {
+        position: absolute;
+        width: 100%;
+        height: auto;
+        left: 0;
+        top: 0;
+        z-index: 4;
+    }
+
+    .home-brand {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: auto;
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    .home-cta-wrap {
+        position: absolute;
+        bottom: 44px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        text-align: center;
+    }
+
+    .home-cta-sub {
+        margin-top: 9px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        color: #9a8a68;
+    }
+
+    .scroll-hint {
+        margin-top: 22px;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        color: rgba(42, 30, 10, 0.45);
+        animation: hintBounce 2.4s ease-in-out infinite;
+    }
+
+    @keyframes hintBounce {
+        0%, 100% { transform: translateY(0); opacity: 0.6; }
+        50%      { transform: translateY(6px); opacity: 1; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       第二屏：landing.html 的内容
+       ═══════════════════════════════════════════════════════════ */
+    .section-landing {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+    }
+
+    /*
+     * 这里必须用 position:fixed（相对視口），不能用 position:absolute
+     * 相对 .section-landing 自己。原因跟当年 landing.html 单独那个页面
+     * 踩过的坑一样：手机上 nav+hero+壁纸区叠起来，.section-landing 的
+     * 实际内容高度可能是視口高度的 2~3 倍，如果背景图用 absolute inset:0
+     * 贴着这么高的盒子，background-size:cover 会按這個「內容高度」而不是
+     * 「視口高度」去放大铺满，图片被超采样放大好几倍，看起来自然发糊。
+     * 用 position:fixed，背景盒子永远等于視口大小，cover 缩放比例
+     * 始終錠定視口，跟 landing.html 原本一样清晰、不随内容变长而放大。
+     */
+    .landing-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background: url('assets/bg-paper.jpg') center / cover no-repeat;
+        pointer-events: none;
+    }
+
+    .baize-glow {
+        position: fixed;
+        right: -35px;
+        bottom: -60px;
+        width: 440px;
+        height: auto;
+        mix-blend-mode: multiply;
+        opacity: 0.6;
+        pointer-events: none;
+        user-select: none;
+        z-index: -1;
+        -webkit-mask-image: radial-gradient(circle at 68% 55%,
+            rgba(0, 0, 0, 0.95) 0%,
+            rgba(0, 0, 0, 0.75) 38%,
+            rgba(0, 0, 0, 0.3) 62%,
+            rgba(0, 0, 0, 0) 82%);
+        mask-image: radial-gradient(circle at 68% 55%,
+            rgba(0, 0, 0, 0.95) 0%,
+            rgba(0, 0, 0, 0.75) 38%,
+            rgba(0, 0, 0, 0.3) 62%,
+            rgba(0, 0, 0, 0) 82%);
+    }
+
+    /* landing 的所有前景内容包一层，用 position:relative + z-index
+       把它整体提到共用圆盘（z-index:2）之上，同时不影响正常的文档流布局 */
+    .landing-content {
+        position: relative;
+        z-index: 5;
+    }
+
+    /* ─── 導航 ─────────────────────────────────────── */
+
+    nav {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 22px 52px;
+        position: relative;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 52px;
+    }
+
+    .nav-links a {
+        text-decoration: none;
+        color: var(--ink);
+        font-size: 14px;
+        letter-spacing: 0.06em;
+        padding-bottom: 4px;
+    }
+
+    .nav-links a.active {
+        border-bottom: 1.5px solid var(--ink);
+    }
+
+    .nav-user {
+        position: absolute;
+        right: 52px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .nav-user-icon {
+        color: var(--ink);
+        cursor: pointer;
+        opacity: 0.8;
+        display: flex;
+    }
+
+    .lang-switch-wrap { position: relative; }
+
+    .lang-switch-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-family: inherit;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        padding: 5px 10px;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: rgba(255, 252, 245, 0.6);
+        color: var(--ink);
+        cursor: pointer;
+    }
+
+    .lang-switch-btn:hover { background: rgba(255, 252, 245, 0.9); }
+    .lang-switch-btn .caret { font-size: 9px; opacity: 0.7; }
+
+    .lang-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        min-width: 130px;
+        background: rgba(255, 252, 245, 0.96);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        z-index: 20;
+        box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+        overflow: hidden;
+    }
+
+    .lang-menu.open { display: block; }
+
+    .lang-menu button {
+        display: block;
+        width: 100%;
+        font-family: inherit;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 9px 14px;
+        border: none;
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+        text-align: left;
+        border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+    }
+
+    .lang-menu button:last-child { border-bottom: none; }
+    .lang-menu button:hover,
+    .lang-menu button.active { background: rgba(42, 30, 10, 0.05); }
+
+    /* ─── 主區域 ───────────────────────────────────── */
+
+    .hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 56px 24px 40px;
+    }
+
+    .bazi-pillars {
+        display: flex;
+        gap: 48px;
+        margin-bottom: 24px;
+        align-items: flex-start;
+    }
+
+    .pillar {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .pillar-label {
+        font-size: 12px;
+        color: var(--ink-muted);
+        letter-spacing: 0.16em;
+        margin-bottom: 10px;
+    }
+
+    .pillar-stem,
+    .pillar-branch {
+        font-size: 58px;
+        font-weight: 400;
+        line-height: 1;
+    }
+
+    .pillar-branch { margin-top: 6px; }
+
+    .period-info {
+        font-size: 14px;
+        letter-spacing: 0.14em;
+        color: var(--ink-soft);
+        margin-bottom: 40px;
+    }
+
+    .period-dot { color: var(--ink-muted); margin: 0 2px; }
+
+    .mu   { color: var(--mu); }
+    .huo  { color: var(--huo); }
+    .tu   { color: var(--tu); }
+    .jin  { color: var(--jin); }
+    .shui { color: var(--shui); }
+
+    /* ─── 操作按鈕 ─────────────────────────────────── */
+
+    .action-row {
+        display: flex;
+        gap: 16px;
+        position: relative;
+        margin-bottom: 64px;
+    }
+
+    .btn-outline {
+        font-family: inherit;
+        font-size: 15px;
+        letter-spacing: 0.08em;
+        padding: 12px 28px;
+        min-width: 148px;
+        background: rgba(255, 252, 245, 0.72);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn-outline:hover {
+        background: rgba(255, 252, 245, 0.95);
+        border-color: rgba(42, 30, 10, 0.45);
+    }
+
+    .btn-outline .caret {
+        display: inline-block;
+        margin-left: 6px;
+        font-size: 11px;
+        opacity: 0.7;
+    }
+
+    .switch-wrap { position: relative; }
+
+    .bazi-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        min-width: 260px;
+        background: rgba(255, 252, 245, 0.96);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        text-align: left;
+        z-index: 20;
+        box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+        overflow: hidden;
+    }
+
+    .bazi-menu.open { display: block; }
+
+    .bazi-menu button {
+        display: block;
+        width: 100%;
+        font-family: inherit;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 12px 16px;
+        border: none;
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+        text-align: left;
+        border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+    }
+
+    .bazi-menu button:last-child { border-bottom: none; }
+    .bazi-menu button:hover,
+    .bazi-menu button.active { background: rgba(42, 30, 10, 0.05); }
+    .bazi-menu .tag { color: var(--ink-muted); margin-right: 8px; }
+
+    /* ─── 本月壁紙 ─────────────────────────────────── */
+
+    .wallpaper-section {
+        width: 100%;
+        max-width: 820px;
+        padding: 0 24px 72px;
+        margin: 0 auto;
+    }
+
+    .wallpaper-title {
+        text-align: center;
+        font-size: 16px;
+        letter-spacing: 0.2em;
+        color: var(--ink-soft);
+        margin-bottom: 28px;
+        font-weight: 400;
+    }
+
+    .wallpaper-group { margin-bottom: 40px; }
+    .wallpaper-group:last-child { margin-bottom: 0; }
+
+    .wallpaper-group-title {
+        text-align: center;
+        font-size: 14px;
+        letter-spacing: 0.15em;
+        color: var(--ink-soft);
+        margin-bottom: 20px;
+        font-weight: 400;
+    }
+
+    .wallpaper-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+    }
+
+    .wallpaper-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .wallpaper-preview {
+        width: 100%;
+        aspect-ratio: 3 / 4;
+        border-radius: 2px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(42, 30, 10, 0.12);
+    }
+
+    .wallpaper-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .wallpaper-meta { margin-top: 18px; text-align: center; width: 100%; }
+    .wallpaper-meta .name { font-size: 20px; letter-spacing: 0.12em; color: var(--ink); margin-bottom: 8px; }
+    .wallpaper-meta .desc { font-size: 13px; color: var(--ink-soft); letter-spacing: 0.06em; line-height: 1.6; margin-bottom: 16px; }
+
+    .btn-download {
+        font-family: inherit;
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        padding: 10px 28px;
+        background: rgba(255, 252, 245, 0.72);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-download:hover { background: rgba(255, 252, 245, 0.95); }
+
+    /* ─── 新增八字彈窗（保持 fixed，彈窗本身就该相对視口） ─── */
+
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(42, 30, 10, 0.28);
+        z-index: 50;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+        width: 100%;
+        max-width: 420px;
+        background: #faf6ec;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        padding: 32px 28px 28px;
+        position: relative;
+    }
+
+    .modal h2 {
+        text-align: center;
+        font-size: 20px;
+        font-weight: 400;
+        letter-spacing: 0.16em;
+        margin-bottom: 28px;
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        border: none;
+        background: transparent;
+        font-size: 22px;
+        line-height: 1;
+        color: var(--ink-muted);
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .form-group { margin-bottom: 18px; text-align: left; }
+    .form-group label { display: block; font-size: 13px; color: var(--ink-soft); letter-spacing: 0.08em; margin-bottom: 8px; }
+
+    .form-group input {
+        width: 100%;
+        font-family: inherit;
+        font-size: 14px;
+        padding: 11px 14px;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: #fff;
+        color: var(--ink);
+        outline: none;
+        letter-spacing: 0.04em;
+    }
+
+    .form-group input:focus { border-color: rgba(42, 30, 10, 0.5); }
+
+    .gender-row { display: flex; gap: 10px; }
+
+    .gender-row button {
+        flex: 1;
+        font-family: inherit;
+        font-size: 14px;
+        letter-spacing: 0.1em;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: #fff;
+        color: var(--ink);
+        cursor: pointer;
+    }
+
+    .gender-row button.active { background: var(--ink); color: #faf6ec; border-color: var(--ink); }
+
+    .datetime-row { display: flex; gap: 10px; }
+    .datetime-row input { flex: 1; }
+
+    .btn-save {
+        width: 100%;
+        margin-top: 8px;
+        font-family: inherit;
+        font-size: 15px;
+        letter-spacing: 0.12em;
+        padding: 12px;
+        background: var(--ink);
+        color: #faf6ec;
+        border: none;
+        border-radius: 2px;
+        cursor: pointer;
+    }
+
+    .btn-save:hover { background: #3d2e14; }
+
+    /* ─── 響應式（此預覽頁面主要給 PC 端看，手機上僅做基本適配） ─── */
+
+    @media (max-width: 720px) {
+        nav { padding: 18px 20px; }
+        .nav-links { gap: 24px; }
+        .nav-links a { font-size: 12px; }
+        .nav-user { right: 20px; }
+        .bazi-pillars { gap: 28px; }
+        .pillar-stem, .pillar-branch { font-size: 42px; }
+        .action-row { flex-direction: column; width: 100%; max-width: 280px; }
+        .btn-outline { width: 100%; }
+        .wallpaper-grid { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; }
+        .baize-glow { width: 270px; right: -25px; bottom: -35px; }
+
+        /* 手机端单独把圆盘缩到 640px（一个固定的小尺寸，不再用 vh 撑大），
+           挪到首页的左下角：左边裁掉一截、下边也裁掉一截，露出来的样子
+           像是从屏幕左下角「探出头」的一枚印章，跟原来 home.html 那种
+           从左上角探出头的构图是同一个视觉语言，只是换到了另一个角。
+           top 用 100vh 减去圆盘高度、再加回裁掉的那一截，保证不管手机
+           实际高度是多少，圆盘下沿都稳定落在首屏底部往下一点的位置，
+           露出一小截到排盘页里，PC 端完全不受影响（PC 端还是 150vh）。 */
+        .shared-disk-wrap {
+            --disk-d: 640px;
+            left: calc(var(--disk-d) * -0.314);
+            top: calc(100vh - var(--disk-d) * 0.686);
+        }
+    }
+</style>
+</head>
+<body>
+
+<!-- 唯一的滚动容器：html/body 都不滚动，滚动吸附和实际滚动都发生在这里 -->
+<div id="scrollRoot">
+
+<!-- 共用圆盘：唯一一份 DOM，位置/大小照抄 home.html，用文档坐标定位，
+     滚动时上半部分留在第一屏，下半部分自然延伸进第二屏 -->
+<div class="shared-disk-wrap" aria-hidden="true">
+    <img src="assets/disk.png" alt="" draggable="false">
+</div>
+
+<!-- ═══════════ 第一屏：home.html ═══════════ -->
+<section class="section-home" id="sectionHome">
+    <div class="home-bg"></div>
+    <img class="home-scroll" src="assets/scroll.png" alt="" draggable="false">
+    <img class="home-text" src="assets/text.png" alt="" draggable="false">
+    <img class="home-brand" src="assets/english.png" alt="ElementaWall" draggable="false" style="mix-blend-mode: multiply;">
+
+    <div class="home-cta-wrap">
+        <p class="home-cta-sub">基於生辰八字，定制每月運勢壁紙</p>
+        <p class="scroll-hint">往下滑動 · SCROLL DOWN ↓</p>
+    </div>
+</section>
+
+<!-- ═══════════ 第二屏：landing.html ═══════════ -->
+<section class="section-landing" id="sectionLanding">
+    <div class="landing-bg"></div>
+    <img class="baize-glow" src="assets/baize-crop.png" alt="" draggable="false" aria-hidden="true" />
+
+    <div class="landing-content">
+        <nav>
+            <div class="nav-links">
+                <a href="#" class="active" data-i18n="nav_brand">八字定製每月運勢壁紙</a>
+            </div>
+            <div class="nav-user">
+                <div class="lang-switch-wrap" id="langSwitchWrap">
+                    <button type="button" class="lang-switch-btn" id="langSwitchBtn">
+                        <span id="langSwitchLabel">繁</span><span class="caret">▼</span>
+                    </button>
+                    <div class="lang-menu" id="langMenu" role="menu">
+                        <button type="button" data-lang-option="zh-TW" data-i18n="lang_menu_zh_tw">繁體中文</button>
+                        <button type="button" data-lang-option="zh-CN" data-i18n="lang_menu_zh_cn">简体中文</button>
+                        <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
+                    </div>
+                </div>
+                <div class="nav-user-icon" data-i18n-aria-label="nav_user_aria" aria-label="用戶">
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M17.982 18.725A7.488 7.488 0 0012 15.75
+                                 a7.488 7.488 0 00-5.982 2.975m11.963 0
+                                 a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0
+                                 0 0112 21a8.966 8.966 0 01-5.982-2.275
+                                 M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </nav>
+
+        <main class="hero">
+            <div class="bazi-pillars" id="baziPillars">
+                <div class="pillar">
+                    <span class="pillar-label" data-i18n="pillar_year">年柱</span>
+                    <span class="pillar-stem mu" data-stem>甲</span>
+                    <span class="pillar-branch mu" data-branch>子</span>
+                </div>
+                <div class="pillar">
+                    <span class="pillar-label" data-i18n="pillar_month">月柱</span>
+                    <span class="pillar-stem huo" data-stem>丙</span>
+                    <span class="pillar-branch huo" data-branch>午</span>
+                </div>
+                <div class="pillar">
+                    <span class="pillar-label" data-i18n="pillar_day">日柱</span>
+                    <span class="pillar-stem tu" data-stem>戊</span>
+                    <span class="pillar-branch tu" data-branch>申</span>
+                </div>
+                <div class="pillar">
+                    <span class="pillar-label" data-i18n="pillar_hour">時柱</span>
+                    <span class="pillar-stem jin" data-stem>庚</span>
+                    <span class="pillar-branch jin" data-branch>辰</span>
+                </div>
+            </div>
+
+            <div class="period-info" id="periodInfo">
+                <span class="mu">乙</span><span class="tu">未</span>大運<span class="period-dot">·</span><span class="huo">丙</span><span class="huo">午</span>年<span class="period-dot">·</span><span class="mu">甲</span><span class="huo">午</span>月
+            </div>
+
+            <div class="action-row">
+                <button type="button" class="btn-outline" id="btnAddBazi" data-i18n="btn_add_bazi">+ 新增八字</button>
+                <div class="switch-wrap">
+                    <button type="button" class="btn-outline" id="btnSwitchBazi">
+                        <span data-i18n="btn_switch_bazi">切換八字</span><span class="caret">▼</span>
+                    </button>
+                    <div class="bazi-menu" id="baziMenu" role="menu">
+                        <!-- 由 JS 填充 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <section class="wallpaper-section">
+            <h2 class="wallpaper-title" data-i18n="wallpaper_section_title">本月專屬壁紙</h2>
+
+            <div class="wallpaper-group">
+                <p class="wallpaper-group-title" data-i18n="wallpaper_favor_group_title">本月喜用</p>
+                <div class="wallpaper-grid">
+                    <article class="wallpaper-card">
+                        <div class="wallpaper-preview">
+                            <img src="assets/wallpapers/wallpaper-1.png" data-i18n-alt="wallpaper_favor1_alt" alt="本月喜用壁紙一" draggable="false" />
+                        </div>
+                        <div class="wallpaper-meta">
+                            <p class="name" data-i18n="wallpaper_favor1_name">水 · 深藍</p>
+                            <p class="desc" data-i18n="wallpaper_favor1_desc">滋養日主，平穩情緒。助你沉靜思考</p>
+                            <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
+                        </div>
+                    </article>
+                    <article class="wallpaper-card">
+                        <div class="wallpaper-preview">
+                            <img src="assets/wallpapers/wallpaper-1.png" data-i18n-alt="wallpaper_favor2_alt" alt="本月喜用壁紙二" draggable="false" />
+                        </div>
+                        <div class="wallpaper-meta">
+                            <p class="name" data-i18n="wallpaper_favor2_name">木 · 青竹</p>
+                            <p class="desc" data-i18n="wallpaper_favor2_desc">生扶日主，舒展心緒，助你穩健前行</p>
+                            <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+            <div class="wallpaper-group">
+                <p class="wallpaper-group-title" data-i18n="wallpaper_boost_group_title">本月補運</p>
+                <div class="wallpaper-grid">
+                    <article class="wallpaper-card">
+                        <div class="wallpaper-preview">
+                            <img src="assets/wallpapers/wallpaper-2.png" data-i18n-alt="wallpaper_boost1_alt" alt="本月補運壁紙一" draggable="false" />
+                        </div>
+                        <div class="wallpaper-meta">
+                            <p class="name" data-i18n="wallpaper_boost1_name">桃花運 · 緋紅</p>
+                            <p class="desc" data-i18n="wallpaper_boost1_desc">催旺人緣與情感連結，宜多社交走動</p>
+                            <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
+                        </div>
+                    </article>
+                    <article class="wallpaper-card">
+                        <div class="wallpaper-preview">
+                            <img src="assets/wallpapers/wallpaper-2.png" data-i18n-alt="wallpaper_boost2_alt" alt="本月補運壁紙二" draggable="false" />
+                        </div>
+                        <div class="wallpaper-meta">
+                            <p class="name" data-i18n="wallpaper_boost2_name">財運 · 金黃</p>
+                            <p class="desc" data-i18n="wallpaper_boost2_desc">催旺財氣與貴人運，宜把握機會、大膽出手</p>
+                            <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </div>
+</section>
+
+</div><!-- /#scrollRoot -->
+
+<!-- 新增八字彈窗（保持在滚动容器外，position:fixed 始终相对视口居中） -->
+<div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+        <button type="button" class="modal-close" id="modalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
+        <h2 id="modalTitle" data-i18n="modal_add_title">新增八字</h2>
+        <form id="addBaziForm">
+            <div class="form-group">
+                <label for="nickname" data-i18n="form_nickname_label">暱稱</label>
+                <input type="text" id="nickname" name="nickname" data-i18n-placeholder="form_nickname_placeholder" placeholder="如：本人、伴侶" required />
+            </div>
+            <div class="form-group">
+                <label data-i18n="form_gender_label">性別</label>
+                <div class="gender-row">
+                    <button type="button" class="active" data-gender="1" data-i18n="gender_male">男</button>
+                    <button type="button" data-gender="0" data-i18n="gender_female">女</button>
+                </div>
+                <input type="hidden" id="gender" name="gender" value="1" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="form_birth_label">出生信息</label>
+                <div class="datetime-row">
+                    <input type="text" id="birthDate" name="birthDate" placeholder="YYYY/MM/DD" required />
+                    <input type="text" id="birthTime" name="birthTime" placeholder="HH:MM" value="12:00" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="birthplace" data-i18n="form_birthplace_label">出生地點</label>
+                <input type="text" id="birthplace" name="birthplace" data-i18n-placeholder="form_birthplace_placeholder" placeholder="城市" value="北京" required />
+            </div>
+            <button type="submit" class="btn-save" data-i18n="btn_save">保存八字</button>
+        </form>
+    </div>
+</div>
+
+<!-- 八字真實排盤邏輯：與 index.html / landing.html 共用同一套 lunar-javascript + bazi_logic.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lunar-javascript/1.7.4/lunar.min.js"></script>
+<script src="bazi_logic.js"></script>
+<script>
+(function () {
+    const WUXING_CLASS = {
+        '甲': 'mu', '乙': 'mu',
+        '丙': 'huo', '丁': 'huo',
+        '戊': 'tu', '己': 'tu',
+        '庚': 'jin', '辛': 'jin',
+        '壬': 'shui', '癸': 'shui',
+        '子': 'shui', '亥': 'shui',
+        '寅': 'mu', '卯': 'mu',
+        '巳': 'huo', '午': 'huo',
+        '申': 'jin', '酉': 'jin',
+        '辰': 'tu', '戌': 'tu', '丑': 'tu', '未': 'tu'
+    };
+
+    const STORAGE_KEY = 'bazi_profiles';
+    const ACTIVE_KEY = 'bazi_active_id';
+
+    const defaultProfiles = [
+        {
+            id: 'demo-1',
+            nickname: '本人',
+            gender: 1,
+            birthDate: '1984/01/15',
+            birthTime: '12:00',
+            birthplace: '北京'
+        }
+    ];
+
+    const FALLBACK_BAZI = {
+        pillars: [
+            { gan: '甲', zhi: '子' },
+            { gan: '丙', zhi: '午' },
+            { gan: '戊', zhi: '申' },
+            { gan: '庚', zhi: '辰' }
+        ],
+        period: { dayun: '——', year: '——', month: '——' }
+    };
+
+    let cachedNowKey = '';
+    let cachedNowGanZhi = null;
+    function getCurrentYearMonthGanZhi() {
+        const now = new Date();
+        const key = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        if (cachedNowGanZhi && cachedNowKey === key) return cachedNowGanZhi;
+        const nowEightChar = Solar.fromYmdHms(now.getFullYear(), now.getMonth() + 1, now.getDate(),
+            now.getHours(), now.getMinutes(), now.getSeconds()).getLunar().getEightChar();
+        cachedNowKey = key;
+        cachedNowGanZhi = {
+            year: nowEightChar.getYearGan() + nowEightChar.getYearZhi(),
+            month: nowEightChar.getMonthGan() + nowEightChar.getMonthZhi()
+        };
+        return cachedNowGanZhi;
+    }
+
+    function computeBaziForProfile(profile) {
+        try {
+            const [y, m, d] = (profile.birthDate || '').split('/').map((v) => parseInt(v, 10));
+            const [hh, mm] = (profile.birthTime || '').split(':').map((v) => parseInt(v, 10));
+            if (!y || !m || !d) throw new Error('出生日期格式錯誤');
+
+            const solar = Solar.fromYmdHms(y, m, d, isNaN(hh) ? 0 : hh, isNaN(mm) ? 0 : mm, 0);
+            const eightChar = solar.getLunar().getEightChar();
+            const pillars = [
+                { gan: eightChar.getYearGan(), zhi: eightChar.getYearZhi() },
+                { gan: eightChar.getMonthGan(), zhi: eightChar.getMonthZhi() },
+                { gan: eightChar.getDayGan(), zhi: eightChar.getDayZhi() },
+                { gan: eightChar.getTimeGan(), zhi: eightChar.getTimeZhi() }
+            ];
+
+            let dayunGanZhi = '';
+            try {
+                const yun = eightChar.getYun(profile.gender);
+                const currentYear = new Date().getFullYear();
+                const matched = yun.getDaYun(12).find((dy) =>
+                    currentYear >= dy.getStartYear() && currentYear <= dy.getEndYear());
+                if (matched) dayunGanZhi = matched.getGanZhi();
+            } catch (_) {}
+
+            const nowYearMonth = getCurrentYearMonthGanZhi();
+            return {
+                pillars,
+                period: {
+                    dayun: dayunGanZhi || '——',
+                    year: nowYearMonth.year,
+                    month: nowYearMonth.month
+                }
+            };
+        } catch (err) {
+            console.error('八字排盤計算失敗：', err);
+            return FALLBACK_BAZI;
+        }
+    }
+
+    function loadProfiles() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length) return parsed;
+            }
+        } catch (_) {}
+        return defaultProfiles.slice();
+    }
+
+    function saveProfiles(list) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    function getActiveId(list) {
+        const id = localStorage.getItem(ACTIVE_KEY);
+        if (id && list.some((p) => p.id === id)) return id;
+        return list[0].id;
+    }
+
+    function setActiveId(id) {
+        localStorage.setItem(ACTIVE_KEY, id);
+    }
+
+    function wxClass(ch) {
+        return WUXING_CLASS[ch] || 'tu';
+    }
+
+    function renderPillars(profile) {
+        const bazi = computeBaziForProfile(profile);
+        const pillars = document.querySelectorAll('#baziPillars .pillar');
+        bazi.pillars.forEach((p, i) => {
+            const el = pillars[i];
+            if (!el) return;
+            const stem = el.querySelector('[data-stem]');
+            const branch = el.querySelector('[data-branch]');
+            stem.textContent = p.gan;
+            branch.textContent = p.zhi;
+            stem.className = 'pillar-stem ' + wxClass(p.gan);
+            branch.className = 'pillar-branch ' + wxClass(p.zhi);
+        });
+
+        const d = bazi.period;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        document.getElementById('periodInfo').innerHTML =
+            `<span class="${wxClass(d.dayun[0])}">${d.dayun[0]}</span>` +
+            `<span class="${wxClass(d.dayun[1])}">${d.dayun[1]}</span>${t('period_dayun')}` +
+            `<span class="period-dot">·</span>` +
+            `<span class="${wxClass(d.year[0])}">${d.year[0]}</span>` +
+            `<span class="${wxClass(d.year[1])}">${d.year[1]}</span>${t('period_year')}` +
+            `<span class="period-dot">·</span>` +
+            `<span class="${wxClass(d.month[0])}">${d.month[0]}</span>` +
+            `<span class="${wxClass(d.month[1])}">${d.month[1]}</span>${t('period_month')}`;
+    }
+
+    function renderMenu(list, activeId) {
+        const menu = document.getElementById('baziMenu');
+        menu.innerHTML = list.map((p) => {
+            const short = computeBaziForProfile(p).pillars[0];
+            return `<button type="button" role="menuitem" data-id="${p.id}" class="${p.id === activeId ? 'active' : ''}">` +
+                `<span class="tag">${p.nickname}</span>${short.gan}${short.zhi} · ${p.birthDate}` +
+                `</button>`;
+        }).join('');
+    }
+
+    let profiles = loadProfiles();
+    let activeId = getActiveId(profiles);
+
+    function refresh() {
+        const active = profiles.find((p) => p.id === activeId) || profiles[0];
+        activeId = active.id;
+        setActiveId(activeId);
+        renderPillars(active);
+        renderMenu(profiles, activeId);
+    }
+
+    refresh();
+
+    (function () {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        document.getElementById('birthDate').value = `${y}/${m}/${d}`;
+    })();
+
+    const addModal = document.getElementById('addModal');
+    const baziMenu = document.getElementById('baziMenu');
+
+    const langMenu = document.getElementById('langMenu');
+    const langSwitchLabel = document.getElementById('langSwitchLabel');
+
+    function updateLangSwitchLabel() {
+        if (!window.I18N) return;
+        const lang = window.I18N.getLanguage();
+        const key = lang === 'zh-TW' ? 'lang_zh_tw' : (lang === 'zh-CN' ? 'lang_zh_cn' : 'lang_en');
+        langSwitchLabel.textContent = window.I18N.t(key);
+    }
+
+    document.addEventListener('i18n:change', () => {
+        refresh();
+        updateLangSwitchLabel();
+    });
+
+    document.getElementById('langSwitchBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        baziMenu.classList.remove('open');
+        langMenu.classList.toggle('open');
+    });
+
+    langMenu.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-lang-option]');
+        if (!btn || !window.I18N) return;
+        e.stopPropagation();
+        window.I18N.setLanguage(btn.getAttribute('data-lang-option'));
+        langMenu.classList.remove('open');
+    });
+
+    updateLangSwitchLabel();
+
+    document.getElementById('btnAddBazi').addEventListener('click', () => {
+        baziMenu.classList.remove('open');
+        langMenu.classList.remove('open');
+        addModal.classList.add('open');
+    });
+
+    document.getElementById('modalClose').addEventListener('click', () => {
+        addModal.classList.remove('open');
+    });
+
+    addModal.addEventListener('click', (e) => {
+        if (e.target === addModal) addModal.classList.remove('open');
+    });
+
+    document.getElementById('btnSwitchBazi').addEventListener('click', (e) => {
+        e.stopPropagation();
+        langMenu.classList.remove('open');
+        baziMenu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', () => {
+        baziMenu.classList.remove('open');
+        langMenu.classList.remove('open');
+    });
+
+    baziMenu.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-id]');
+        if (!btn) return;
+        e.stopPropagation();
+        activeId = btn.dataset.id;
+        setActiveId(activeId);
+        refresh();
+        baziMenu.classList.remove('open');
+    });
+
+    document.querySelectorAll('.gender-row button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.gender-row button').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('gender').value = btn.dataset.gender;
+        });
+    });
+
+    document.getElementById('addBaziForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nickname = document.getElementById('nickname').value.trim();
+        const gender = parseInt(document.getElementById('gender').value, 10);
+        const birthDate = document.getElementById('birthDate').value.trim();
+        const birthTime = document.getElementById('birthTime').value.trim();
+        const birthplace = document.getElementById('birthplace').value.trim();
+
+        if (!nickname || !birthDate || !birthTime || !birthplace) {
+            alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
+            return;
+        }
+
+        const profile = {
+            id: 'p-' + Date.now(),
+            nickname,
+            gender,
+            birthDate,
+            birthTime,
+            birthplace
+        };
+
+        profiles.push(profile);
+        saveProfiles(profiles);
+        activeId = profile.id;
+        setActiveId(activeId);
+        refresh();
+        addModal.classList.remove('open');
+        e.target.reset();
+        document.getElementById('gender').value = '1';
+        document.querySelectorAll('.gender-row button').forEach((b, i) => {
+            b.classList.toggle('active', i === 0);
+        });
+        const now = new Date();
+        document.getElementById('birthDate').value =
+            `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+        document.getElementById('birthTime').value = '12:00';
+        document.getElementById('birthplace').value = '北京';
+    });
+})();
+</script>
+
+</body>
+</html>

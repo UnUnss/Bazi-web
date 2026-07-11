@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+.fonttools-venv/
+
+# temp_bazi 是本地参考用的独立仓库（自带 .git），不纳入本项目版本控制
+temp_bazi/

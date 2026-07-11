@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="meta_title">八字定製每月運勢壁紙</title>
+    <!--
+        汇迹正楷 CooperZhengKai 楷體字型：字型檔案自行打包在 assets/fonts/cooper-zhengkai/，
+        不依赖任何外部 CDN、也不依赖系统是否安装楷体 —— 无论设备/网络环境如何，
+        都会从本站同源加载并渲染同一套楷体字形。
+    -->
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
+    <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
+    <script src="i18n.js"></script>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --ink: #2a1e0a;
+            --ink-soft: #5a4a28;
+            --ink-muted: #8a7a58;
+            --line: rgba(42, 30, 10, 0.28);
+            --paper-tint: rgba(245, 236, 214, 0.35);
+            --mu: #4c7a5a;
+            --huo: #c05220;
+            --tu: #8c7a3c;
+            --jin: #b89028;
+            --shui: #1e4070;
+            /*
+             * 字体策略：系统自带楷体优先，自托管网络字体兜底。
+             * 1) 先尝试各系统自带的楷体，按「现代系统里最准确的注册名」优先排列：
+             *    - Kaiti SC：iOS / macOS 现代系统里「楷体-简」真正的 family name，最可靠
+             *    - STKaiti：Mac OS X 旧命名，仅作兼容性备选
+             *    - Kaiti TC / BiauKai：iOS / macOS 的繁体楷体
+             *    - KaiTi：Windows 简体楷体
+             *    - DFKai-SB / 標楷體：Windows 繁体楷体（同一字体的两个别名，必须保留，
+             *      否则繁体 Windows 用户会跳过所有系统楷体、直接落到自托管字体）
+             *    装了对应楷体的设备会用原生字体，不产生网络请求。
+             * 2) 如果设备一个楷体都没装（常见于 Android、Linux、未装中文语言包的 Windows/Mac），
+             *    浏览器会自动落到自托管在 assets/fonts/cooper-zhengkai/ 的「CooperZhengKai」
+             *    （汇迹正楷）网络字体，保证这类设备依然显示楷体风格，而不是退化成宋体/衬线体。
+             * 3) serif 是网络字体文件本身也拿不到时的最终兜底。
+             */
+            --font-kai: "Kaiti SC", "STKaiti", "Kaiti TC", "BiauKai", "KaiTi", "DFKai-SB", "標楷體",
+                        "CooperZhengKai",
+                        serif;
+        }
+
+        html {
+            font-family: var(--font-kai);
+        }
+
+        body {
+            font-family: var(--font-kai);
+            color: var(--ink);
+            min-height: 100vh;
+            background-color: #e8dfc8;
+        }
+
+        /*
+         * 宣纸背景用独立的 position:fixed 图层（跟 home.html 的 .bg 一致），
+         * 不要直接写在 body 的 background 上。
+         * 原因：body 在非 fixed attachment 下，background-size: cover 是按
+         * body 的「整页可滚动高度」（landing 页内容较长，可能有 1800~2500px）
+         * 去计算覆盖比例的，不是按视口高度算的——这会让浏览器把图片放大很多倍
+         * 去覆盖整页高度，超采样放大后自然就发糊了。
+         * 而用一个 position:fixed; inset:0 的图层，它的盒子永远等于视口大小，
+         * cover 缩放比例始终锚定视口，不会被页面长度拖着放大，画面就跟
+         * home.html 一样清晰。
+         */
+        .bg-paper {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: url('assets/bg-paper.jpg') center / cover no-repeat;
+            pointer-events: none;
+        }
+
+        button, input, select, textarea {
+            font-family: inherit;
+        }
+
+        /* ─── 導航 ─────────────────────────────────────── */
+
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 22px 52px;
+            position: relative;
+            min-height: 22px;
+        }
+
+        .nav-brand {
+            font-size: 15px;
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            color: var(--ink);
+            white-space: nowrap;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-user-icon {
+            color: var(--ink);
+            cursor: pointer;
+            opacity: 0.8;
+            display: flex;
+        }
+
+        .auth-area {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 關於我們／定價／語言切換／登入 統一按鈕樣式 */
+        .nav-link-item,
+        .lang-switch-btn,
+        .btn-login {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            padding: 6px 16px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: rgba(255, 252, 245, 0.6);
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .nav-link-item:hover,
+        .lang-switch-btn:hover,
+        .btn-login:hover {
+            background: rgba(255, 252, 245, 0.9);
+        }
+
+        .user-menu-wrap {
+            position: relative;
+        }
+
+        .lang-switch-wrap {
+            position: relative;
+        }
+
+        .lang-switch-btn .caret {
+            font-size: 9px;
+            opacity: 0.7;
+        }
+
+        .lang-menu,
+        .user-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 130px;
+            background: rgba(255, 252, 245, 0.96);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+            overflow: hidden;
+        }
+
+        .user-menu {
+            min-width: 160px;
+        }
+
+        .lang-menu.open,
+        .user-menu.open {
+            display: block;
+        }
+
+        .lang-menu button,
+        .user-menu button {
+            display: block;
+            width: 100%;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            padding: 9px 14px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+            text-align: left;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+        }
+
+        .lang-menu button:last-child,
+        .user-menu button:last-child {
+            border-bottom: none;
+        }
+
+        .lang-menu button:hover,
+        .lang-menu button.active,
+        .user-menu button:hover {
+            background: rgba(42, 30, 10, 0.05);
+        }
+
+        /* ─── 主區域 ───────────────────────────────────── */
+
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 56px 24px 40px;
+        }
+
+        .bazi-pillars {
+            display: flex;
+            gap: 48px;
+            margin-bottom: 24px;
+            align-items: flex-start;
+        }
+
+        .pillar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .pillar-label {
+            font-size: 12px;
+            color: var(--ink-muted);
+            letter-spacing: 0.16em;
+            margin-bottom: 10px;
+        }
+
+        .pillar-stem,
+        .pillar-branch {
+            font-size: 44px;
+            font-weight: 400;
+            line-height: 1;
+        }
+
+        .pillar-branch {
+            margin-top: 6px;
+        }
+
+        .period-info {
+            font-size: 14px;
+            letter-spacing: 0.14em;
+            color: var(--ink-soft);
+            margin-bottom: 40px;
+        }
+
+        .period-dot {
+            color: var(--ink-muted);
+            margin: 0 2px;
+        }
+
+        .mu   { color: var(--mu); }
+        .huo  { color: var(--huo); }
+        .tu   { color: var(--tu); }
+        .jin  { color: var(--jin); }
+        .shui { color: var(--shui); }
+
+        /* ─── 操作按鈕 ─────────────────────────────────── */
+
+        .action-row {
+            display: flex;
+            gap: 16px;
+            position: relative;
+            margin-bottom: 64px;
+        }
+
+        .btn-outline {
+            font-family: inherit;
+            font-size: 15px;
+            letter-spacing: 0.08em;
+            padding: 12px 28px;
+            min-width: 148px;
+            background: rgba(255, 252, 245, 0.72);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 252, 245, 0.95);
+            border-color: rgba(42, 30, 10, 0.45);
+        }
+
+        .btn-outline .caret {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        /* 切換八字下拉 */
+
+        .switch-wrap {
+            position: relative;
+        }
+
+        .bazi-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            min-width: 260px;
+            background: rgba(255, 252, 245, 0.96);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            text-align: left;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+            overflow: hidden;
+        }
+
+        .bazi-menu.open {
+            display: block;
+        }
+
+        .bazi-menu button {
+            display: block;
+            width: 100%;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+            text-align: left;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+        }
+
+        .bazi-menu button:last-child {
+            border-bottom: none;
+        }
+
+        .bazi-menu button:hover,
+        .bazi-menu button.active {
+            background: rgba(42, 30, 10, 0.05);
+        }
+
+        .bazi-menu .tag {
+            color: var(--ink-muted);
+            margin-right: 8px;
+        }
+
+        /* ─── 本月壁紙 ─────────────────────────────────── */
+
+        .wallpaper-section {
+            width: 100%;
+            max-width: 1080px;
+            padding: 0 24px 72px;
+            margin: 0 auto;
+        }
+
+        .wallpaper-title {
+            text-align: center;
+            font-size: 16px;
+            letter-spacing: 0.2em;
+            color: var(--ink-soft);
+            margin-bottom: 28px;
+            font-weight: 400;
+        }
+
+        .wallpaper-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .wallpaper-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .wallpaper-card .tag {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            color: var(--ink-soft);
+            margin-bottom: 6px;
+        }
+
+        .wallpaper-preview {
+            width: 100%;
+            aspect-ratio: 3 / 4;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(42, 30, 10, 0.12);
+        }
+
+        .wallpaper-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* ─── 左上角转动圆盘（坐标与动效跟 home.html 保持一致） ─── */
+
+        .disk-wrap {
+            position: fixed;
+            /* 放大到 150vw 后按比例微调 left，保持左侧裁切位置基本不变 */
+            left: -59.3vw;
+            /*
+             * 在「圆心正好顶到视口顶部」（-0.5vh - 75vw，对应 150vw 宽度的半径）基础上，
+             * 再往下挪一点，露出的下半弧多一点点、位置更居中。
+             */
+            top: calc(-0.5vh - 67vw);
+            width: 150vw;
+            height: auto;
+            z-index: -1;
+            pointer-events: none;
+            mix-blend-mode: darken;
+            opacity: 0.3;
+        }
+
+        .disk-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+            animation: spin 90s linear infinite;
+            transform-origin: center center;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        .wallpaper-meta {
+            margin-top: 18px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .wallpaper-meta .name {
+            font-size: 16px;
+            letter-spacing: 0.1em;
+            color: var(--ink);
+            margin-bottom: 8px;
+        }
+
+        .wallpaper-meta .desc {
+            font-size: 13px;
+            color: var(--ink-soft);
+            letter-spacing: 0.06em;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .btn-download {
+            font-family: inherit;
+            font-size: 14px;
+            letter-spacing: 0.12em;
+            padding: 10px 28px;
+            background: rgba(255, 252, 245, 0.72);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-download:hover {
+            background: rgba(255, 252, 245, 0.95);
+        }
+
+        /* ─── 新增八字彈窗 ─────────────────────────────── */
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(42, 30, 10, 0.28);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 420px;
+            background: #faf6ec;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            padding: 32px 28px 28px;
+            position: relative;
+        }
+
+        .modal h2 {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: 0.16em;
+            margin-bottom: 28px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            border: none;
+            background: transparent;
+            font-size: 22px;
+            line-height: 1;
+            color: var(--ink-muted);
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--ink-soft);
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 11px 14px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: #fff;
+            color: var(--ink);
+            outline: none;
+            letter-spacing: 0.04em;
+        }
+
+        .form-group input:focus {
+            border-color: rgba(42, 30, 10, 0.5);
+        }
+
+        .gender-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .gender-row button {
+            flex: 1;
+            font-family: inherit;
+            font-size: 14px;
+            letter-spacing: 0.1em;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: #fff;
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .gender-row button.active {
+            background: var(--ink);
+            color: #faf6ec;
+            border-color: var(--ink);
+        }
+
+        .datetime-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .datetime-row input {
+            flex: 1;
+        }
+
+        .btn-save {
+            width: 100%;
+            margin-top: 8px;
+            font-family: inherit;
+            font-size: 15px;
+            letter-spacing: 0.12em;
+            padding: 12px;
+            background: var(--ink);
+            color: #faf6ec;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .btn-save:hover {
+            background: #3d2e14;
+        }
+
+        /* ─── 響應式 ───────────────────────────────────── */
+
+        @media (max-width: 900px) {
+            .wallpaper-grid {
+                grid-template-columns: repeat(2, 1fr);
+                max-width: 480px;
+                margin: 0 auto;
+            }
+        }
+
+        @media (max-width: 720px) {
+            nav {
+                padding: 18px 20px;
+            }
+
+            .nav-brand {
+                font-size: 12px;
+            }
+
+            .nav-user {
+                gap: 8px;
+            }
+
+            .nav-link-item,
+            .lang-switch-btn,
+            .btn-login {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+
+            .bazi-pillars {
+                gap: 28px;
+            }
+
+            .pillar-stem,
+            .pillar-branch {
+                font-size: 34px;
+            }
+
+            .action-row {
+                flex-direction: column;
+                width: 100%;
+                max-width: 280px;
+            }
+
+            .btn-outline {
+                width: 100%;
+            }
+
+            .wallpaper-grid {
+                grid-template-columns: 1fr;
+                max-width: 320px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-paper"></div>
+<div class="disk-wrap" aria-hidden="true">
+    <img src="assets/disk.png" alt="" draggable="false">
+</div>
+
+<nav>
+    <div class="nav-brand" data-i18n="nav_brand">運勢壁紙</div>
+    <div class="nav-user">
+        <a href="#" class="nav-link-item" data-i18n="nav_about">關於我們</a>
+        <a href="#" class="nav-link-item" data-i18n="nav_pricing">定價</a>
+        <div class="lang-switch-wrap" id="langSwitchWrap">
+            <button type="button" class="lang-switch-btn" id="langSwitchBtn">
+                <span id="langSwitchLabel">繁</span><span class="caret">▼</span>
+            </button>
+            <div class="lang-menu" id="langMenu" role="menu">
+                <button type="button" data-lang-option="zh-TW" data-i18n="lang_menu_zh_tw">繁體中文</button>
+                <button type="button" data-lang-option="zh-CN" data-i18n="lang_menu_zh_cn">简体中文</button>
+                <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
+            </div>
+        </div>
+        <div class="auth-area" id="authArea">
+            <button type="button" class="btn-login" id="btnLogin" data-i18n="nav_login">登入 / 註冊</button>
+            <div class="user-menu-wrap" id="userMenuWrap" style="display:none;">
+                <div class="nav-user-icon" id="userMenuBtn" data-i18n-aria-label="nav_user_aria" aria-label="用戶">
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M17.982 18.725A7.488 7.488 0 0012 15.75
+                                 a7.488 7.488 0 00-5.982 2.975m11.963 0
+                                 a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0
+                                 0 0112 21a8.966 8.966 0 01-5.982-2.275
+                                 M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <div class="user-menu" id="userMenu" role="menu">
+                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
+                    <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
+                    <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="hero">
+    <!-- 八字四柱 -->
+    <div class="bazi-pillars" id="baziPillars">
+        <div class="pillar">
+            <span class="pillar-label" data-i18n="pillar_year">年柱</span>
+            <span class="pillar-stem mu" data-stem>甲</span>
+            <span class="pillar-branch mu" data-branch>子</span>
+        </div>
+        <div class="pillar">
+            <span class="pillar-label" data-i18n="pillar_month">月柱</span>
+            <span class="pillar-stem huo" data-stem>丙</span>
+            <span class="pillar-branch huo" data-branch>午</span>
+        </div>
+        <div class="pillar">
+            <span class="pillar-label" data-i18n="pillar_day">日柱</span>
+            <span class="pillar-stem tu" data-stem>戊</span>
+            <span class="pillar-branch tu" data-branch>申</span>
+        </div>
+        <div class="pillar">
+            <span class="pillar-label" data-i18n="pillar_hour">時柱</span>
+            <span class="pillar-stem jin" data-stem>庚</span>
+            <span class="pillar-branch jin" data-branch>辰</span>
+        </div>
+    </div>
+
+    <div class="period-info" id="periodInfo">
+        <span class="mu">乙</span><span class="tu">未</span>大運<span class="period-dot">·</span><span class="huo">丙</span><span class="huo">午</span>年<span class="period-dot">·</span><span class="mu">甲</span><span class="huo">午</span>月
+    </div>
+
+    <div class="action-row">
+        <button type="button" class="btn-outline" id="btnAddBazi" data-i18n="btn_add_bazi">+ 新增八字</button>
+        <div class="switch-wrap">
+            <button type="button" class="btn-outline" id="btnSwitchBazi">
+                <span data-i18n="btn_switch_bazi">切換八字</span><span class="caret">▼</span>
+            </button>
+            <div class="bazi-menu" id="baziMenu" role="menu">
+                <!-- 由 JS 填充 -->
+            </div>
+        </div>
+    </div>
+</main>
+
+<section class="wallpaper-section">
+    <h2 class="wallpaper-title" data-i18n="wallpaper_section_title">本月專屬壁紙</h2>
+
+    <div class="wallpaper-grid">
+        <article class="wallpaper-card">
+            <div class="wallpaper-preview">
+                <img src="assets/wallpapers/wallpaper-1.png" data-i18n-alt="wallpaper_favor1_alt" alt="本月喜用壁紙一" draggable="false" />
+            </div>
+            <div class="wallpaper-meta">
+                <p class="name"><span class="tag" data-i18n="wallpaper_favor_group_title">本月喜用</span><span data-i18n="wallpaper_favor1_name">水 · 深藍</span></p>
+                <p class="desc" data-i18n="wallpaper_favor1_desc">滋養日主，平穩情緒。助你沉靜思考</p>
+                <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
+            </div>
+        </article>
+        <article class="wallpaper-card">
+            <div class="wallpaper-preview">
+                <img src="assets/wallpapers/wallpaper-1.png" data-i18n-alt="wallpaper_favor2_alt" alt="本月喜用壁紙二" draggable="false" />
+            </div>
+            <div class="wallpaper-meta">
+                <p class="name"><span class="tag" data-i18n="wallpaper_favor_group_title">本月喜用</span><span data-i18n="wallpaper_favor2_name">木 · 青竹</span></p>
+                <p class="desc" data-i18n="wallpaper_favor2_desc">生扶日主，舒展心緒，助你穩健前行</p>
+                <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
+            </div>
+        </article>
+        <article class="wallpaper-card">
+            <div class="wallpaper-preview">
+                <img src="assets/wallpapers/wallpaper-2.png" data-i18n-alt="wallpaper_boost1_alt" alt="本月補運壁紙一" draggable="false" />
+            </div>
+            <div class="wallpaper-meta">
+                <p class="name"><span class="tag" data-i18n="wallpaper_boost_group_title">本月補運</span><span data-i18n="wallpaper_boost1_name">桃花運 · 緋紅</span></p>
+                <p class="desc" data-i18n="wallpaper_boost1_desc">催旺人緣與情感連結，宜多社交走動</p>
+                <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
+            </div>
+        </article>
+        <article class="wallpaper-card">
+            <div class="wallpaper-preview">
+                <img src="assets/wallpapers/wallpaper-2.png" data-i18n-alt="wallpaper_boost2_alt" alt="本月補運壁紙二" draggable="false" />
+            </div>
+            <div class="wallpaper-meta">
+                <p class="name"><span class="tag" data-i18n="wallpaper_boost_group_title">本月補運</span><span data-i18n="wallpaper_boost2_name">財運 · 金黃</span></p>
+                <p class="desc" data-i18n="wallpaper_boost2_desc">催旺財氣與貴人運，宜把握機會、大膽出手</p>
+                <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
+            </div>
+        </article>
+    </div>
+</section>
+
+<!-- 新增八字彈窗 -->
+<div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+        <button type="button" class="modal-close" id="modalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
+        <h2 id="modalTitle" data-i18n="modal_add_title">新增八字</h2>
+        <form id="addBaziForm">
+            <div class="form-group">
+                <label for="nickname" data-i18n="form_nickname_label">暱稱</label>
+                <input type="text" id="nickname" name="nickname" data-i18n-placeholder="form_nickname_placeholder" placeholder="如：本人、伴侶" required />
+            </div>
+            <div class="form-group">
+                <label data-i18n="form_gender_label">性別</label>
+                <div class="gender-row">
+                    <button type="button" class="active" data-gender="1" data-i18n="gender_male">男</button>
+                    <button type="button" data-gender="0" data-i18n="gender_female">女</button>
+                </div>
+                <input type="hidden" id="gender" name="gender" value="1" />
+            </div>
+            <div class="form-group">
+                <label data-i18n="form_birth_label">出生信息</label>
+                <div class="datetime-row">
+                    <input type="text" id="birthDate" name="birthDate" placeholder="YYYY/MM/DD" required />
+                    <input type="text" id="birthTime" name="birthTime" placeholder="HH:MM" value="12:00" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="birthplace" data-i18n="form_birthplace_label">出生地點</label>
+                <input type="text" id="birthplace" name="birthplace" data-i18n-placeholder="form_birthplace_placeholder" placeholder="城市" value="北京" required />
+            </div>
+            <button type="submit" class="btn-save" data-i18n="btn_save">保存八字</button>
+        </form>
+    </div>
+</div>
+
+<!-- 登入彈窗 -->
+<div class="modal-backdrop" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+    <div class="modal">
+        <button type="button" class="modal-close" id="loginModalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
+        <h2 id="loginModalTitle" data-i18n="login_modal_title">登入</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail" data-i18n="login_email_label">郵箱</label>
+                <input type="email" id="loginEmail" name="loginEmail" required />
+            </div>
+            <div class="form-group">
+                <label for="loginPassword" data-i18n="login_password_label">密碼</label>
+                <input type="password" id="loginPassword" name="loginPassword" required />
+            </div>
+            <button type="submit" class="btn-save" data-i18n="btn_login_submit">登入</button>
+        </form>
+    </div>
+</div>
+
+<!-- 八字真實排盤邏輯：與 index.html 共用同一套 lunar-javascript + bazi_logic.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lunar-javascript/1.7.4/lunar.min.js"></script>
+<script src="bazi_logic.js"></script>
+<script>
+(function () {
+    const WUXING_CLASS = {
+        '甲': 'mu', '乙': 'mu',
+        '丙': 'huo', '丁': 'huo',
+        '戊': 'tu', '己': 'tu',
+        '庚': 'jin', '辛': 'jin',
+        '壬': 'shui', '癸': 'shui',
+        '子': 'shui', '亥': 'shui',
+        '寅': 'mu', '卯': 'mu',
+        '巳': 'huo', '午': 'huo',
+        '申': 'jin', '酉': 'jin',
+        '辰': 'tu', '戌': 'tu', '丑': 'tu', '未': 'tu'
+    };
+
+    const STORAGE_KEY = 'bazi_profiles';
+    const ACTIVE_KEY = 'bazi_active_id';
+
+    const defaultProfiles = [
+        {
+            id: 'demo-1',
+            nickname: '本人',
+            gender: 1,
+            birthDate: '1984/01/15',
+            birthTime: '12:00',
+            birthplace: '北京'
+        }
+    ];
+
+    const FALLBACK_BAZI = {
+        pillars: [
+            { gan: '甲', zhi: '子' },
+            { gan: '丙', zhi: '午' },
+            { gan: '戊', zhi: '申' },
+            { gan: '庚', zhi: '辰' }
+        ],
+        period: { dayun: '——', year: '——', month: '——' }
+    };
+
+    // 取「今天」對應的流年、流月干支：年柱／月柱本身只由節氣與日期決定，
+    // 與具體出生資料無關，所有人在同一天的流年流月都相同，直接用當下時間排盤即可。
+    let cachedNowKey = '';
+    let cachedNowGanZhi = null;
+    function getCurrentYearMonthGanZhi() {
+        const now = new Date();
+        const key = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        if (cachedNowGanZhi && cachedNowKey === key) return cachedNowGanZhi;
+        const nowEightChar = Solar.fromYmdHms(now.getFullYear(), now.getMonth() + 1, now.getDate(),
+            now.getHours(), now.getMinutes(), now.getSeconds()).getLunar().getEightChar();
+        cachedNowKey = key;
+        cachedNowGanZhi = {
+            year: nowEightChar.getYearGan() + nowEightChar.getYearZhi(),
+            month: nowEightChar.getMonthGan() + nowEightChar.getMonthZhi()
+        };
+        return cachedNowGanZhi;
+    }
+
+    // 由暱稱設定的出生日期/時間排出真實八字四柱，並算出當前所在大運，
+    // 與 index.html 使用同一套 lunar-javascript 排盤邏輯，只是省略了真太陽時的經度校正。
+    function computeBaziForProfile(profile) {
+        try {
+            const [y, m, d] = (profile.birthDate || '').split('/').map((v) => parseInt(v, 10));
+            const [hh, mm] = (profile.birthTime || '').split(':').map((v) => parseInt(v, 10));
+            if (!y || !m || !d) throw new Error('出生日期格式錯誤');
+
+            const solar = Solar.fromYmdHms(y, m, d, isNaN(hh) ? 0 : hh, isNaN(mm) ? 0 : mm, 0);
+            const eightChar = solar.getLunar().getEightChar();
+            const pillars = [
+                { gan: eightChar.getYearGan(), zhi: eightChar.getYearZhi() },
+                { gan: eightChar.getMonthGan(), zhi: eightChar.getMonthZhi() },
+                { gan: eightChar.getDayGan(), zhi: eightChar.getDayZhi() },
+                { gan: eightChar.getTimeGan(), zhi: eightChar.getTimeZhi() }
+            ];
+
+            let dayunGanZhi = '';
+            try {
+                const yun = eightChar.getYun(profile.gender);
+                const currentYear = new Date().getFullYear();
+                const matched = yun.getDaYun(12).find((dy) =>
+                    currentYear >= dy.getStartYear() && currentYear <= dy.getEndYear());
+                if (matched) dayunGanZhi = matched.getGanZhi();
+            } catch (_) {}
+
+            const nowYearMonth = getCurrentYearMonthGanZhi();
+            return {
+                pillars,
+                period: {
+                    dayun: dayunGanZhi || '——',
+                    year: nowYearMonth.year,
+                    month: nowYearMonth.month
+                }
+            };
+        } catch (err) {
+            console.error('八字排盤計算失敗：', err);
+            return FALLBACK_BAZI;
+        }
+    }
+
+    function loadProfiles() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length) return parsed;
+            }
+        } catch (_) {}
+        return defaultProfiles.slice();
+    }
+
+    function saveProfiles(list) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    function getActiveId(list) {
+        const id = localStorage.getItem(ACTIVE_KEY);
+        if (id && list.some((p) => p.id === id)) return id;
+        return list[0].id;
+    }
+
+    function setActiveId(id) {
+        localStorage.setItem(ACTIVE_KEY, id);
+    }
+
+    function wxClass(ch) {
+        return WUXING_CLASS[ch] || 'tu';
+    }
+
+    function renderPillars(profile) {
+        const bazi = computeBaziForProfile(profile);
+        const pillars = document.querySelectorAll('#baziPillars .pillar');
+        bazi.pillars.forEach((p, i) => {
+            const el = pillars[i];
+            if (!el) return;
+            const stem = el.querySelector('[data-stem]');
+            const branch = el.querySelector('[data-branch]');
+            stem.textContent = p.gan;
+            branch.textContent = p.zhi;
+            stem.className = 'pillar-stem ' + wxClass(p.gan);
+            branch.className = 'pillar-branch ' + wxClass(p.zhi);
+        });
+
+        const d = bazi.period;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        document.getElementById('periodInfo').innerHTML =
+            `<span class="${wxClass(d.dayun[0])}">${d.dayun[0]}</span>` +
+            `<span class="${wxClass(d.dayun[1])}">${d.dayun[1]}</span>${t('period_dayun')}` +
+            `<span class="period-dot">·</span>` +
+            `<span class="${wxClass(d.year[0])}">${d.year[0]}</span>` +
+            `<span class="${wxClass(d.year[1])}">${d.year[1]}</span>${t('period_year')}` +
+            `<span class="period-dot">·</span>` +
+            `<span class="${wxClass(d.month[0])}">${d.month[0]}</span>` +
+            `<span class="${wxClass(d.month[1])}">${d.month[1]}</span>${t('period_month')}`;
+    }
+
+    function renderMenu(list, activeId) {
+        const menu = document.getElementById('baziMenu');
+        menu.innerHTML = list.map((p) => {
+            const short = computeBaziForProfile(p).pillars[0];
+            return `<button type="button" role="menuitem" data-id="${p.id}" class="${p.id === activeId ? 'active' : ''}">` +
+                `<span class="tag">${p.nickname}</span>${short.gan}${short.zhi} · ${p.birthDate}` +
+                `</button>`;
+        }).join('');
+    }
+
+    let profiles = loadProfiles();
+    let activeId = getActiveId(profiles);
+
+    function refresh() {
+        const active = profiles.find((p) => p.id === activeId) || profiles[0];
+        activeId = active.id;
+        setActiveId(activeId);
+        renderPillars(active);
+        renderMenu(profiles, activeId);
+    }
+
+    refresh();
+
+    // 預填今日日期
+    (function () {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        document.getElementById('birthDate').value = `${y}/${m}/${d}`;
+    })();
+
+    const addModal = document.getElementById('addModal');
+    const baziMenu = document.getElementById('baziMenu');
+
+    // 語言切換按鈕：單一按鈕 + 下拉選單，選中的語言用短標籤顯示在按鈕上
+    const langMenu = document.getElementById('langMenu');
+    const langSwitchLabel = document.getElementById('langSwitchLabel');
+
+    function updateLangSwitchLabel() {
+        if (!window.I18N) return;
+        const lang = window.I18N.getLanguage();
+        const key = lang === 'zh-TW' ? 'lang_zh_tw' : (lang === 'zh-CN' ? 'lang_zh_cn' : 'lang_en');
+        langSwitchLabel.textContent = window.I18N.t(key);
+    }
+
+    // 语言切换：重新渲染带固定词汇（大运/年/月等）的动态内容
+    document.addEventListener('i18n:change', () => {
+        refresh();
+        updateLangSwitchLabel();
+    });
+
+    document.getElementById('langSwitchBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        baziMenu.classList.remove('open');
+        langMenu.classList.toggle('open');
+    });
+
+    langMenu.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-lang-option]');
+        if (!btn || !window.I18N) return;
+        e.stopPropagation();
+        window.I18N.setLanguage(btn.getAttribute('data-lang-option'));
+        langMenu.classList.remove('open');
+    });
+
+    updateLangSwitchLabel();
+
+    // 登入狀態（前端模擬，暫無後端）：登入後將登入按鈕替換為用戶頭像 + 下拉選單
+    const AUTH_KEY = 'bazi_logged_in';
+    const btnLogin = document.getElementById('btnLogin');
+    const userMenuWrap = document.getElementById('userMenuWrap');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenu = document.getElementById('userMenu');
+    const loginModal = document.getElementById('loginModal');
+    const loginModalClose = document.getElementById('loginModalClose');
+    const loginForm = document.getElementById('loginForm');
+
+    function isLoggedIn() {
+        return localStorage.getItem(AUTH_KEY) === '1';
+    }
+
+    function updateAuthUI() {
+        const logged = isLoggedIn();
+        btnLogin.style.display = logged ? 'none' : '';
+        userMenuWrap.style.display = logged ? '' : 'none';
+    }
+
+    function setLoggedIn(value) {
+        if (value) localStorage.setItem(AUTH_KEY, '1');
+        else localStorage.removeItem(AUTH_KEY);
+        updateAuthUI();
+    }
+
+    updateAuthUI();
+
+    btnLogin.addEventListener('click', () => {
+        baziMenu.classList.remove('open');
+        langMenu.classList.remove('open');
+        loginModal.classList.add('open');
+    });
+
+    loginModalClose.addEventListener('click', () => {
+        loginModal.classList.remove('open');
+    });
+
+    loginModal.addEventListener('click', (e) => {
+        if (e.target === loginModal) loginModal.classList.remove('open');
+    });
+
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        setLoggedIn(true);
+        loginModal.classList.remove('open');
+        loginForm.reset();
+    });
+
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        baziMenu.classList.remove('open');
+        langMenu.classList.remove('open');
+        userMenu.classList.toggle('open');
+    });
+
+    userMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        setLoggedIn(false);
+        userMenu.classList.remove('open');
+    });
+
+    document.getElementById('btnAddBazi').addEventListener('click', () => {
+        baziMenu.classList.remove('open');
+        langMenu.classList.remove('open');
+        addModal.classList.add('open');
+    });
+
+    document.getElementById('modalClose').addEventListener('click', () => {
+        addModal.classList.remove('open');
+    });
+
+    addModal.addEventListener('click', (e) => {
+        if (e.target === addModal) addModal.classList.remove('open');
+    });
+
+    document.getElementById('btnSwitchBazi').addEventListener('click', (e) => {
+        e.stopPropagation();
+        langMenu.classList.remove('open');
+        baziMenu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', () => {
+        baziMenu.classList.remove('open');
+        langMenu.classList.remove('open');
+        userMenu.classList.remove('open');
+    });
+
+    baziMenu.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-id]');
+        if (!btn) return;
+        e.stopPropagation();
+        activeId = btn.dataset.id;
+        setActiveId(activeId);
+        refresh();
+        baziMenu.classList.remove('open');
+    });
+
+    // 性別切換
+    document.querySelectorAll('.gender-row button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.gender-row button').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('gender').value = btn.dataset.gender;
+        });
+    });
+
+    document.getElementById('addBaziForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nickname = document.getElementById('nickname').value.trim();
+        const gender = parseInt(document.getElementById('gender').value, 10);
+        const birthDate = document.getElementById('birthDate').value.trim();
+        const birthTime = document.getElementById('birthTime').value.trim();
+        const birthplace = document.getElementById('birthplace').value.trim();
+
+        if (!nickname || !birthDate || !birthTime || !birthplace) {
+            alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
+            return;
+        }
+
+        // 真實八字四柱與大運由 computeBaziForProfile() 現場排盤（見上方），
+        // 這裡只需保存出生資料本身，不再快取死的四柱結果。
+        const profile = {
+            id: 'p-' + Date.now(),
+            nickname,
+            gender,
+            birthDate,
+            birthTime,
+            birthplace
+        };
+
+        profiles.push(profile);
+        saveProfiles(profiles);
+        activeId = profile.id;
+        setActiveId(activeId);
+        refresh();
+        addModal.classList.remove('open');
+        e.target.reset();
+        document.getElementById('gender').value = '1';
+        document.querySelectorAll('.gender-row button').forEach((b, i) => {
+            b.classList.toggle('active', i === 0);
+        });
+        const now = new Date();
+        document.getElementById('birthDate').value =
+            `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+        document.getElementById('birthTime').value = '12:00';
+        document.getElementById('birthplace').value = '北京';
+    });
+})();
+</script>
+
+</body>
+</html>

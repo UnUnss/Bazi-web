@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElementaWall · 天干地支八字壁紙</title>
+    <!-- 楷体字型自托管在 assets/fonts/cooper-zhengkai/，不依赖外部 CDN 或系统字体 -->
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            /* 系统楷体优先（Kaiti SC/STKaiti/Kaiti TC/BiauKai 为苹果系统，KaiTi/DFKai-SB/標楷體
+               为 Windows 简繁楷体），自托管的 CooperZhengKai（汇迹正楷）在无楷体设备上兜底 */
+            font-family: "Kaiti SC", "STKaiti", "Kaiti TC", "BiauKai", "KaiTi", "DFKai-SB", "標楷體",
+                         "CooperZhengKai",
+                         serif;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* 最底层：宣纸背景 */
+        .bg {
+            position: fixed;
+            inset: 0;
+            background: url('assets/bg-paper.jpg') center / cover no-repeat;
+            z-index: 1;
+        }
+
+        /* 圆盘 wrapper：按PS坐标精确定位（X=-1131,Y=-9，画布2880×1800，圆盘3168×3169） */
+        .disk-wrap {
+            position: fixed;
+            left: -51.8vw;   /* -1131/2880*100 - (135-110)/2，修正放大后的偏移 */
+            top: -0.5vh;     /* -9/1800 * 100vh ≈ 0 */
+            width: 135vw;    /* 放大后直径 */
+            height: auto;
+            z-index: 2;
+            pointer-events: none;
+            mix-blend-mode: darken;
+            opacity: 0.3;
+        }
+
+        /* 圆盘 img：只负责旋转，旋转中心为圆盘中心 */
+        .disk-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+            animation: spin 90s linear infinite;
+            transform-origin: center center;
+        }
+
+        /* 金色卷轴：全画布导出，top:0 left:0 自动对齐PS位置 */
+        .scroll {
+            position: fixed;
+            width: 100%;
+            height: auto;
+            left: 0;
+            top: 0;
+            mix-blend-mode: darken;
+            z-index: 3;
+        }
+
+        /* 文字图层：全画布导出，自动对齐 */
+        .text {
+            position: fixed;
+            width: 100%;
+            height: auto;
+            left: 0;
+            top: 0;
+            z-index: 4;
+        }
+
+        /* ElementaWall：全画布导出，自动对齐 */
+        .brand {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* CTA 按钮：放在右下方（留有余白，不贴死角落） */
+        .cta-wrap {
+            position: fixed;
+            bottom: 9vh;
+            right: 12vw;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: inherit;
+            font-size: 15px;
+            letter-spacing: 0.22em;
+            color: #2a1e0a;
+            text-decoration: none;
+            padding: 12px 32px;
+            border: 1px solid rgba(42, 30, 10, 0.3);
+            border-radius: 2px;
+            background: rgba(237, 228, 210, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: background 0.3s, letter-spacing 0.3s;
+        }
+
+        .cta-btn:hover {
+            background: rgba(237, 228, 210, 0.95);
+            letter-spacing: 0.3em;
+        }
+
+        .arrow { font-size: 17px; transition: transform 0.3s; }
+        .cta-btn:hover .arrow { transform: translateX(4px); }
+
+        .cta-sub {
+            margin-top: 12px;
+            font-size: 15px;
+            letter-spacing: 0.12em;
+            color: #9a8a68;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 720px) {
+            .cta-wrap {
+                left: 50%;
+                right: auto;
+                bottom: 6vh;
+                transform: translateX(-50%);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- z-index 1：宣纸底层 -->
+<div class="bg"></div>
+
+<!-- 点击整页跳转排盘（landing 为用户可见页，index 仅底层计算） -->
+<div style="position:fixed;inset:0;z-index:5;cursor:pointer;"
+     onclick="window.location.href='landing.html'">
+
+    <!-- 圆盘：darken + 30% 不透明度 -->
+    <div class="disk-wrap">
+        <img src="assets/disk.png" alt="" draggable="false">
+    </div>
+
+    <!-- 卷轴：darken 混合 -->
+    <img class="scroll" src="assets/scroll.png" alt="" draggable="false">
+
+    <!-- 文字图层 -->
+    <img class="text" src="assets/text.png" alt="" draggable="false">
+
+</div>
+
+<!-- z-index 10：品牌名 & 按钮，始终在最上 -->
+<img class="brand" src="assets/english.png" alt="ElementaWall" draggable="false" style="mix-blend-mode: multiply;">
+
+<div class="cta-wrap">
+    <a class="cta-btn" href="landing.html">
+        開始<span class="arrow">›</span>
+    </a>
+    <p class="cta-sub">基於生辰八字，定制每月運勢壁紙</p>
+</div>
+
+</body>
+</html>
