@@ -89,18 +89,25 @@
         nav {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 22px 52px;
+            justify-content: flex-end;
+            padding: 48px 52px 20px;
             position: relative;
             min-height: 22px;
         }
 
-        .nav-brand {
-            font-size: 15px;
-            font-weight: 400;
-            letter-spacing: 0.1em;
-            color: var(--ink);
-            white-space: nowrap;
+        .nav-logo-wrap {
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50vw;
+            pointer-events: none;
+        }
+
+        .nav-logo-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
         }
 
         .nav-user {
@@ -110,10 +117,21 @@
         }
 
         .nav-user-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid var(--line);
+            background: rgba(255, 252, 245, 0.6);
             color: var(--ink);
             cursor: pointer;
-            opacity: 0.8;
             display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .nav-user-icon:hover {
+            background: rgba(255, 252, 245, 0.9);
         }
 
         .auth-area {
@@ -151,17 +169,20 @@
             position: relative;
         }
 
-        .lang-switch-wrap {
+        .lang-switch-wrap,
+        .about-switch-wrap {
             position: relative;
         }
 
-        .lang-switch-btn .caret {
+        .lang-switch-btn .caret,
+        .about-switch-btn .caret {
             font-size: 9px;
             opacity: 0.7;
         }
 
         .lang-menu,
-        .user-menu {
+        .user-menu,
+        .about-menu {
             display: none;
             position: absolute;
             top: calc(100% + 6px);
@@ -179,13 +200,30 @@
             min-width: 160px;
         }
 
+        .user-menu-email {
+            padding: 9px 14px;
+            font-size: 12px;
+            color: var(--ink-soft);
+            letter-spacing: 0.02em;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-menu-email:empty {
+            display: none;
+        }
+
         .lang-menu.open,
-        .user-menu.open {
+        .user-menu.open,
+        .about-menu.open {
             display: block;
         }
 
         .lang-menu button,
-        .user-menu button {
+        .user-menu button,
+        .about-menu a {
             display: block;
             width: 100%;
             font-family: inherit;
@@ -195,19 +233,22 @@
             border: none;
             background: transparent;
             color: var(--ink);
+            text-decoration: none;
             cursor: pointer;
             text-align: left;
             border-bottom: 1px solid rgba(42, 30, 10, 0.08);
         }
 
         .lang-menu button:last-child,
-        .user-menu button:last-child {
+        .user-menu button:last-child,
+        .about-menu a:last-child {
             border-bottom: none;
         }
 
         .lang-menu button:hover,
         .lang-menu button.active,
-        .user-menu button:hover {
+        .user-menu button:hover,
+        .about-menu a:hover {
             background: rgba(42, 30, 10, 0.05);
         }
 
@@ -382,12 +423,18 @@
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 24px;
+            box-sizing: border-box;
+            padding: 28px 24px 24px;
+            background: rgba(255, 253, 248, 0.88);
+            border-radius: 6px;
         }
 
         .wallpaper-card {
             display: flex;
             flex-direction: column;
             align-items: center;
+            height: 100%;
+            box-sizing: border-box;
         }
 
         .wallpaper-card .tag {
@@ -450,6 +497,10 @@
             margin-top: 18px;
             text-align: center;
             width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .wallpaper-meta .name {
@@ -478,6 +529,7 @@
             border-radius: 2px;
             cursor: pointer;
             transition: background 0.2s;
+            margin-top: auto;
         }
 
         .btn-download:hover {
@@ -595,6 +647,39 @@
             flex: 1;
         }
 
+        .code-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .code-row input {
+            flex: 1;
+        }
+
+        .btn-get-code {
+            flex-shrink: 0;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: rgba(255, 252, 245, 0.72);
+            color: var(--ink);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .btn-get-code:hover {
+            background: rgba(255, 252, 245, 0.95);
+        }
+
+        .btn-get-code:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .btn-save {
             width: 100%;
             margin-top: 8px;
@@ -613,6 +698,25 @@
             background: #3d2e14;
         }
 
+        .auth-toggle {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--ink-soft);
+        }
+
+        .auth-toggle-btn {
+            font-family: inherit;
+            font-size: 13px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 4px;
+        }
+
         /* ─── 響應式 ───────────────────────────────────── */
 
         @media (max-width: 900px) {
@@ -625,11 +729,12 @@
 
         @media (max-width: 720px) {
             nav {
-                padding: 18px 20px;
+                padding: 40px 20px 16px;
             }
 
-            .nav-brand {
-                font-size: 12px;
+            .nav-logo-wrap {
+                top: 6px;
+                width: 100vw;
             }
 
             .nav-user {
@@ -678,10 +783,20 @@
 </div>
 
 <nav>
-    <div class="nav-brand" data-i18n="nav_brand">運勢壁紙</div>
+    <div class="nav-logo-wrap">
+        <img src="assets/english.png" alt="ElementaWall" draggable="false">
+    </div>
     <div class="nav-user">
-        <a href="#" class="nav-link-item" data-i18n="nav_about">關於我們</a>
-        <a href="#" class="nav-link-item" data-i18n="nav_pricing">定價</a>
+        <a href="index.html" class="nav-link-item" data-i18n="nav_home">首頁</a>
+        <div class="about-switch-wrap" id="aboutSwitchWrap">
+            <button type="button" class="nav-link-item about-switch-btn" id="aboutSwitchBtn">
+                <span data-i18n="nav_about">關於我們</span><span class="caret">▼</span>
+            </button>
+            <div class="about-menu" id="aboutMenu" role="menu">
+                <a href="#" data-i18n="nav_about">關於我們</a>
+                <a href="#" data-i18n="nav_contact">聯絡我們</a>
+            </div>
+        </div>
         <div class="lang-switch-wrap" id="langSwitchWrap">
             <button type="button" class="lang-switch-btn" id="langSwitchBtn">
                 <span id="langSwitchLabel">繁</span><span class="caret">▼</span>
@@ -696,17 +811,15 @@
             <button type="button" class="btn-login" id="btnLogin" data-i18n="nav_login">登入 / 註冊</button>
             <div class="user-menu-wrap" id="userMenuWrap" style="display:none;">
                 <div class="nav-user-icon" id="userMenuBtn" data-i18n-aria-label="nav_user_aria" aria-label="用戶">
-                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="M17.982 18.725A7.488 7.488 0 0012 15.75
-                                 a7.488 7.488 0 00-5.982 2.975m11.963 0
-                                 a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0
-                                 0 0112 21a8.966 8.966 0 01-5.982-2.275
-                                 M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="1.7">
+                        <circle cx="12" cy="8.3" r="3.6" />
+                        <path d="M4.8 19.5c0-4.14 3.22-6.6 7.2-6.6s7.2 2.46 7.2 6.6"
+                              stroke-linecap="round" />
                     </svg>
                 </div>
                 <div class="user-menu" id="userMenu" role="menu">
+                    <div class="user-menu-email" id="userMenuEmail"></div>
                     <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
@@ -843,18 +956,27 @@
 <div class="modal-backdrop" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
     <div class="modal">
         <button type="button" class="modal-close" id="loginModalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
-        <h2 id="loginModalTitle" data-i18n="login_modal_title">登入</h2>
+        <h2 id="loginModalTitle">登入</h2>
         <form id="loginForm">
             <div class="form-group">
                 <label for="loginEmail" data-i18n="login_email_label">郵箱</label>
                 <input type="email" id="loginEmail" name="loginEmail" required />
             </div>
             <div class="form-group">
-                <label for="loginPassword" data-i18n="login_password_label">密碼</label>
-                <input type="password" id="loginPassword" name="loginPassword" required />
+                <label for="loginCode" data-i18n="login_code_label">驗證碼</label>
+                <div class="code-row">
+                    <input type="text" id="loginCode" name="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required />
+                    <button type="button" class="btn-get-code" id="btnGetCode" data-i18n="btn_get_code">獲取驗證碼</button>
+                </div>
             </div>
-            <button type="submit" class="btn-save" data-i18n="btn_login_submit">登入</button>
+            <button type="submit" class="btn-save" id="loginSubmitBtn">登入</button>
         </form>
+        <p class="auth-toggle" id="authToggleToSignup">
+            <span data-i18n="auth_toggle_to_signup_prefix">還沒有帳號？</span><button type="button" class="auth-toggle-btn" id="btnSwitchToSignup" data-i18n="auth_toggle_to_signup_action">立即註冊</button>
+        </p>
+        <p class="auth-toggle" id="authToggleToLogin" style="display:none;">
+            <span data-i18n="auth_toggle_to_login_prefix">已有帳號？</span><button type="button" class="auth-toggle-btn" id="btnSwitchToLogin" data-i18n="auth_toggle_to_login_action">直接登入</button>
+        </p>
     </div>
 </div>
 
@@ -1070,6 +1192,7 @@
     document.getElementById('langSwitchBtn').addEventListener('click', (e) => {
         e.stopPropagation();
         baziMenu.classList.remove('open');
+        aboutMenu.classList.remove('open');
         langMenu.classList.toggle('open');
     });
 
@@ -1083,15 +1206,41 @@
 
     updateLangSwitchLabel();
 
+    // 關於我們：單一按鈕 + 下拉選單，展開「關於我們」「聯絡我們」兩個入口
+    const aboutMenu = document.getElementById('aboutMenu');
+
+    document.getElementById('aboutSwitchBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        baziMenu.classList.remove('open');
+        langMenu.classList.remove('open');
+        userMenu.classList.remove('open');
+        aboutMenu.classList.toggle('open');
+    });
+
+    aboutMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        aboutMenu.classList.remove('open');
+    });
+
     // 登入狀態（前端模擬，暫無後端）：登入後將登入按鈕替換為用戶頭像 + 下拉選單
     const AUTH_KEY = 'bazi_logged_in';
+    const AUTH_EMAIL_KEY = 'bazi_logged_in_email';
     const btnLogin = document.getElementById('btnLogin');
     const userMenuWrap = document.getElementById('userMenuWrap');
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userMenu = document.getElementById('userMenu');
+    const userMenuEmail = document.getElementById('userMenuEmail');
     const loginModal = document.getElementById('loginModal');
     const loginModalClose = document.getElementById('loginModalClose');
     const loginForm = document.getElementById('loginForm');
+    const loginEmailInput = document.getElementById('loginEmail');
+    const loginCodeInput = document.getElementById('loginCode');
+    const btnGetCode = document.getElementById('btnGetCode');
+    const loginModalTitle = document.getElementById('loginModalTitle');
+    const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+    const authToggleToSignup = document.getElementById('authToggleToSignup');
+    const authToggleToLogin = document.getElementById('authToggleToLogin');
+    let authMode = 'login';
 
     function isLoggedIn() {
         return localStorage.getItem(AUTH_KEY) === '1';
@@ -1101,41 +1250,143 @@
         const logged = isLoggedIn();
         btnLogin.style.display = logged ? 'none' : '';
         userMenuWrap.style.display = logged ? '' : 'none';
+        userMenuEmail.textContent = logged ? (localStorage.getItem(AUTH_EMAIL_KEY) || '') : '';
     }
 
-    function setLoggedIn(value) {
-        if (value) localStorage.setItem(AUTH_KEY, '1');
-        else localStorage.removeItem(AUTH_KEY);
+    function setLoggedIn(value, email) {
+        if (value) {
+            localStorage.setItem(AUTH_KEY, '1');
+            if (email) localStorage.setItem(AUTH_EMAIL_KEY, email);
+        } else {
+            localStorage.removeItem(AUTH_KEY);
+            localStorage.removeItem(AUTH_EMAIL_KEY);
+        }
         updateAuthUI();
     }
 
     updateAuthUI();
 
+    // 登入／註冊共用同一個彈窗，靠 authMode 切換標題、按鈕文案跟底部提示（前端模擬，暫無後端）
+    function applyAuthMode() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        if (authMode === 'signup') {
+            loginModalTitle.textContent = t('signup_modal_title');
+            loginSubmitBtn.textContent = t('btn_signup_submit');
+            authToggleToSignup.style.display = 'none';
+            authToggleToLogin.style.display = '';
+        } else {
+            loginModalTitle.textContent = t('login_modal_title');
+            loginSubmitBtn.textContent = t('btn_login_submit');
+            authToggleToSignup.style.display = '';
+            authToggleToLogin.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('i18n:change', applyAuthMode);
+
     btnLogin.addEventListener('click', () => {
         baziMenu.classList.remove('open');
         langMenu.classList.remove('open');
+        aboutMenu.classList.remove('open');
+        authMode = 'login';
+        applyAuthMode();
+        resetCodeState();
         loginModal.classList.add('open');
+    });
+
+    document.getElementById('btnSwitchToSignup').addEventListener('click', () => {
+        authMode = 'signup';
+        applyAuthMode();
+    });
+
+    document.getElementById('btnSwitchToLogin').addEventListener('click', () => {
+        authMode = 'login';
+        applyAuthMode();
     });
 
     loginModalClose.addEventListener('click', () => {
         loginModal.classList.remove('open');
+        resetCodeState();
     });
 
     loginModal.addEventListener('click', (e) => {
-        if (e.target === loginModal) loginModal.classList.remove('open');
+        if (e.target === loginModal) {
+            loginModal.classList.remove('open');
+            resetCodeState();
+        }
+    });
+
+    // 驗證碼登入（前端模擬，暫無後端／簡訊服務）：點擊獲取後生成一個隨機 6 位碼，
+    // 直接彈窗告知（等同「模擬簡訊」），輸入一致即視為登入成功。
+    let mockSentCode = '';
+    let codeCountdownTimer = null;
+
+    function resetCodeState() {
+        mockSentCode = '';
+        loginCodeInput.value = '';
+        if (codeCountdownTimer) {
+            clearInterval(codeCountdownTimer);
+            codeCountdownTimer = null;
+        }
+        btnGetCode.disabled = false;
+        btnGetCode.textContent = window.I18N ? window.I18N.t('btn_get_code') : '獲取驗證碼';
+    }
+
+    btnGetCode.addEventListener('click', () => {
+        const email = loginEmailInput.value.trim();
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        if (!email) {
+            alert(t('alert_fill_required'));
+            loginEmailInput.focus();
+            return;
+        }
+
+        mockSentCode = String(Math.floor(100000 + Math.random() * 900000));
+        alert(t('code_sent_notice') + ' ' + mockSentCode);
+
+        btnGetCode.disabled = true;
+        let remaining = 60;
+        btnGetCode.textContent = remaining + 's';
+        codeCountdownTimer = setInterval(() => {
+            remaining -= 1;
+            if (remaining <= 0) {
+                clearInterval(codeCountdownTimer);
+                codeCountdownTimer = null;
+                btnGetCode.disabled = false;
+                btnGetCode.textContent = t('btn_get_code');
+            } else {
+                btnGetCode.textContent = remaining + 's';
+            }
+        }, 1000);
     });
 
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        setLoggedIn(true);
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const enteredCode = loginCodeInput.value.trim();
+
+        if (!mockSentCode) {
+            alert(t('code_not_sent_notice'));
+            return;
+        }
+        if (enteredCode !== mockSentCode) {
+            alert(t('code_invalid_notice'));
+            return;
+        }
+
+        setLoggedIn(true, loginEmailInput.value.trim());
         loginModal.classList.remove('open');
         loginForm.reset();
+        resetCodeState();
     });
+
+    applyAuthMode();
 
     userMenuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         baziMenu.classList.remove('open');
         langMenu.classList.remove('open');
+        aboutMenu.classList.remove('open');
         userMenu.classList.toggle('open');
     });
 
@@ -1148,9 +1399,19 @@
         userMenu.classList.remove('open');
     });
 
+    function showMockNotice() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        alert(t('mock_feature_notice'));
+        userMenu.classList.remove('open');
+    }
+
+    document.getElementById('btnDownloadHistory').addEventListener('click', showMockNotice);
+    document.getElementById('btnAccount').addEventListener('click', showMockNotice);
+
     document.getElementById('btnAddBazi').addEventListener('click', () => {
         baziMenu.classList.remove('open');
         langMenu.classList.remove('open');
+        aboutMenu.classList.remove('open');
         addModal.classList.add('open');
     });
 
@@ -1165,12 +1426,14 @@
     document.getElementById('btnSwitchBazi').addEventListener('click', (e) => {
         e.stopPropagation();
         langMenu.classList.remove('open');
+        aboutMenu.classList.remove('open');
         baziMenu.classList.toggle('open');
     });
 
     document.addEventListener('click', () => {
         baziMenu.classList.remove('open');
         langMenu.classList.remove('open');
+        aboutMenu.classList.remove('open');
         userMenu.classList.remove('open');
     });
 
