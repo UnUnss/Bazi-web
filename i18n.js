@@ -65,6 +65,8 @@
             gender_male: '男',
             gender_female: '女',
             form_birth_label: '出生信息',
+            form_birth_date_label: '出生日期',
+            form_birth_time_label: '出生時間',
             form_birthplace_label: '出生地點',
             form_birthplace_placeholder: '城市',
             btn_save: '保存八字',
@@ -74,7 +76,9 @@
             lang_en: 'EN',
             lang_menu_zh_tw: '繁體中文',
             lang_menu_zh_cn: '简体中文',
-            lang_menu_en: 'English'
+            lang_menu_en: 'English',
+            cta_start: '開始',
+            cta_sub: '基於生辰八字，定制每月運勢壁紙'
         },
         'zh-CN': {
             meta_title: '八字定制每月运势壁纸',
@@ -137,6 +141,8 @@
             gender_male: '男',
             gender_female: '女',
             form_birth_label: '出生信息',
+            form_birth_date_label: '出生日期',
+            form_birth_time_label: '出生时间',
             form_birthplace_label: '出生地点',
             form_birthplace_placeholder: '城市',
             btn_save: '保存八字',
@@ -146,7 +152,9 @@
             lang_en: 'EN',
             lang_menu_zh_tw: '繁體中文',
             lang_menu_zh_cn: '简体中文',
-            lang_menu_en: 'English'
+            lang_menu_en: 'English',
+            cta_start: '开始',
+            cta_sub: '基于生辰八字，定制每月运势壁纸'
         },
         'en': {
             meta_title: 'BaZi Monthly Fortune Wallpaper',
@@ -209,6 +217,8 @@
             gender_male: 'Male',
             gender_female: 'Female',
             form_birth_label: 'Birth Date & Time',
+            form_birth_date_label: 'Birth Date',
+            form_birth_time_label: 'Birth Time',
             form_birthplace_label: 'Birthplace',
             form_birthplace_placeholder: 'City',
             btn_save: 'Save Profile',
@@ -218,7 +228,9 @@
             lang_en: 'EN',
             lang_menu_zh_tw: '繁體中文',
             lang_menu_zh_cn: '简体中文',
-            lang_menu_en: 'English'
+            lang_menu_en: 'English',
+            cta_start: 'Start',
+            cta_sub: 'Personalized monthly fortune wallpapers based on your BaZi'
         }
     };
 

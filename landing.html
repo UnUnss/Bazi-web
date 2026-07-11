@@ -100,7 +100,7 @@
             top: 4px;
             left: 50%;
             transform: translateX(-50%);
-            width: 50vw;
+            width: 100vw;
             pointer-events: none;
         }
 
@@ -421,6 +421,8 @@
 
         .wallpaper-grid {
             display: grid;
+            /* 固定 4 張（本月喜用 2 張 + 本月補運 2 張），卡片內容由計算結果動態決定，
+               但張數本身不隨計算結果變化，之後擴充壁紙庫也不會影響這個佈局 */
             grid-template-columns: repeat(4, 1fr);
             gap: 24px;
             box-sizing: border-box;
@@ -638,13 +640,49 @@
             border-color: var(--ink);
         }
 
-        .datetime-row {
+        /* 出生日期／出生時間都用「下拉選單 + 分隔符」的同一套樣式，避免手動輸入打錯格式 */
+        .select-row {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 4px;
         }
 
-        .datetime-row input {
+        .select-row select {
             flex: 1;
+            width: 100%;
+            min-width: 0;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 11px 20px 11px 10px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: #fff;
+            color: var(--ink);
+            outline: none;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            /* 去掉瀏覽器原生的下拉樣式（macOS/Safari 會顯示雙箭頭 spinner），
+               換成跟其他輸入框一致的外觀，右側改用自畫的小箭頭圖示 */
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a4a28' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 4px center;
+            background-size: 12px;
+        }
+
+        /* 年份數字比月／日長，分配多一點空間 */
+        .select-row select[id="birthYear"] {
+            flex: 1.4;
+        }
+
+        .select-row select:focus {
+            border-color: rgba(42, 30, 10, 0.5);
+        }
+
+        .select-row .sep {
+            color: var(--ink-soft);
         }
 
         .code-row {
@@ -768,8 +806,10 @@
             }
 
             .wallpaper-grid {
-                grid-template-columns: 1fr;
-                max-width: 320px;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 14px;
+                padding: 20px 14px 16px;
+                max-width: 480px;
                 margin: 0 auto;
             }
         }
@@ -874,48 +914,8 @@
 <section class="wallpaper-section">
     <h2 class="wallpaper-title" data-i18n="wallpaper_section_title">本月專屬壁紙</h2>
 
-    <div class="wallpaper-grid">
-        <article class="wallpaper-card">
-            <div class="wallpaper-preview">
-                <img src="assets/wallpapers/wallpaper-1.png" data-i18n-alt="wallpaper_favor1_alt" alt="本月喜用壁紙一" draggable="false" />
-            </div>
-            <div class="wallpaper-meta">
-                <p class="name"><span class="tag" data-i18n="wallpaper_favor_group_title">本月喜用</span><span data-i18n="wallpaper_favor1_name">水 · 深藍</span></p>
-                <p class="desc" data-i18n="wallpaper_favor1_desc">滋養日主，平穩情緒。助你沉靜思考</p>
-                <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
-            </div>
-        </article>
-        <article class="wallpaper-card">
-            <div class="wallpaper-preview">
-                <img src="assets/wallpapers/wallpaper-1.png" data-i18n-alt="wallpaper_favor2_alt" alt="本月喜用壁紙二" draggable="false" />
-            </div>
-            <div class="wallpaper-meta">
-                <p class="name"><span class="tag" data-i18n="wallpaper_favor_group_title">本月喜用</span><span data-i18n="wallpaper_favor2_name">木 · 青竹</span></p>
-                <p class="desc" data-i18n="wallpaper_favor2_desc">生扶日主，舒展心緒，助你穩健前行</p>
-                <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
-            </div>
-        </article>
-        <article class="wallpaper-card">
-            <div class="wallpaper-preview">
-                <img src="assets/wallpapers/wallpaper-2.png" data-i18n-alt="wallpaper_boost1_alt" alt="本月補運壁紙一" draggable="false" />
-            </div>
-            <div class="wallpaper-meta">
-                <p class="name"><span class="tag" data-i18n="wallpaper_boost_group_title">本月補運</span><span data-i18n="wallpaper_boost1_name">桃花運 · 緋紅</span></p>
-                <p class="desc" data-i18n="wallpaper_boost1_desc">催旺人緣與情感連結，宜多社交走動</p>
-                <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
-            </div>
-        </article>
-        <article class="wallpaper-card">
-            <div class="wallpaper-preview">
-                <img src="assets/wallpapers/wallpaper-2.png" data-i18n-alt="wallpaper_boost2_alt" alt="本月補運壁紙二" draggable="false" />
-            </div>
-            <div class="wallpaper-meta">
-                <p class="name"><span class="tag" data-i18n="wallpaper_boost_group_title">本月補運</span><span data-i18n="wallpaper_boost2_name">財運 · 金黃</span></p>
-                <p class="desc" data-i18n="wallpaper_boost2_desc">催旺財氣與貴人運，宜把握機會、大膽出手</p>
-                <button type="button" class="btn-download" data-i18n="btn_download">下載壁紙</button>
-            </div>
-        </article>
-    </div>
+    <!-- 卡片內容由 JS 依據 bazi_logic.js 的本月喜用五行／弱勢領域計算結果動態生成，見下方 renderWallpapers() -->
+    <div class="wallpaper-grid" id="wallpaperGrid"></div>
 </section>
 
 <!-- 新增八字彈窗 -->
@@ -937,10 +937,21 @@
                 <input type="hidden" id="gender" name="gender" value="1" />
             </div>
             <div class="form-group">
-                <label data-i18n="form_birth_label">出生信息</label>
-                <div class="datetime-row">
-                    <input type="text" id="birthDate" name="birthDate" placeholder="YYYY/MM/DD" required />
-                    <input type="text" id="birthTime" name="birthTime" placeholder="HH:MM" value="12:00" required />
+                <label data-i18n="form_birth_date_label">出生日期</label>
+                <div class="select-row">
+                    <select id="birthYear" name="birthYear" required></select>
+                    <span class="sep">/</span>
+                    <select id="birthMonth" name="birthMonth" required></select>
+                    <span class="sep">/</span>
+                    <select id="birthDay" name="birthDay" required></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label data-i18n="form_birth_time_label">出生時間</label>
+                <div class="select-row">
+                    <select id="birthHour" name="birthHour" required></select>
+                    <span class="sep">:</span>
+                    <select id="birthMinute" name="birthMinute" required></select>
                 </div>
             </div>
             <div class="form-group">
@@ -1022,6 +1033,127 @@
         period: { dayun: '——', year: '——', month: '——' }
     };
 
+    // 「本月喜用」壁紙文案：key 為 bazi_logic.js get_monthly_favorable_element() 算出的單一五行。
+    // UI 固定顯示 2 張「本月喜用」卡片，所以每個五行準備 2 個文案變體（畫風/色調略有不同），
+    // 而不是拿 2 個不同五行硬湊——實際喜用五行永遠只有一個，2 張卡片呈現的是同一個計算結果。
+    // 圖片素材目前只有 2 款通用畫風，之後壁紙庫擴充時，直接把 img 換成對應素材路徑即可，
+    // 卡片張數（2+2）不會因為擴充素材而變動。
+    const WUXING_WALLPAPER = {
+        '水': [
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '水 · 深藍', desc: '滋養日主，平穩情緒，助你沉靜思考' },
+              'zh-CN': { name: '水 · 深蓝', desc: '滋养日主，平稳情绪，助你沉静思考' },
+              'en': { name: 'Water · Deep Blue', desc: 'Nourishes your Day Master and calms emotions, helping you think clearly.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '水 · 湖藍', desc: '增強直覺與應變力，助你隨機而動、化解阻力' },
+              'zh-CN': { name: '水 · 湖蓝', desc: '增强直觉与应变力，助你随机而动、化解阻力' },
+              'en': { name: 'Water · Lake Blue', desc: 'Sharpens intuition and adaptability, helping you navigate change with ease.' } }
+        ],
+        '木': [
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '木 · 青竹', desc: '生扶日主，舒展心緒，助你穩健前行' },
+              'zh-CN': { name: '木 · 青竹', desc: '生扶日主，舒展心绪，助你稳健前行' },
+              'en': { name: 'Wood · Bamboo Green', desc: 'Supports your Day Master and eases the mind, helping you move forward steadily.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '木 · 嫩芽綠', desc: '帶來成長動能，助你開展新計畫、穩步擴張' },
+              'zh-CN': { name: '木 · 嫩芽绿', desc: '带来成长动能，助你开展新计划、稳步扩张' },
+              'en': { name: 'Wood · Sprout Green', desc: 'Brings growth momentum, helping you launch new plans and expand steadily.' } }
+        ],
+        '火': [
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '火 · 緋紅', desc: '生旺表達與人氣，助你展現自信與熱情' },
+              'zh-CN': { name: '火 · 绯红', desc: '生旺表达与人气，助你展现自信与热情' },
+              'en': { name: 'Fire · Crimson', desc: 'Energizes charisma and self-expression, helping you shine with confidence.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '火 · 珊瑚橘', desc: '提升行動力與熱度，助你主動出擊、把握時機' },
+              'zh-CN': { name: '火 · 珊瑚橘', desc: '提升行动力与热度，助你主动出击、把握时机' },
+              'en': { name: 'Fire · Coral Orange', desc: 'Boosts drive and energy, helping you seize the moment and take action.' } }
+        ],
+        '土': [
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '土 · 赭黃', desc: '穩固根基，助你踏實積累、抗壓性更強' },
+              'zh-CN': { name: '土 · 赭黄', desc: '稳固根基，助你踏实积累、抗压性更强' },
+              'en': { name: 'Earth · Ochre', desc: 'Strengthens your foundation, helping you build steadily and stay resilient.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '土 · 焦糖棕', desc: '增強穩定感，助你沉穩應對變化、少走彎路' },
+              'zh-CN': { name: '土 · 焦糖棕', desc: '增强稳定感，助你沉稳应对变化、少走弯路' },
+              'en': { name: 'Earth · Caramel Brown', desc: 'Adds a sense of stability, helping you handle change calmly and steadily.' } }
+        ],
+        '金': [
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '金 · 暖金', desc: '生旺財氣與貴人運，助你把握機會、行動果斷' },
+              'zh-CN': { name: '金 · 暖金', desc: '生旺财气与贵人运，助你把握机会、行动果断' },
+              'en': { name: 'Metal · Warm Gold', desc: 'Boosts wealth and helpful connections, sharpening your decisiveness.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '金 · 銀白', desc: '提升決策力與條理，助你理清思路、精準出手' },
+              'zh-CN': { name: '金 · 银白', desc: '提升决策力与条理，助你理清思路、精准出手' },
+              'en': { name: 'Metal · Silver White', desc: 'Sharpens judgment and clarity, helping you plan precisely and act on point.' } }
+        ]
+    };
+
+    // 「本月補運」壁紙文案：key 對應 bazi_logic.js get_monthly_weak_domain() 回傳的生活領域字串
+    // （該函式內部固定用簡體字串當 key，跟 UI 語言無關，故此處以簡體原文比對）。
+    // 同樣每個領域準備 2 個文案變體：如果本月只算出 1 個弱勢領域，就用這個領域的 2 個變體湊成 2 張；
+    // 如果算出 2 個弱勢領域，則各取 1 個變體，一樣是 2 張——卡片張數固定不變。
+    const DOMAIN_WALLPAPER = {
+        '感情与桃花': [
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '桃花運 · 緋紅', desc: '催旺人緣與情感連結，宜多社交走動' },
+              'zh-CN': { name: '桃花运 · 绯红', desc: '催旺人缘与情感连结，宜多社交走动' },
+              'en': { name: 'Romance Luck · Crimson', desc: 'Boosts relationships and social connections — a great time to go out and mingle.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '桃花運 · 玫瑰粉', desc: '提升魅力與親和力，宜主動表達心意' },
+              'zh-CN': { name: '桃花运 · 玫瑰粉', desc: '提升魅力与亲和力，宜主动表达心意' },
+              'en': { name: 'Romance Luck · Rose Pink', desc: 'Enhances charm and warmth — a good time to express how you feel.' } }
+        ],
+        '事业': [
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '事業運 · 金黃', desc: '催旺事業與貴人運，宜把握機會、大膽出手' },
+              'zh-CN': { name: '事业运 · 金黄', desc: '催旺事业与贵人运，宜把握机会、大胆出手' },
+              'en': { name: 'Career Luck · Golden', desc: 'Boosts career momentum and helpful connections — seize opportunities boldly.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '事業運 · 琥珀橘', desc: '提升執行力與魄力，宜主動爭取、勇於表現' },
+              'zh-CN': { name: '事业运 · 琥珀橘', desc: '提升执行力与魄力，宜主动争取、勇于表现' },
+              'en': { name: 'Career Luck · Amber Orange', desc: 'Boosts follow-through and drive — a good time to step up and speak up.' } }
+        ],
+        '人际关系、合伙': [
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '人緣運 · 淺綠', desc: '催旺人際與合作運，宜多與人交流、廣結善緣' },
+              'zh-CN': { name: '人缘运 · 浅绿', desc: '催旺人际与合作运，宜多与人交流、广结善缘' },
+              'en': { name: 'Social Luck · Soft Green', desc: 'Boosts relationships and teamwork — a good time to connect with others.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '人緣運 · 薄荷綠', desc: '增強溝通與信任感，宜主動聯繫、修復關係' },
+              'zh-CN': { name: '人缘运 · 薄荷绿', desc: '增强沟通与信任感，宜主动联系、修复关系' },
+              'en': { name: 'Social Luck · Mint Green', desc: 'Improves communication and trust — a good time to reach out and reconnect.' } }
+        ],
+        '才华灵感': [
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '才華運 · 靈感綠', desc: '激發創意與表達欲，適合學習、創作與輸出想法' },
+              'zh-CN': { name: '才华运 · 灵感绿', desc: '激发创意与表达欲，适合学习、创作与输出想法' },
+              'en': { name: 'Creativity Luck · Inspired Green', desc: 'Sparks fresh ideas — a good time to learn, create, and share your thinking.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '才華運 · 天青藍', desc: '提升專注與思路清晰度，適合鑽研、深度思考' },
+              'zh-CN': { name: '才华运 · 天青蓝', desc: '提升专注与思路清晰度，适合钻研、深度思考' },
+              'en': { name: 'Creativity Luck · Sky Blue', desc: 'Sharpens focus and clarity — a good time for deep thinking and study.' } }
+        ],
+        '健康与贵人运': [
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '健康運 · 靜心綠', desc: '提升氣色與貴人助力，宜多休息、放慢腳步調養' },
+              'zh-CN': { name: '健康运 · 静心绿', desc: '提升气色与贵人助力，宜多休息、放慢脚步调养' },
+              'en': { name: 'Wellness Luck · Calm Green', desc: 'Improves vitality and support from others — take time to rest and recharge.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '健康運 · 霧藍', desc: '增強身心平衡，宜規律作息、適度運動調理' },
+              'zh-CN': { name: '健康运 · 雾蓝', desc: '增强身心平衡，宜规律作息、适度运动调理' },
+              'en': { name: 'Wellness Luck · Misty Blue', desc: 'Improves balance and wellbeing — keep a steady routine and gentle exercise.' } }
+        ]
+    };
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (ch) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    }
+
     // 取「今天」對應的流年、流月干支：年柱／月柱本身只由節氣與日期決定，
     // 與具體出生資料無關，所有人在同一天的流年流月都相同，直接用當下時間排盤即可。
     let cachedNowKey = '';
@@ -1078,6 +1210,28 @@
         } catch (err) {
             console.error('八字排盤計算失敗：', err);
             return FALLBACK_BAZI;
+        }
+    }
+
+    // bazi_logic.js 的計算函式吃的是 {year,month,day,time} 物件，
+    // 這裡把 computeBaziForProfile() 產出的四柱陣列轉成對應形狀。
+    function toLogicBazi(pillars) {
+        return { year: pillars[0], month: pillars[1], day: pillars[2], time: pillars[3] };
+    }
+
+    // 串接 bazi_logic.js：算出這個八字在「當前流月」的喜用五行、以及需要補運的弱勢生活領域，
+    // 用於下方壁紙區塊動態選圖選文案，而不是寫死固定內容。
+    function computeMonthlyInsight(profile) {
+        try {
+            const bazi = computeBaziForProfile(profile);
+            const logicBazi = toLogicBazi(bazi.pillars);
+            const nowYearMonth = getCurrentYearMonthGanZhi();
+            const liuyueZhi = nowYearMonth.month[1];
+            const gender = profile.gender;
+            return get_monthly_favorable_element(logicBazi, liuyueZhi, gender);
+        } catch (err) {
+            console.error('本月喜用計算失敗：', err);
+            return null;
         }
     }
 
@@ -1147,6 +1301,70 @@
         }).join('');
     }
 
+    // 本月壁紙區塊：卡片內容完全由 computeMonthlyInsight() 的計算結果生成——
+    // 第一張永遠對應「本月喜用」單一五行，之後 1~2 張對應本月最需要補運的生活領域。
+    const wallpaperGrid = document.getElementById('wallpaperGrid');
+
+    function renderWallpapers(profile) {
+        const insight = computeMonthlyInsight(profile);
+        const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const cards = [];
+
+        function pushCard(variant, tag) {
+            if (!variant) return;
+            const text = variant[lang] || variant['zh-TW'];
+            cards.push({ img: variant.img, tag, name: text.name, desc: text.desc });
+        }
+
+        // 「本月喜用」固定 2 張：永遠是同一個計算出來的喜用五行，取它的 2 個文案變體
+        const favorVariants = (insight && WUXING_WALLPAPER[insight.favorable_element])
+            || WUXING_WALLPAPER['水']; // 計算失敗時的保底
+        const favorTag = t('wallpaper_favor_group_title');
+        pushCard(favorVariants[0], favorTag);
+        pushCard(favorVariants[1], favorTag);
+
+        // 「本月補運」固定 2 張：算出 2 個弱勢領域就各取 1 個變體；只算出 1 個就取它的 2 個變體湊滿
+        const weakDomains = (insight && insight.weak_domains) || [];
+        const boostTag = t('wallpaper_boost_group_title');
+        if (weakDomains.length >= 2 && DOMAIN_WALLPAPER[weakDomains[0]] && DOMAIN_WALLPAPER[weakDomains[1]]) {
+            pushCard(DOMAIN_WALLPAPER[weakDomains[0]][0], boostTag);
+            pushCard(DOMAIN_WALLPAPER[weakDomains[1]][1], boostTag);
+        } else {
+            const domainVariants = (weakDomains[0] && DOMAIN_WALLPAPER[weakDomains[0]])
+                || DOMAIN_WALLPAPER['感情与桃花']; // 計算失敗時的保底
+            pushCard(domainVariants[0], boostTag);
+            pushCard(domainVariants[1], boostTag);
+        }
+
+        wallpaperGrid.innerHTML = cards.map((c) => `
+            <article class="wallpaper-card">
+                <div class="wallpaper-preview">
+                    <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" />
+                </div>
+                <div class="wallpaper-meta">
+                    <p class="name"><span class="tag">${escapeHtml(c.tag)}</span>${escapeHtml(c.name)}</p>
+                    <p class="desc">${escapeHtml(c.desc)}</p>
+                    <button type="button" class="btn-download" data-img="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
+                </div>
+            </article>
+        `).join('');
+    }
+
+    // 下載壁紙：用事件委託掛在外層容器上，卡片重新渲染（切換八字／切換語言）後不用重新綁定
+    wallpaperGrid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-download');
+        if (!btn) return;
+        const img = btn.getAttribute('data-img');
+        if (!img) return;
+        const a = document.createElement('a');
+        a.href = img;
+        a.download = (btn.getAttribute('data-name') || 'wallpaper') + img.slice(img.lastIndexOf('.'));
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    });
+
     let profiles = loadProfiles();
     let activeId = getActiveId(profiles);
 
@@ -1156,17 +1374,92 @@
         setActiveId(activeId);
         renderPillars(active);
         renderMenu(profiles, activeId);
+        renderWallpapers(active);
     }
 
     refresh();
 
-    // 預填今日日期
+    // 出生日期／時間都用下拉選單，避免使用者手動輸入打錯格式（漏冒號、月份超過 12、
+    // 日期超過當月天數等）。年份範圍取「今年」往前 100 年；日期選項會依年／月動態調整
+    // （例如 2 月只給 28 或 29 天），並在切換年月時盡量保留原本選的日期。
+    const birthYearSelect = document.getElementById('birthYear');
+    const birthMonthSelect = document.getElementById('birthMonth');
+    const birthDaySelect = document.getElementById('birthDay');
+    const birthHourSelect = document.getElementById('birthHour');
+    const birthMinuteSelect = document.getElementById('birthMinute');
+
+    const BIRTH_YEAR_MAX = new Date().getFullYear();
+    const BIRTH_YEAR_MIN = BIRTH_YEAR_MAX - 100;
+
+    function daysInMonth(year, month) {
+        return new Date(year, month, 0).getDate();
+    }
+
+    function buildOptions(select, values) {
+        select.innerHTML = values.map((v) => `<option value="${v}">${v}</option>`).join('');
+    }
+
+    function populateDateSelects() {
+        const years = [];
+        for (let y = BIRTH_YEAR_MAX; y >= BIRTH_YEAR_MIN; y--) years.push(String(y));
+        buildOptions(birthYearSelect, years);
+
+        const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+        buildOptions(birthMonthSelect, months);
+
+        refreshDayOptions();
+    }
+
+    // 依目前選中的年／月，重新產生日期下拉的選項，並盡量保留原本選中的那一天
+    function refreshDayOptions() {
+        const year = parseInt(birthYearSelect.value, 10);
+        const month = parseInt(birthMonthSelect.value, 10);
+        const prevDay = parseInt(birthDaySelect.value, 10) || 1;
+        const total = daysInMonth(year || BIRTH_YEAR_MAX, month || 1);
+        const days = Array.from({ length: total }, (_, i) => String(i + 1).padStart(2, '0'));
+        buildOptions(birthDaySelect, days);
+        birthDaySelect.value = String(Math.min(prevDay, total)).padStart(2, '0');
+    }
+
+    birthYearSelect.addEventListener('change', refreshDayOptions);
+    birthMonthSelect.addEventListener('change', refreshDayOptions);
+
+    function populateTimeSelects() {
+        birthHourSelect.innerHTML = Array.from({ length: 24 }, (_, h) => {
+            const v = String(h).padStart(2, '0');
+            return `<option value="${v}">${v}</option>`;
+        }).join('');
+        birthMinuteSelect.innerHTML = Array.from({ length: 60 }, (_, m) => {
+            const v = String(m).padStart(2, '0');
+            return `<option value="${v}">${v}</option>`;
+        }).join('');
+    }
+
+    function setBirthDateSelects(yyyymmdd) {
+        const [y, m, d] = (yyyymmdd || '').split('/');
+        birthYearSelect.value = y || String(BIRTH_YEAR_MAX);
+        birthMonthSelect.value = m || '01';
+        refreshDayOptions();
+        if (d) birthDaySelect.value = d;
+    }
+
+    function setBirthTimeSelects(hhmm) {
+        const [hh, mm] = (hhmm || '12:00').split(':');
+        birthHourSelect.value = hh || '12';
+        birthMinuteSelect.value = mm || '00';
+    }
+
+    populateDateSelects();
+    populateTimeSelects();
+
+    // 預填今日日期、12:00
     (function () {
         const now = new Date();
         const y = now.getFullYear();
         const m = String(now.getMonth() + 1).padStart(2, '0');
         const d = String(now.getDate()).padStart(2, '0');
-        document.getElementById('birthDate').value = `${y}/${m}/${d}`;
+        setBirthDateSelects(`${y}/${m}/${d}`);
+        setBirthTimeSelects('12:00');
     })();
 
     const addModal = document.getElementById('addModal');
@@ -1460,8 +1753,8 @@
         e.preventDefault();
         const nickname = document.getElementById('nickname').value.trim();
         const gender = parseInt(document.getElementById('gender').value, 10);
-        const birthDate = document.getElementById('birthDate').value.trim();
-        const birthTime = document.getElementById('birthTime').value.trim();
+        const birthDate = `${birthYearSelect.value}/${birthMonthSelect.value}/${birthDaySelect.value}`;
+        const birthTime = `${birthHourSelect.value}:${birthMinuteSelect.value}`;
         const birthplace = document.getElementById('birthplace').value.trim();
 
         if (!nickname || !birthDate || !birthTime || !birthplace) {
@@ -1492,9 +1785,10 @@
             b.classList.toggle('active', i === 0);
         });
         const now = new Date();
-        document.getElementById('birthDate').value =
-            `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-        document.getElementById('birthTime').value = '12:00';
+        setBirthDateSelects(
+            `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
+        );
+        setBirthTimeSelects('12:00');
         document.getElementById('birthplace').value = '北京';
     });
 })();

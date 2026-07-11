@@ -33,12 +33,15 @@
             z-index: 1;
         }
 
-        /* 圆盘 wrapper：按PS坐标精确定位（右邊參考線 X=1950，圆盘 3063×3063，Y=-9 不變，画布2880×1800） */
+        /* 圆盘 wrapper：以PS座標（W=3036, H=3036, X=-1065, Y=51，画布 2880×1800）為基準，
+           X、Y、W 按同一縮放係數 k=4200/3036≈1.3834 等比縮放（圍繞畫布原點縮放，
+           保持跟PS一致的相對位置關係，即在4000px基礎上再放大5%）
+           縮放后：X=-1473.32, Y=70.55, W=H=4200 */
         .disk-wrap {
             position: fixed;
-            left: -38.6vw;   /* (1950-3063)/2880*100 = -1113/2880*100 */
-            top: -0.5vh;     /* -9/1800 * 100vh ≈ 0，垂直位置未变 */
-            width: 106.4vw;  /* 3063/2880*100，圆盘新尺寸 */
+            left: -51.16vw;  /* -1473.32/2880*100 */
+            top: 3.92vh;     /* 70.55/1800*100 */
+            width: 145.83vw; /* 4200/2880*100 */
             height: auto;
             z-index: 2;
             pointer-events: none;
@@ -141,6 +144,37 @@
                 bottom: 6vh;
                 transform: translateX(-50%);
             }
+
+            /* 手機端用另一份直式 PSD（天干地支 手机.psd，画布 1242×2208）的圆盘座標
+               （W=2183, H=2183, X=-967, Y=171），X、Y、W 整體等比放大1.5倍
+               （圍繞畫布原點縮放，保持跟PS一致的相對位置關係）
+               放大后：X=-1450.5, Y=256.5, W=H=3274.5 */
+            .disk-wrap {
+                left: -116.80vw; /* -1450.5/1242*100 */
+                top: 11.62vh;    /* 256.5/2208*100 */
+                width: 263.65vw; /* 3274.5/1242*100 */
+            }
+
+            /* 手機端卷轴往下挪，對齊到「樂天知運」文字目前的高度；整體再往上挪3vh */
+            .scroll {
+                top: 21vh;
+            }
+
+            /* 手機端「樂天知運 故不憂」文字图层要跟卷轴一起挪動，
+               同時放大：讓文字區塊的渲染高度跟卷轴宽度（100vw）差不多——
+               原圖比例(画布2880×1800)下，寬度160vw時渲染高度恰好=160vw×1800/2880=100vw，
+               所以寬度改為160vw，並用left:-30vw保持水平居中 */
+            .text {
+                top: 14vh;
+                left: -32.69vw;
+                width: 165.38vw;
+            }
+
+            /* 手機端 logo 放大兩倍，保持水平居中 */
+            .brand {
+                left: -50vw;
+                width: 200vw;
+            }
         }
     </style>
 </head>
@@ -158,8 +192,11 @@
         <img src="assets/disk.png" alt="" draggable="false">
     </div>
 
-    <!-- 卷轴：darken 混合 -->
-    <img class="scroll" src="assets/scroll.png" alt="" draggable="false">
+    <!-- 卷轴：darken 混合，手機端換用 scroll-2.png（跟手機版 PSD 配套的素材） -->
+    <picture>
+        <source media="(max-width: 720px)" srcset="assets/scroll-2.png">
+        <img class="scroll" src="assets/scroll.png" alt="" draggable="false">
+    </picture>
 
     <!-- 文字图层 -->
     <img class="text" src="assets/text.png" alt="" draggable="false">
@@ -171,10 +208,11 @@
 
 <div class="cta-wrap">
     <a class="cta-btn" href="landing.html">
-        開始<span class="arrow">›</span>
+        <span data-i18n="cta_start">開始</span><span class="arrow">›</span>
     </a>
-    <p class="cta-sub">基於生辰八字，定制每月運勢壁紙</p>
+    <p class="cta-sub" data-i18n="cta_sub">基於生辰八字，定制每月運勢壁紙</p>
 </div>
 
+<script src="i18n.js"></script>
 </body>
 </html>
