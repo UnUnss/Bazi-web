@@ -62,7 +62,7 @@
         }
 
         /*
-         * 宣纸背景用独立的 position:fixed 图层（跟 home.html 的 .bg 一致），
+         * 宣纸背景用独立的 position:fixed 图层（跟 index.html 封面页的 .bg 一致），
          * 不要直接写在 body 的 background 上。
          * 原因：body 在非 fixed attachment 下，background-size: cover 是按
          * body 的「整页可滚动高度」（landing 页内容较长，可能有 1800~2500px）
@@ -70,7 +70,7 @@
          * 去覆盖整页高度，超采样放大后自然就发糊了。
          * 而用一个 position:fixed; inset:0 的图层，它的盒子永远等于视口大小，
          * cover 缩放比例始终锚定视口，不会被页面长度拖着放大，画面就跟
-         * home.html 一样清晰。
+         * index.html 封面页一样清晰。
          */
         .bg-paper {
             position: fixed;
@@ -414,7 +414,7 @@
             display: block;
         }
 
-        /* ─── 左上角转动圆盘（坐标与动效跟 home.html 保持一致） ─── */
+        /* ─── 左上角转动圆盘（坐标与动效跟 index.html 封面页保持一致） ─── */
 
         .disk-wrap {
             position: fixed;
@@ -858,7 +858,7 @@
     </div>
 </div>
 
-<!-- 八字真實排盤邏輯：與 index.html 共用同一套 lunar-javascript + bazi_logic.js -->
+<!-- 八字真實排盤邏輯：與 bazi-calc-debug.html 共用同一套 lunar-javascript + bazi_logic.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lunar-javascript/1.7.4/lunar.min.js"></script>
 <script src="bazi_logic.js"></script>
 <script>
@@ -919,7 +919,7 @@
     }
 
     // 由暱稱設定的出生日期/時間排出真實八字四柱，並算出當前所在大運，
-    // 與 index.html 使用同一套 lunar-javascript 排盤邏輯，只是省略了真太陽時的經度校正。
+    // 與 bazi-calc-debug.html 使用同一套 lunar-javascript 排盤邏輯，只是省略了真太陽時的經度校正。
     function computeBaziForProfile(profile) {
         try {
             const [y, m, d] = (profile.birthDate || '').split('/').map((v) => parseInt(v, 10));
