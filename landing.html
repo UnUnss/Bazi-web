@@ -31,22 +31,12 @@
             --jin: #b89028;
             --shui: #1e4070;
             /*
-             * 字体策略：系统自带楷体优先，自托管网络字体兜底。
-             * 1) 先尝试各系统自带的楷体，按「现代系统里最准确的注册名」优先排列：
-             *    - Kaiti SC：iOS / macOS 现代系统里「楷体-简」真正的 family name，最可靠
-             *    - STKaiti：Mac OS X 旧命名，仅作兼容性备选
-             *    - Kaiti TC / BiauKai：iOS / macOS 的繁体楷体
-             *    - KaiTi：Windows 简体楷体
-             *    - DFKai-SB / 標楷體：Windows 繁体楷体（同一字体的两个别名，必须保留，
-             *      否则繁体 Windows 用户会跳过所有系统楷体、直接落到自托管字体）
-             *    装了对应楷体的设备会用原生字体，不产生网络请求。
-             * 2) 如果设备一个楷体都没装（常见于 Android、Linux、未装中文语言包的 Windows/Mac），
-             *    浏览器会自动落到自托管在 assets/fonts/cooper-zhengkai/ 的「CooperZhengKai」
-             *    （汇迹正楷）网络字体，保证这类设备依然显示楷体风格，而不是退化成宋体/衬线体。
-             * 3) serif 是网络字体文件本身也拿不到时的最终兜底。
+             * 字体策略：统一使用自托管的「CooperZhengKai」（汇迹正楷）网络字体，
+             * 不再依赖/优先使用系统自带楷体——不同系统/设备的楷体字形差异较大，
+             * 统一用同一套自托管字形，保证所有用户看到的视觉效果一致。
+             * serif 是网络字体文件本身也拿不到时的最终兜底。
              */
-            --font-kai: "Kaiti SC", "STKaiti", "Kaiti TC", "BiauKai", "KaiTi", "DFKai-SB", "標楷體",
-                        "CooperZhengKai",
+            --font-kai: "CooperZhengKai",
                         serif;
         }
 
@@ -90,14 +80,15 @@
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            padding: 48px 52px 20px;
+            /* padding-top 加大，让菜单按钮在视觉上落到 ElementaWall logo 的下一行 */
+            padding: calc(84px - 2vh) 52px 20px;
             position: relative;
             min-height: 22px;
         }
 
         .nav-logo-wrap {
             position: absolute;
-            top: 4px;
+            top: calc(4px - 3vh); /* 上移3vh：原2vh再加1vh */
             left: 50%;
             transform: translateX(-50%);
             width: 100vw;
@@ -420,15 +411,34 @@
         }
 
         .wallpaper-grid {
-            display: grid;
-            /* 固定 4 張（本月喜用 2 張 + 本月補運 2 張），卡片內容由計算結果動態決定，
-               但張數本身不隨計算結果變化，之後擴充壁紙庫也不會影響這個佈局 */
-            grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
+            display: flex;
+            flex-direction: row;
+            gap: 32px;
             box-sizing: border-box;
             padding: 28px 24px 24px;
-            background: rgba(255, 253, 248, 0.88);
+            background: rgba(255, 253, 248, 0.3);
             border-radius: 6px;
+            align-items: flex-start;
+        }
+
+        .wallpaper-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .wallpaper-group-title {
+            font-size: 13px;
+            letter-spacing: 0.16em;
+            color: var(--ink-muted);
+            text-align: center;
+        }
+
+        .wallpaper-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
         }
 
         .wallpaper-card {
@@ -465,21 +475,15 @@
 
         /* ─── 左上角转动圆盘（坐标与动效跟 index.html 封面页保持一致） ─── */
 
+        /* 圆盘与龙：与 index.html 保持完全一致的位置/尺寸/分层方式 */
         .disk-wrap {
             position: fixed;
-            /* 放大到 150vw 后按比例微调 left，保持左侧裁切位置基本不变 */
-            left: -59.3vw;
-            /*
-             * 在「圆心正好顶到视口顶部」（-0.5vh - 75vw，对应 150vw 宽度的半径）基础上，
-             * 再往下挪一点，露出的下半弧多一点点、位置更居中。
-             */
-            top: calc(-0.5vh - 67vw);
-            width: 150vw;
+            left: -51.16vw;  /* 桌面端，与 index.html @media(min-width:721px) 同 */
+            top: 1.92vh;
+            width: 145.83vw;
             height: auto;
             z-index: -1;
             pointer-events: none;
-            mix-blend-mode: darken;
-            opacity: 0.3;
         }
 
         .disk-wrap img {
@@ -488,6 +492,18 @@
             height: auto;
             animation: spin 90s linear infinite;
             transform-origin: center center;
+        }
+
+        .disk-wrap .disk-img {
+            position: relative;
+            mix-blend-mode: darken;
+            opacity: 0.3;
+        }
+
+        .disk-wrap .dragon-img {
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         @keyframes spin {
@@ -771,8 +787,15 @@
             }
 
             .nav-logo-wrap {
-                top: 6px;
-                width: 100vw;
+                top: calc(6px - 3vh); /* 手機端上移3vh */
+                width: 150vw;
+            }
+
+            /* 手機端圆盘：与 index.html 手机端断点完全一致 */
+            .disk-wrap {
+                left: -116.80vw;
+                top: 11.62vh;
+                width: 263.65vw;
             }
 
             .nav-user {
@@ -806,11 +829,15 @@
             }
 
             .wallpaper-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 14px;
+                flex-direction: column;
+                gap: 16px;
                 padding: 20px 14px 16px;
                 max-width: 480px;
                 margin: 0 auto;
+            }
+
+            .wallpaper-row {
+                gap: 14px;
             }
         }
     </style>
@@ -819,7 +846,8 @@
 
 <div class="bg-paper"></div>
 <div class="disk-wrap" aria-hidden="true">
-    <img src="assets/disk.png" alt="" draggable="false">
+    <img class="disk-img" src="assets/disk.png" alt="" draggable="false">
+    <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
 </div>
 
 <nav>
@@ -1337,18 +1365,32 @@
             pushCard(domainVariants[1], boostTag);
         }
 
-        wallpaperGrid.innerHTML = cards.map((c) => `
-            <article class="wallpaper-card">
+        function cardHtml(c) {
+            return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" />
                 </div>
                 <div class="wallpaper-meta">
-                    <p class="name"><span class="tag">${escapeHtml(c.tag)}</span>${escapeHtml(c.name)}</p>
+                    <p class="name">${escapeHtml(c.name)}</p>
                     <p class="desc">${escapeHtml(c.desc)}</p>
                     <button type="button" class="btn-download" data-img="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
                 </div>
-            </article>
-        `).join('');
+            </article>`;
+        }
+
+        const favorCards = cards.slice(0, 2);
+        const boostCards = cards.slice(2, 4);
+
+        wallpaperGrid.innerHTML = `
+            <div class="wallpaper-group">
+                <p class="wallpaper-group-title">${escapeHtml(favorTag)}</p>
+                <div class="wallpaper-row">${favorCards.map(cardHtml).join('')}</div>
+            </div>
+            <div class="wallpaper-group">
+                <p class="wallpaper-group-title">${escapeHtml(boostTag)}</p>
+                <div class="wallpaper-row">${boostCards.map(cardHtml).join('')}</div>
+            </div>
+        `;
     }
 
     // 下載壁紙：用事件委託掛在外層容器上，卡片重新渲染（切換八字／切換語言）後不用重新綁定

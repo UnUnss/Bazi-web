@@ -78,7 +78,7 @@
             lang_menu_zh_cn: '简体中文',
             lang_menu_en: 'English',
             cta_start: '開始',
-            cta_sub: '基於生辰八字，定制每月運勢壁紙'
+            cta_sub: '基於生辰八字\n定制每月運勢壁紙'
         },
         'zh-CN': {
             meta_title: '八字定制每月运势壁纸',
@@ -154,7 +154,7 @@
             lang_menu_zh_cn: '简体中文',
             lang_menu_en: 'English',
             cta_start: '开始',
-            cta_sub: '基于生辰八字，定制每月运势壁纸'
+            cta_sub: '基于生辰八字\n定制每月运势壁纸'
         },
         'en': {
             meta_title: 'BaZi Monthly Fortune Wallpaper',

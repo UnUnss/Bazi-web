@@ -16,11 +16,9 @@
         }
 
         body {
-            /* 系统楷体优先（Kaiti SC/STKaiti/Kaiti TC/BiauKai 为苹果系统，KaiTi/DFKai-SB/標楷體
-               为 Windows 简繁楷体），自托管的 CooperZhengKai（汇迹正楷）在无楷体设备上兜底 */
-            font-family: "Kaiti SC", "STKaiti", "Kaiti TC", "BiauKai", "KaiTi", "DFKai-SB", "標楷體",
-                         "CooperZhengKai",
-                         serif;
+            /* 统一使用自托管的 CooperZhengKai（汇迹正楷），不再依赖/优先使用系统楷体，
+               保证所有设备看到的字形一致 */
+            font-family: "CooperZhengKai", serif;
             cursor: pointer;
             user-select: none;
         }
@@ -45,17 +43,28 @@
             height: auto;
             z-index: 2;
             pointer-events: none;
-            mix-blend-mode: darken;
-            opacity: 0.3;
         }
 
-        /* 圆盘 img：只负责旋转，旋转中心为圆盘中心 */
+        /* 圆盘 img 与 龙 img 尺寸完全相同（同为2880×1800画布），叠在同一个盒子里，
+           中心自然重合，一起旋转 */
         .disk-wrap img {
             display: block;
             width: 100%;
             height: auto;
             animation: spin 90s linear infinite;
             transform-origin: center center;
+        }
+
+        .disk-wrap .disk-img {
+            position: relative; /* 撑开 disk-wrap 的高度 */
+            mix-blend-mode: darken;
+            opacity: 0.3;
+        }
+
+        .disk-wrap .dragon-img {
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         /* 金色卷轴：全画布导出，top:0 left:0 自动对齐PS位置 */
@@ -130,11 +139,32 @@
             font-size: 15px;
             letter-spacing: 0.12em;
             color: #9a8a68;
+            white-space: pre-line; /* 用真实换行符换行，不用逗号 */
         }
 
         @keyframes spin {
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
+        }
+
+        /* 电脑端：转盘、卷轴、卷轴上的「乐天知运」文字、ElementaWall logo 整体上移2vh */
+        @media (min-width: 721px) {
+            .disk-wrap {
+                top: 1.92vh; /* 3.92vh - 2vh */
+            }
+
+            .scroll {
+                top: -2vh;
+            }
+
+            .text {
+                top: -2vh;
+            }
+
+            /* logo 在整体上移2vh的基础上，再向下移1vh，合计上移1vh */
+            .brand {
+                top: -1vh;
+            }
         }
 
         @media (max-width: 720px) {
@@ -155,17 +185,19 @@
                 width: 263.65vw; /* 3274.5/1242*100 */
             }
 
-            /* 手機端卷轴往下挪，對齊到「樂天知運」文字目前的高度；整體再往上挪3vh */
+            /* 手機端卷轴往下挪，對齊到「樂天知運」文字目前的高度；整體再往上挪3vh，
+               另外再整體上移1vh */
             .scroll {
-                top: 21vh;
+                top: 20vh;
             }
 
             /* 手機端「樂天知運 故不憂」文字图层要跟卷轴一起挪動，
                同時放大：讓文字區塊的渲染高度跟卷轴宽度（100vw）差不多——
                原圖比例(画布2880×1800)下，寬度160vw時渲染高度恰好=160vw×1800/2880=100vw，
-               所以寬度改為160vw，並用left:-30vw保持水平居中 */
+               所以寬度改為165.38vw，並用left:-32.69vw保持水平居中；
+               另外再跟卷轴一起整體上移1vh */
             .text {
-                top: 14vh;
+                top: 13vh;
                 left: -32.69vw;
                 width: 165.38vw;
             }
@@ -187,9 +219,10 @@
 <div style="position:fixed;inset:0;z-index:5;cursor:pointer;"
      onclick="window.location.href='landing.html'">
 
-    <!-- 圆盘：darken + 30% 不透明度 -->
+    <!-- 圆盘：darken + 30% 不透明度；龙与圆盘同为2880×1800画布，直接叠在同一个盒子里，圆心自动重合 -->
     <div class="disk-wrap">
-        <img src="assets/disk.png" alt="" draggable="false">
+        <img class="disk-img" src="assets/disk.png" alt="" draggable="false">
+        <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
     </div>
 
     <!-- 卷轴：darken 混合，手機端換用 scroll-2.png（跟手機版 PSD 配套的素材） -->
@@ -210,7 +243,7 @@
     <a class="cta-btn" href="landing.html">
         <span data-i18n="cta_start">開始</span><span class="arrow">›</span>
     </a>
-    <p class="cta-sub" data-i18n="cta_sub">基於生辰八字，定制每月運勢壁紙</p>
+    <p class="cta-sub" data-i18n="cta_sub">基於生辰八字<br>定制每月運勢壁紙</p>
 </div>
 
 <script src="i18n.js"></script>
