@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>關於我們 · ElementaWall</title>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
+    <script src="i18n.js?v=5"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ink: #2a1e0a;
+            --ink-soft: #5a4a28;
+            --ink-muted: #8a7a58;
+            --line: rgba(42, 30, 10, 0.28);
+            --font-kai: "CooperZhengKai", serif;
+        }
+
+        html, body {
+            font-family: var(--font-kai);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        .bg-paper {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: url('assets/bg-paper.jpg') center / cover no-repeat;
+            pointer-events: none;
+        }
+
+        .disk-wrap {
+            position: fixed;
+            left: -51.16vw;
+            top: 1.92vh;
+            width: 145.83vw;
+            height: auto;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .disk-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+            animation: spin 90s linear infinite;
+            transform-origin: 51.77% 49.9%;
+        }
+
+        .disk-wrap .disk-img {
+            position: relative;
+            mix-blend-mode: darken;
+            opacity: 0.1;
+        }
+
+        .disk-wrap .dragon-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0.3;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* ─── 導航 ─── */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: calc(84px - 2vh) 52px 20px;
+            position: relative;
+            min-height: 22px;
+        }
+
+        .nav-logo-wrap {
+            position: absolute;
+            top: calc(4px - 3vh);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100vw;
+            pointer-events: none;
+        }
+
+        .nav-logo-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-link-item,
+        .lang-switch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            padding: 6px 16px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: rgba(255, 252, 245, 0.6);
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .nav-link-item:hover,
+        .lang-switch-btn:hover {
+            background: rgba(255, 252, 245, 0.9);
+        }
+
+        .lang-switch-wrap,
+        .about-switch-wrap {
+            position: relative;
+        }
+
+        .lang-switch-btn .caret,
+        .about-switch-btn .caret {
+            font-size: 9px;
+            opacity: 0.7;
+        }
+
+        .lang-menu,
+        .about-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 160px;
+            background: rgba(255, 252, 245, 0.96);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+            overflow: hidden;
+        }
+
+        .lang-menu.open,
+        .about-menu.open {
+            display: block;
+        }
+
+        .lang-menu button,
+        .about-menu a {
+            display: block;
+            width: 100%;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            padding: 9px 14px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            text-decoration: none;
+            cursor: pointer;
+            text-align: left;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+        }
+
+        .lang-menu button:last-child,
+        .about-menu a:last-child {
+            border-bottom: none;
+        }
+
+        .lang-menu button:hover,
+        .lang-menu button.active,
+        .about-menu a:hover {
+            background: rgba(42, 30, 10, 0.05);
+        }
+
+        /* ─── 內容區 ─── */
+        .page-content {
+            max-width: 960px;
+            width: calc(100% - 48px);
+            margin: -18vh auto 60px;
+            text-align: center;
+        }
+
+        .page-content img {
+            width: 150%;
+            height: auto;
+            display: block;
+            margin-left: -25%;
+        }
+
+        @media (max-width: 720px) {
+            nav {
+                padding: 96px 20px 16px;
+                justify-content: center;
+            }
+            .nav-logo-wrap {
+                position: absolute;
+                top: 0;
+                left: -50vw;
+                width: 200vw;
+                transform: none;
+            }
+            .disk-wrap {
+                left: -116.80vw;
+                top: 11.62vh;
+                width: 263.65vw;
+            }
+            .page-content {
+                width: calc(100% - 24px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-paper"></div>
+<div class="disk-wrap" aria-hidden="true">
+    <img class="disk-img" src="assets/disk.png" alt="" draggable="false">
+    <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
+</div>
+
+<nav>
+    <div class="nav-logo-wrap">
+        <img src="assets/english.png" alt="ElementaWall" draggable="false">
+    </div>
+    <div class="nav-user">
+        <a href="landing.html" class="nav-link-item" data-i18n="nav_home">首頁</a>
+        <div class="about-switch-wrap" id="aboutSwitchWrap">
+            <button type="button" class="nav-link-item about-switch-btn" id="aboutSwitchBtn">
+                <span data-i18n="nav_about">關於我們</span><span class="caret">▼</span>
+            </button>
+            <div class="about-menu" id="aboutMenu" role="menu">
+                <a href="about.html" data-i18n="nav_about">關於我們</a>
+                <a href="#" data-i18n="nav_contact">聯絡我們</a>
+                <a href="policy.html" data-i18n="nav_policy">用戶服務與隱私協議</a>
+            </div>
+        </div>
+        <div class="lang-switch-wrap" id="langSwitchWrap">
+            <button type="button" class="lang-switch-btn" id="langSwitchBtn">
+                <span id="langSwitchLabel">语言</span><span class="caret">▼</span>
+            </button>
+            <div class="lang-menu" id="langMenu" role="menu">
+                <button type="button" data-lang-option="zh-TW" data-i18n="lang_menu_zh_tw">繁體中文</button>
+                <button type="button" data-lang-option="zh-CN" data-i18n="lang_menu_zh_cn">简体中文</button>
+                <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="page-content">
+    <img src="assets/aboutus.png" alt="About ElementaWall" draggable="false">
+</main>
+
+<script>
+(function () {
+    function getLang() {
+        return (window.I18N && window.I18N.getLanguage()) || localStorage.getItem('ew_lang') || 'zh-TW';
+    }
+
+    const langSwitchBtn = document.getElementById('langSwitchBtn');
+    const langMenu = document.getElementById('langMenu');
+    const langSwitchLabel = document.getElementById('langSwitchLabel');
+    const aboutSwitchBtn = document.getElementById('aboutSwitchBtn');
+    const aboutMenu = document.getElementById('aboutMenu');
+
+    const LANG_LABELS = { 'zh-TW': '繁中', 'zh-CN': '简中', 'en': 'EN' };
+
+    function updateLangLabel() {
+        langSwitchLabel.textContent = LANG_LABELS[getLang()] || getLang();
+    }
+    updateLangLabel();
+    document.addEventListener('i18n:change', updateLangLabel);
+
+    langSwitchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        aboutMenu.classList.remove('open');
+        langMenu.classList.toggle('open');
+    });
+
+    langMenu.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-lang-option]');
+        if (!btn) return;
+        const lang = btn.getAttribute('data-lang-option');
+        if (window.I18N) window.I18N.setLanguage(lang);
+        langMenu.classList.remove('open');
+    });
+
+    aboutSwitchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        langMenu.classList.remove('open');
+        aboutMenu.classList.toggle('open');
+    });
+
+    aboutMenu.addEventListener('click', () => { aboutMenu.classList.remove('open'); });
+
+    document.addEventListener('click', () => {
+        langMenu.classList.remove('open');
+        aboutMenu.classList.remove('open');
+    });
+})();
+</script>
+</body>
+</html>

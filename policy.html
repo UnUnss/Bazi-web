@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用戶服務與隱私協議 · ElementaWall</title>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
+    <script src="i18n.js?v=5"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ink: #2a1e0a;
+            --ink-soft: #5a4a28;
+            --ink-muted: #8a7a58;
+            --line: rgba(42, 30, 10, 0.28);
+            --font-kai: "CooperZhengKai", serif;
+        }
+
+        html, body {
+            font-family: var(--font-kai);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        .bg-paper {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: url('assets/bg-paper.jpg') center / cover no-repeat;
+            pointer-events: none;
+        }
+
+        .disk-wrap {
+            position: fixed;
+            left: -51.16vw;
+            top: 1.92vh;
+            width: 145.83vw;
+            height: auto;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .disk-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+            animation: spin 90s linear infinite;
+            transform-origin: 51.77% 49.9%;
+        }
+
+        .disk-wrap .disk-img {
+            position: relative;
+            mix-blend-mode: darken;
+            opacity: 0.1;
+        }
+
+        .disk-wrap .dragon-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0.3;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* ─── 導航 ─── */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: calc(84px - 2vh) 52px 20px;
+            position: relative;
+            min-height: 22px;
+        }
+
+        .nav-logo-wrap {
+            position: absolute;
+            top: calc(4px - 3vh);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100vw;
+            pointer-events: none;
+        }
+
+        .nav-logo-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-link-item,
+        .lang-switch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            padding: 6px 16px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: rgba(255, 252, 245, 0.6);
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .nav-link-item:hover,
+        .lang-switch-btn:hover {
+            background: rgba(255, 252, 245, 0.9);
+        }
+
+        .lang-switch-wrap,
+        .about-switch-wrap {
+            position: relative;
+        }
+
+        .lang-switch-btn .caret,
+        .about-switch-btn .caret {
+            font-size: 9px;
+            opacity: 0.7;
+        }
+
+        .lang-menu,
+        .about-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 160px;
+            background: rgba(255, 252, 245, 0.96);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+            overflow: hidden;
+        }
+
+        .lang-menu.open,
+        .about-menu.open {
+            display: block;
+        }
+
+        .lang-menu button,
+        .about-menu a {
+            display: block;
+            width: 100%;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            padding: 9px 14px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            text-decoration: none;
+            cursor: pointer;
+            text-align: left;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+        }
+
+        .lang-menu button:last-child,
+        .about-menu a:last-child {
+            border-bottom: none;
+        }
+
+        .lang-menu button:hover,
+        .lang-menu button.active,
+        .about-menu a:hover {
+            background: rgba(42, 30, 10, 0.05);
+        }
+
+        /* ─── 內容區 ─── */
+        .page-content {
+            max-width: 760px;
+            width: calc(100% - 48px);
+            margin: 40px auto 80px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            padding: 48px 52px;
+        }
+
+        .page-content h1 {
+            font-size: 24px;
+            letter-spacing: 0.14em;
+            color: var(--ink);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .effective-date {
+            text-align: center;
+            font-size: 12px;
+            color: var(--ink-muted);
+            margin-bottom: 36px;
+            letter-spacing: 0.06em;
+        }
+
+        .page-content h2 {
+            font-size: 16px;
+            letter-spacing: 0.1em;
+            color: var(--ink);
+            margin-top: 32px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.12);
+        }
+
+        .page-content h3 {
+            font-size: 14px;
+            letter-spacing: 0.08em;
+            color: var(--ink-soft);
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+
+        .page-content p,
+        .page-content li {
+            font-size: 13px;
+            line-height: 1.9;
+            color: var(--ink-soft);
+            letter-spacing: 0.03em;
+            margin-bottom: 10px;
+        }
+
+        .page-content ul {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .page-content li { margin-bottom: 6px; }
+
+        .divider {
+            border: none;
+            border-top: 1px solid rgba(42, 30, 10, 0.12);
+            margin: 40px 0;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--ink-muted);
+            text-decoration: none;
+            letter-spacing: 0.06em;
+            margin-bottom: 28px;
+        }
+
+        .back-link:hover { color: var(--ink); }
+
+        @media (max-width: 720px) {
+            nav {
+                padding: 96px 20px 16px;
+                justify-content: center;
+            }
+            .nav-logo-wrap {
+                position: absolute;
+                top: 0;
+                left: -50vw;
+                width: 200vw;
+                transform: none;
+            }
+            .disk-wrap {
+                left: -116.80vw;
+                top: 11.62vh;
+                width: 263.65vw;
+            }
+            .page-content {
+                width: calc(100% - 24px);
+                padding: 32px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-paper"></div>
+<div class="disk-wrap" aria-hidden="true">
+    <img class="disk-img" src="assets/disk.png" alt="" draggable="false">
+    <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
+</div>
+
+<nav>
+    <div class="nav-logo-wrap">
+        <img src="assets/english.png" alt="ElementaWall" draggable="false">
+    </div>
+    <div class="nav-user">
+        <a href="landing.html" class="nav-link-item" data-i18n="nav_home">首頁</a>
+        <div class="about-switch-wrap" id="aboutSwitchWrap">
+            <button type="button" class="nav-link-item about-switch-btn" id="aboutSwitchBtn">
+                <span data-i18n="nav_about">關於我們</span><span class="caret">▼</span>
+            </button>
+            <div class="about-menu" id="aboutMenu" role="menu">
+                <a href="about.html" data-i18n="nav_about">關於我們</a>
+                <a href="#" data-i18n="nav_contact">聯絡我們</a>
+                <a href="policy.html" data-i18n="nav_policy">用戶服務與隱私協議</a>
+            </div>
+        </div>
+        <div class="lang-switch-wrap" id="langSwitchWrap">
+            <button type="button" class="lang-switch-btn" id="langSwitchBtn">
+                <span id="langSwitchLabel">语言</span><span class="caret">▼</span>
+            </button>
+            <div class="lang-menu" id="langMenu" role="menu">
+                <button type="button" data-lang-option="zh-TW" data-i18n="lang_menu_zh_tw">繁體中文</button>
+                <button type="button" data-lang-option="zh-CN" data-i18n="lang_menu_zh_cn">简体中文</button>
+                <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="page-content">
+    <h1 data-i18n="nav_policy">用戶服務與隱私協議</h1>
+    <p class="effective-date">生效日期：2025 年 1 月 1 日</p>
+
+    <!-- ══════════ 服務協議 ══════════ -->
+    <h2>一、服務協議</h2>
+
+    <h3>1. 服務說明</h3>
+    <p>ElementaWall（以下簡稱「本平台」）提供基於中國傳統八字命理的個性化壁紙訂製服務。用戶在本平台輸入出生資訊後，系統將依據五行喜用分析，每月為用戶推薦適合的主題壁紙供下載使用。</p>
+
+    <h3>2. 帳號與使用</h3>
+    <ul>
+        <li>用戶須提供真實有效的郵箱地址完成註冊。</li>
+        <li>帳號僅供本人使用，不得轉讓或共享。</li>
+        <li>用戶有責任妥善保管帳號安全，如發現異常請及時聯絡我們。</li>
+    </ul>
+
+    <h3>3. 知識產權</h3>
+    <p>本平台所有壁紙圖像、文案、設計均屬於 ElementaWall 或相關版權方所有。用戶下載的壁紙僅限個人非商業使用，不得轉售、二次創作發布或用於任何商業用途。</p>
+
+    <h3>4. 免責聲明</h3>
+    <p>本平台提供的五行分析及壁紙推薦僅供參考，不構成任何命理、醫療或財務建議。本平台不對因使用本服務所產生的任何直接或間接損失承擔責任。</p>
+
+    <h3>5. 服務變更</h3>
+    <p>本平台保留隨時修改、暫停或終止部分或全部服務的權利，並將提前通知用戶。</p>
+
+    <hr class="divider">
+
+    <!-- ══════════ 隱私協議 ══════════ -->
+    <h2>二、隱私協議</h2>
+
+    <h3>1. 我們收集的資訊</h3>
+    <ul>
+        <li><strong>帳號資訊：</strong>郵箱地址，用於身份驗證與服務通知。</li>
+        <li><strong>八字資訊：</strong>出生日期、時間、地點，用於八字排盤與壁紙推薦計算。</li>
+        <li><strong>使用資料：</strong>頁面瀏覽、壁紙下載記錄，用於改善服務體驗（僅作統計，不識別個人身份）。</li>
+    </ul>
+
+    <h3>2. 資訊的使用</h3>
+    <p>我們收集的資訊僅用於：提供個性化壁紙推薦服務、發送每月換運提示郵件（如您已訂閱）、改善平台功能與用戶體驗。</p>
+    <p>我們不會將您的個人資訊出售、出租或以其他商業目的披露給第三方。</p>
+
+    <h3>3. 資訊安全</h3>
+    <p>我們採用業界標準的加密措施保護您的資料，並定期進行安全審查。儘管如此，互聯網傳輸本身存在一定風險，我們無法保證絕對安全。</p>
+
+    <h3>4. 郵件訂閱</h3>
+    <p>若您在註冊時勾選了訂閱選項，我們將在每次換運節點前向您發送壁紙更新通知郵件。您可以隨時在帳號設置中取消訂閱，或點擊郵件底部的退訂連結。</p>
+
+    <h3>5. Cookie 與本地存儲</h3>
+    <p>本平台使用瀏覽器本地存儲（localStorage）保存您的語言偏好、八字資料及登入狀態，所有數據均保存在您的本地裝置，不上傳至服務器。</p>
+
+    <h3>6. 未成年人</h3>
+    <p>本服務面向 18 歲及以上用戶。若您未滿 18 歲，請在監護人陪同下使用本平台。</p>
+
+    <h3>7. 協議更新</h3>
+    <p>本協議如有重大變更，我們將透過郵件或平台公告方式通知用戶，更新後繼續使用即視為同意新版協議。</p>
+
+    <h3>8. 聯絡我們</h3>
+    <p>如對本協議有任何疑問，請通過官方郵箱聯繫我們，我們將在 3 個工作天內回覆。</p>
+</main>
+
+<script>
+(function () {
+    function getLang() {
+        return (window.I18N && window.I18N.getLanguage()) || localStorage.getItem('ew_lang') || 'zh-TW';
+    }
+
+    const langSwitchBtn = document.getElementById('langSwitchBtn');
+    const langMenu = document.getElementById('langMenu');
+    const langSwitchLabel = document.getElementById('langSwitchLabel');
+    const aboutSwitchBtn = document.getElementById('aboutSwitchBtn');
+    const aboutMenu = document.getElementById('aboutMenu');
+
+    const LANG_LABELS = { 'zh-TW': '繁中', 'zh-CN': '简中', 'en': 'EN' };
+
+    function updateLangLabel() {
+        langSwitchLabel.textContent = LANG_LABELS[getLang()] || getLang();
+    }
+    updateLangLabel();
+    document.addEventListener('i18n:change', updateLangLabel);
+
+    langSwitchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        aboutMenu.classList.remove('open');
+        langMenu.classList.toggle('open');
+    });
+
+    langMenu.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-lang-option]');
+        if (!btn) return;
+        const lang = btn.getAttribute('data-lang-option');
+        if (window.I18N) window.I18N.setLanguage(lang);
+        langMenu.classList.remove('open');
+    });
+
+    aboutSwitchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        langMenu.classList.remove('open');
+        aboutMenu.classList.toggle('open');
+    });
+
+    aboutMenu.addEventListener('click', () => { aboutMenu.classList.remove('open'); });
+
+    document.addEventListener('click', () => {
+        langMenu.classList.remove('open');
+        aboutMenu.classList.remove('open');
+    });
+})();
+</script>
+</body>
+</html>

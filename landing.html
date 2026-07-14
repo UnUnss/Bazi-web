@@ -11,7 +11,7 @@
     -->
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js"></script>
+    <script src="i18n.js?v=5"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -245,6 +245,14 @@
 
         /* ─── 主區域 ───────────────────────────────────── */
 
+        .content-wrap {
+            background: rgba(255, 255, 255, 0.5);
+            max-width: 1160px;
+            width: calc(100% - 48px);
+            margin: 0 auto;
+            border-radius: 8px;
+        }
+
         .hero {
             display: flex;
             flex-direction: column;
@@ -264,6 +272,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-width: 90px;
         }
 
         .pillar-label {
@@ -288,7 +297,15 @@
             font-size: 14px;
             letter-spacing: 0.14em;
             color: var(--ink-soft);
-            margin-bottom: 40px;
+            margin-bottom: 8px;
+        }
+
+        .tst-hint {
+            font-size: 11px;
+            color: var(--ink-muted);
+            letter-spacing: 0.05em;
+            margin-bottom: 32px;
+            opacity: 0.75;
         }
 
         .period-dot {
@@ -416,7 +433,6 @@
             gap: 32px;
             box-sizing: border-box;
             padding: 28px 24px 24px;
-            background: rgba(255, 253, 248, 0.3);
             border-radius: 6px;
             align-items: flex-start;
         }
@@ -446,6 +462,7 @@
             flex-direction: column;
             align-items: center;
             box-sizing: border-box;
+            height: 100%;
         }
 
         .wallpaper-card .tag {
@@ -490,19 +507,20 @@
             width: 100%;
             height: auto;
             animation: spin 90s linear infinite;
-            transform-origin: center center;
+            transform-origin: 51.77% 49.9%;
         }
 
         .disk-wrap .disk-img {
             position: relative;
             mix-blend-mode: darken;
-            opacity: 0.3;
+            opacity: 0.1;
         }
 
         .disk-wrap .dragon-img {
             position: absolute;
             top: 0;
             left: 0;
+            opacity: 0.3;
         }
 
         @keyframes spin {
@@ -517,6 +535,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            flex: 1;
         }
 
         .wallpaper-meta .name {
@@ -545,11 +564,87 @@
             border-radius: 2px;
             cursor: pointer;
             transition: background 0.2s;
-            margin-top: 12px;
+            margin-top: auto;
         }
 
         .btn-download:hover {
             background: rgba(255, 252, 245, 0.95);
+        }
+
+        /* ─── 支付彈窗 ─────────────────────────────────── */
+
+        .pay-modal {
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .pay-wallpaper-preview {
+            width: 120px;
+            height: 160px;
+            margin: 0 auto 16px;
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(42, 30, 10, 0.14);
+        }
+
+        .pay-wallpaper-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .pay-wallpaper-name {
+            font-size: 15px;
+            letter-spacing: 0.1em;
+            color: var(--ink);
+            margin-bottom: 20px;
+        }
+
+        .pay-price-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .pay-price {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+        }
+
+        .pay-price-unit {
+            font-size: 14px;
+            color: var(--ink-soft);
+            letter-spacing: 0.06em;
+        }
+
+        .pay-notice {
+            font-size: 12px;
+            color: var(--ink-muted);
+            letter-spacing: 0.04em;
+            margin-bottom: 24px;
+        }
+
+        .btn-pay-confirm {
+            width: 100%;
+            font-family: inherit;
+            font-size: 15px;
+            letter-spacing: 0.12em;
+            padding: 13px;
+            background: var(--ink);
+            color: #faf6ec;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-pay-confirm:hover {
+            background: #3d2e14;
         }
 
         /* ─── 新增八字彈窗 ─────────────────────────────── */
@@ -732,6 +827,31 @@
             cursor: not-allowed;
         }
 
+        .subscribe-row {
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+
+        .subscribe-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--ink-soft);
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        .subscribe-label input[type="checkbox"] {
+            margin-top: 2px;
+            flex-shrink: 0;
+            width: 15px;
+            height: 15px;
+            accent-color: var(--ink);
+            cursor: pointer;
+        }
+
         .btn-save {
             width: 100%;
             margin-top: 8px;
@@ -748,6 +868,195 @@
 
         .btn-save:hover {
             background: #3d2e14;
+        }
+
+        /* ─── 出生地點三級聯動 ──────────────────────── */
+
+        .loc-select {
+            width: 100%;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 11px 28px 11px 14px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: #fff;
+            color: var(--ink);
+            outline: none;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a4a28' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 14px;
+        }
+
+        .loc-select:focus {
+            border-color: rgba(42, 30, 10, 0.5);
+        }
+
+        .loc-select:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            background-color: rgba(245, 236, 214, 0.3);
+        }
+
+        /* ─── 出生地點搜尋 ───────────────────────────── */
+
+        .location-search {
+            position: relative;
+        }
+
+        .location-search-input {
+            width: 100%;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 11px 14px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: #fff;
+            color: var(--ink);
+            outline: none;
+            letter-spacing: 0.04em;
+            box-sizing: border-box;
+        }
+
+        .location-search-input:focus {
+            border-color: rgba(42, 30, 10, 0.5);
+        }
+
+        .location-search-input.selected {
+            background: rgba(245, 236, 214, 0.4);
+        }
+
+        .location-suggestions {
+            display: none;
+            position: absolute;
+            top: calc(100% + 3px);
+            left: 0;
+            right: 0;
+            background: rgba(255, 253, 248, 0.98);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            z-index: 40;
+            max-height: 240px;
+            overflow-y: auto;
+            box-shadow: 0 6px 20px rgba(42, 30, 10, 0.1);
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .location-suggestions.open {
+            display: block;
+        }
+
+        .location-suggestions li {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.06);
+            transition: background 0.15s;
+        }
+
+        .location-suggestions li:last-child {
+            border-bottom: none;
+        }
+
+        .location-suggestions li:hover,
+        .location-suggestions li.focused {
+            background: rgba(42, 30, 10, 0.04);
+        }
+
+        .location-suggestions li.no-result {
+            cursor: default;
+            color: var(--ink-muted);
+            font-size: 13px;
+        }
+
+        .location-suggestions .sug-city {
+            font-size: 13px;
+            color: var(--ink);
+            letter-spacing: 0.04em;
+        }
+
+        .location-suggestions .sug-detail {
+            font-size: 11px;
+            color: var(--ink-muted);
+            margin-top: 2px;
+            letter-spacing: 0.02em;
+        }
+
+        .location-searching {
+            font-size: 12px;
+            color: var(--ink-muted);
+            letter-spacing: 0.04em;
+            padding: 4px 0 0;
+        }
+
+        /* ─── 真太陽時開關 ────────────────────────────── */
+
+        .true-solar-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 2px 0;
+        }
+
+        .true-solar-row > span {
+            flex: 1;
+            font-size: 13px;
+            color: var(--ink-soft);
+            letter-spacing: 0.06em;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            width: 44px;
+            height: 26px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: rgba(42, 30, 10, 0.15);
+            border: 1px solid rgba(42, 30, 10, 0.22);
+            border-radius: 26px;
+            transition: background 0.25s, border-color 0.25s;
+        }
+
+        .toggle-thumb {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 17px;
+            height: 17px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(42, 30, 10, 0.25);
+            transition: transform 0.25s;
+            pointer-events: none;
+        }
+
+        .toggle-switch input:checked ~ .toggle-track {
+            background: var(--ink);
+            border-color: var(--ink);
+        }
+
+        .toggle-switch input:checked ~ .toggle-thumb {
+            transform: translateX(18px);
         }
 
         .auth-toggle {
@@ -779,12 +1088,16 @@
 
         @media (max-width: 720px) {
             nav {
-                padding: 40px 20px 16px;
+                padding: 96px 20px 16px;
+                justify-content: center;
             }
 
             .nav-logo-wrap {
-                top: calc(6px - 3vh); /* 手機端上移3vh */
-                width: 150vw;
+                position: absolute;
+                top: 0;
+                left: -50vw;
+                width: 200vw;
+                transform: none;
             }
 
             /* 手機端圆盘：与 index.html 手机端断点完全一致 */
@@ -805,8 +1118,17 @@
                 padding: 5px 10px;
             }
 
+            .content-wrap {
+                width: calc(100% - 24px);
+                border-radius: 6px;
+            }
+
             .bazi-pillars {
-                gap: 28px;
+                gap: 16px;
+            }
+
+            .pillar {
+                min-width: 64px;
             }
 
             .pillar-stem,
@@ -874,13 +1196,14 @@
                 <span data-i18n="nav_about">關於我們</span><span class="caret">▼</span>
             </button>
             <div class="about-menu" id="aboutMenu" role="menu">
-                <a href="#" data-i18n="nav_about">關於我們</a>
+                <a href="about.html" data-i18n="nav_about">關於我們</a>
                 <a href="#" data-i18n="nav_contact">聯絡我們</a>
+                <a href="policy.html" data-i18n="nav_policy">用戶服務與隱私協議</a>
             </div>
         </div>
         <div class="lang-switch-wrap" id="langSwitchWrap">
             <button type="button" class="lang-switch-btn" id="langSwitchBtn">
-                <span id="langSwitchLabel">繁</span><span class="caret">▼</span>
+                <span id="langSwitchLabel">语言</span><span class="caret">▼</span>
             </button>
             <div class="lang-menu" id="langMenu" role="menu">
                 <button type="button" data-lang-option="zh-TW" data-i18n="lang_menu_zh_tw">繁體中文</button>
@@ -910,6 +1233,7 @@
     </div>
 </nav>
 
+<div class="content-wrap">
 <main class="hero">
     <!-- 八字四柱 -->
     <div class="bazi-pillars" id="baziPillars">
@@ -938,6 +1262,8 @@
     <div class="period-info" id="periodInfo">
         <span class="mu">乙</span><span class="tu">未</span>大運<span class="period-dot">·</span><span class="huo">丙</span><span class="huo">午</span>年<span class="period-dot">·</span><span class="mu">甲</span><span class="huo">午</span>月
     </div>
+    <!-- 真太陽時校正提示（useTrueSolarTime=true 時顯示） -->
+    <div class="tst-hint" id="tstHint" style="display:none"></div>
 
     <div class="action-row">
         <button type="button" class="btn-outline" id="btnAddBazi" data-i18n="btn_add_bazi">+ 新增八字</button>
@@ -958,6 +1284,7 @@
     <!-- 卡片內容由 JS 依據 bazi_logic.js 的本月喜用五行／弱勢領域計算結果動態生成，見下方 renderWallpapers() -->
     <div class="wallpaper-grid" id="wallpaperGrid"></div>
 </section>
+</div>
 
 <!-- 新增八字彈窗 -->
 <div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -996,11 +1323,53 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="birthplace" data-i18n="form_birthplace_label">出生地點</label>
-                <input type="text" id="birthplace" name="birthplace" data-i18n-placeholder="form_birthplace_placeholder" placeholder="城市" value="北京" required />
+                <label data-i18n="form_birthplace_label">出生地點</label>
+                <!-- 三級聯動：國家/地區 → 省/州 → 城市 -->
+                <div class="select-row" style="flex-direction:column;gap:8px;align-items:stretch;">
+                    <select id="locCountry" class="loc-select">
+                        <option value="" data-i18n="loc_placeholder_country">選擇國家/地區…</option>
+                    </select>
+                    <select id="locState" class="loc-select" disabled>
+                        <option value="" data-i18n="loc_placeholder_state">選擇省/州…</option>
+                    </select>
+                    <select id="locCity" class="loc-select" disabled>
+                        <option value="" data-i18n="loc_placeholder_city">選擇城市…</option>
+                    </select>
+                </div>
+                <p class="location-searching" id="locationSearching" style="display:none"
+                   data-i18n="location_searching">搜尋中…</p>
+                <!-- 隱藏欄位：存儲最終地名和經度 -->
+                <input type="hidden" id="birthplace" name="birthplace" />
+            </div>
+            <div class="form-group">
+                <div class="true-solar-row">
+                    <span data-i18n="form_true_solar_label">真太陽時</span>
+                    <label class="toggle-switch" aria-label="真太陽時">
+                        <input type="checkbox" id="useTrueSolarTime">
+                        <span class="toggle-track"></span>
+                        <span class="toggle-thumb"></span>
+                    </label>
+                </div>
             </div>
             <button type="submit" class="btn-save" data-i18n="btn_save">保存八字</button>
         </form>
+    </div>
+</div>
+
+<!-- 支付彈窗 -->
+<div class="modal-backdrop" id="payModal" role="dialog" aria-modal="true">
+    <div class="modal pay-modal">
+        <button type="button" class="modal-close" id="payModalClose" aria-label="關閉">×</button>
+        <div class="pay-wallpaper-preview">
+            <img id="payPreviewImg" src="" alt="" draggable="false">
+        </div>
+        <p class="pay-wallpaper-name" id="payWallpaperName"></p>
+        <div class="pay-price-row">
+            <span class="pay-price">$5.99</span>
+            <span class="pay-price-unit" data-i18n="pay_per_image">/ 張</span>
+        </div>
+        <p class="pay-notice" data-i18n="pay_notice">虛擬商品，購買後不支持退款</p>
+        <button type="button" class="btn-pay-confirm" id="btnPayConfirm" data-i18n="pay_confirm">確認支付</button>
     </div>
 </div>
 
@@ -1021,6 +1390,12 @@
                     <button type="button" class="btn-get-code" id="btnGetCode" data-i18n="btn_get_code">獲取驗證碼</button>
                 </div>
             </div>
+            <div class="form-group subscribe-row" id="subscribeRow" style="display:none;">
+                <label class="subscribe-label">
+                    <input type="checkbox" id="subscribeEmail" name="subscribeEmail" checked />
+                    <span data-i18n="signup_subscribe_label">訂閱每月換運提示，及時獲取壁紙更新通知</span>
+                </label>
+            </div>
             <button type="submit" class="btn-save" id="loginSubmitBtn">登入</button>
         </form>
         <p class="auth-toggle" id="authToggleToSignup">
@@ -1037,6 +1412,48 @@
 <script src="bazi_logic.js"></script>
 <script>
 (function () {
+    /* ── 真太阳时校正 ──────────────────────────────────────── */
+    // lon：出生地经度（十进制度数，负值为西经）
+    // utcOffset：出生地所在时区的 UTC 偏移小时数（整数，如中国=8，纽约=-5）
+    //   若 utcOffset 未传入，则以 Math.round(lon/15) 近似推算（对大多数城市误差<30min）
+    // 真太阳时校正
+    // 参考: MiharaKinu/true-solar-time-calculator (MIT)
+    // 公式: TST = UTC + 经度×4min/° + 均时差(EOT)
+    //       等价于: TST = 民用时 + (经度 - 时区经线) × 4min/° + EOT
+    // 全程使用 Date.UTC / getUTC* 避免浏览器本地时区干扰
+    function calcTrueSolarTime(y, m, d, hh, mm, lon, utcOffset) {
+        // tz: 出生地时区 UTC 偏移（小时），如中国=8，纽约=-5
+        const tz = (typeof utcOffset === 'number' && isFinite(utcOffset))
+            ? utcOffset
+            : Math.round(lon / 15);
+
+        // 将民用时转为 UTC ms（tz 有可能含小数，如 UTC+5:30 = 5.5）
+        const civilUtcMs = Date.UTC(y, m - 1, d, hh, mm, 0) - tz * 3600000;
+
+        // 年积日（Day of Year），1月1日=1
+        const startOfYearMs = Date.UTC(y, 0, 1);
+        const dayOfYear = Math.floor((civilUtcMs - startOfYearMs) / 86400000) + 1;
+
+        // 均时差（EOT），单位：分钟
+        // 使用 Spencer 1971 近似公式，精度约 ±1 分钟
+        const B = 2 * Math.PI * (dayOfYear - 81) / 365;
+        const eotMin = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+
+        // 真太阳时 = UTC + 经度绝对修正 + EOT（结果直接是当地太阳时，以UTC偏移量表示）
+        // 经度修正（相对UTC零经线）= lon × 4 min/°
+        // 注意：这里直接 getUTC* 即可，无需再加 tz——
+        //       因为: TST = (civil - tz) + lon×4 + EOT
+        //                = civil + (lon - tz×15)×4 + EOT（与旧算法等价）
+        //       tstUtcMs 的 UTC 小时数就是 TST 时刻
+        const tstUtcMs = civilUtcMs + lon * 4 * 60000 + eotMin * 60000;
+        const t = new Date(tstUtcMs);
+
+        return {
+            y: t.getUTCFullYear(), m: t.getUTCMonth() + 1,
+            d: t.getUTCDate(), hh: t.getUTCHours(), mm: t.getUTCMinutes()
+        };
+    }
+
     const WUXING_CLASS = {
         '甲': 'mu', '乙': 'mu',
         '丙': 'huo', '丁': 'huo',
@@ -1060,7 +1477,8 @@
             gender: 1,
             birthDate: '1984/01/15',
             birthTime: '12:00',
-            birthplace: '北京'
+            birthplace: '北京',
+            useTrueSolarTime: false
         }
     ];
 
@@ -1218,10 +1636,24 @@
     function computeBaziForProfile(profile) {
         try {
             const [y, m, d] = (profile.birthDate || '').split('/').map((v) => parseInt(v, 10));
-            const [hh, mm] = (profile.birthTime || '').split(':').map((v) => parseInt(v, 10));
+            const [hh_raw, mm_raw] = (profile.birthTime || '').split(':').map((v) => parseInt(v, 10));
             if (!y || !m || !d) throw new Error('出生日期格式錯誤');
 
-            const solar = Solar.fromYmdHms(y, m, d, isNaN(hh) ? 0 : hh, isNaN(mm) ? 0 : mm, 0);
+            let fy = y, fm = m, fd = d;
+            let fhh = isNaN(hh_raw) ? 0 : hh_raw;
+            let fmm = isNaN(mm_raw) ? 0 : mm_raw;
+            let tstCorrected = null; // 記錄真太陽時校正結果，供 UI 顯示
+
+            // 若啟用真太陽時校正，且已有出生地經度，則修正時間
+            if (profile.useTrueSolarTime && profile.birthplaceLon != null) {
+                const t = calcTrueSolarTime(y, m, d, fhh, fmm,
+                    parseFloat(profile.birthplaceLon),
+                    profile.utcOffset !== undefined ? profile.utcOffset : undefined);
+                tstCorrected = t; // 保存修正後時間
+                fy = t.y; fm = t.m; fd = t.d; fhh = t.hh; fmm = t.mm;
+            }
+
+            const solar = Solar.fromYmdHms(fy, fm, fd, fhh, fmm, 0);
             const eightChar = solar.getLunar().getEightChar();
             const pillars = [
                 { gan: eightChar.getYearGan(), zhi: eightChar.getYearZhi() },
@@ -1242,6 +1674,7 @@
             const nowYearMonth = getCurrentYearMonthGanZhi();
             return {
                 pillars,
+                tstCorrected,
                 period: {
                     dayun: dayunGanZhi || '——',
                     year: nowYearMonth.year,
@@ -1319,6 +1752,21 @@
             branch.className = 'pillar-branch ' + wxClass(p.zhi);
         });
 
+        // 真太陽時提示
+        const tstHint = document.getElementById('tstHint');
+        if (tstHint) {
+            if (bazi.tstCorrected) {
+                const t = bazi.tstCorrected;
+                const hh = String(t.hh).padStart(2, '0');
+                const mm = String(t.mm).padStart(2, '0');
+                const origTime = profile.birthTime || '';
+                tstHint.textContent = `☀ 真太陽時 ${hh}:${mm}（時鐘時間 ${origTime}）`;
+                tstHint.style.display = '';
+            } else {
+                tstHint.style.display = 'none';
+            }
+        }
+
         const d = bazi.period;
         const t = window.I18N ? window.I18N.t : (k) => k;
         document.getElementById('periodInfo').innerHTML =
@@ -1352,10 +1800,11 @@
         const t = window.I18N ? window.I18N.t : (k) => k;
         const cards = [];
 
-        function pushCard(variant, tag) {
+        function pushCard(variant, tag, stripColor) {
             if (!variant) return;
             const text = variant[lang] || variant['zh-TW'];
-            cards.push({ img: variant.img, tag, name: text.name, desc: text.desc });
+            const name = stripColor ? text.name.replace(/\s*[·•·]\s*.+$/, '') : text.name;
+            cards.push({ img: variant.img, tag, name, desc: text.desc });
         }
 
         // 「本月喜用」固定 2 張：永遠是同一個計算出來的喜用五行，取它的 2 個文案變體
@@ -1369,13 +1818,13 @@
         const weakDomains = (insight && insight.weak_domains) || [];
         const boostTag = t('wallpaper_boost_group_title');
         if (weakDomains.length >= 2 && DOMAIN_WALLPAPER[weakDomains[0]] && DOMAIN_WALLPAPER[weakDomains[1]]) {
-            pushCard(DOMAIN_WALLPAPER[weakDomains[0]][0], boostTag);
-            pushCard(DOMAIN_WALLPAPER[weakDomains[1]][1], boostTag);
+            pushCard(DOMAIN_WALLPAPER[weakDomains[0]][0], boostTag, true);
+            pushCard(DOMAIN_WALLPAPER[weakDomains[1]][1], boostTag, true);
         } else {
             const domainVariants = (weakDomains[0] && DOMAIN_WALLPAPER[weakDomains[0]])
                 || DOMAIN_WALLPAPER['感情与桃花']; // 計算失敗時的保底
-            pushCard(domainVariants[0], boostTag);
-            pushCard(domainVariants[1], boostTag);
+            pushCard(domainVariants[0], boostTag, true);
+            pushCard(domainVariants[1], boostTag, true);
         }
 
         function cardHtml(c) {
@@ -1406,18 +1855,39 @@
         `;
     }
 
-    // 下載壁紙：用事件委託掛在外層容器上，卡片重新渲染（切換八字／切換語言）後不用重新綁定
+    // 點擊下載按鈕 → 先彈出支付確認框
+    const payModal = document.getElementById('payModal');
+    const payModalClose = document.getElementById('payModalClose');
+    const payPreviewImg = document.getElementById('payPreviewImg');
+    const payWallpaperName = document.getElementById('payWallpaperName');
+    const btnPayConfirm = document.getElementById('btnPayConfirm');
+    let pendingDownloadImg = '';
+    let pendingDownloadName = '';
+
     wallpaperGrid.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-download');
         if (!btn) return;
         const img = btn.getAttribute('data-img');
+        const name = btn.getAttribute('data-name') || '';
         if (!img) return;
-        const a = document.createElement('a');
-        a.href = img;
-        a.download = (btn.getAttribute('data-name') || 'wallpaper') + img.slice(img.lastIndexOf('.'));
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        pendingDownloadImg = img;
+        pendingDownloadName = name;
+        payPreviewImg.src = img;
+        payPreviewImg.alt = name;
+        payWallpaperName.textContent = name;
+        payModal.classList.add('open');
+    });
+
+    payModalClose.addEventListener('click', () => { payModal.classList.remove('open'); });
+    payModal.addEventListener('click', (e) => {
+        if (e.target === payModal) payModal.classList.remove('open');
+    });
+
+    btnPayConfirm.addEventListener('click', () => {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        // 前端模擬支付，後端接入時替換此處邏輯
+        payModal.classList.remove('open');
+        alert(t('mock_feature_notice'));
     });
 
     let profiles = loadProfiles();
@@ -1479,6 +1949,384 @@
     birthYearSelect.addEventListener('change', refreshDayOptions);
     birthMonthSelect.addEventListener('change', refreshDayOptions);
 
+    /* ── 出生地點三級聯動（country-state-city@3.2.1 via jsDelivr） ── */
+    const CSC_CDN = 'https://cdn.jsdelivr.net/npm/country-state-city@3.2.1/lib/cjs/assets';
+
+    let _cscCountries = null;
+    let _cscStates    = null;
+
+    /* 國家中文顯示名稱覆蓋（僅中港澳台需要特殊處理，其餘保持英文原名）*/
+    const COUNTRY_ZH = {
+        'zh-CN': { CN:'中国大陆', TW:'台湾地区', HK:'香港特别行政区', MO:'澳门特别行政区' },
+        'zh-TW': { CN:'中國大陸', TW:'台灣地區', HK:'香港特別行政區', MO:'澳門特別行政區' },
+    };
+
+    /* 省/州中文顯示名稱覆蓋（僅中港澳台，其餘保持英文原名）
+       zh-CN：簡體；zh-TW：繁體 */
+    const STATE_ZH = {
+        'zh-CN': {
+            // 中国大陆（两岸字形差异不大，繁简通用）
+            'CN_AH':'安徽省','CN_BJ':'北京市','CN_CQ':'重庆市','CN_FJ':'福建省',
+            'CN_GD':'广东省','CN_GS':'甘肃省','CN_GX':'广西壮族自治区','CN_GZ':'贵州省',
+            'CN_HA':'河南省','CN_HB':'湖北省','CN_HE':'河北省','CN_HI':'海南省',
+            'CN_HL':'黑龙江省','CN_HN':'湖南省','CN_JL':'吉林省','CN_JS':'江苏省',
+            'CN_JX':'江西省','CN_LN':'辽宁省','CN_NM':'内蒙古自治区',
+            'CN_NX':'宁夏回族自治区','CN_QH':'青海省','CN_SC':'四川省','CN_SD':'山东省',
+            'CN_SH':'上海市','CN_SN':'陕西省','CN_SX':'山西省','CN_TJ':'天津市',
+            'CN_XJ':'新疆维吾尔自治区','CN_XZ':'西藏自治区','CN_YN':'云南省','CN_ZJ':'浙江省',
+            // 台湾（简体）
+            'TW_CHA':'彰化县','TW_CYI':'嘉义市','TW_CYQ':'嘉义县','TW_HSQ':'新竹县',
+            'TW_HSZ':'新竹市','TW_HUA':'花莲县','TW_ILA':'宜兰县','TW_KEE':'基隆市',
+            'TW_KHH':'高雄市','TW_KIN':'金门县','TW_LIE':'连江县','TW_MIA':'苗栗县',
+            'TW_NAN':'南投县','TW_NWT':'新北市','TW_PEN':'澎湖县','TW_PIF':'屏东县',
+            'TW_TAO':'桃园市','TW_TNN':'台南市','TW_TPE':'台北市','TW_TTT':'台东县',
+            'TW_TXG':'台中市','TW_YUN':'云林县',
+            // 香港（简体）
+            'HK_HCW':'中西区','HK_HEA':'东区','HK_HSO':'南区','HK_HWC':'湾仔区',
+            'HK_KKC':'九龙城区','HK_KKT':'观塘区','HK_KSS':'深水埗区','HK_KWT':'黄大仙区',
+            'HK_KYT':'油尖旺区','HK_NIS':'离岛区','HK_NKT':'葵青区','HK_NNO':'北区',
+            'HK_NSK':'西贡区','HK_NST':'沙田区','HK_NTM':'屯门区','HK_NTP':'大埔区',
+            'HK_NTW':'荃湾区','HK_NYL':'元朗区',
+            'MO_MO':'澳门',
+        },
+        'zh-TW': {
+            // 中國大陸（繁體）
+            'CN_AH':'安徽省','CN_BJ':'北京市','CN_CQ':'重慶市','CN_FJ':'福建省',
+            'CN_GD':'廣東省','CN_GS':'甘肅省','CN_GX':'廣西壯族自治區','CN_GZ':'貴州省',
+            'CN_HA':'河南省','CN_HB':'湖北省','CN_HE':'河北省','CN_HI':'海南省',
+            'CN_HL':'黑龍江省','CN_HN':'湖南省','CN_JL':'吉林省','CN_JS':'江蘇省',
+            'CN_JX':'江西省','CN_LN':'遼寧省','CN_NM':'內蒙古自治區',
+            'CN_NX':'寧夏回族自治區','CN_QH':'青海省','CN_SC':'四川省','CN_SD':'山東省',
+            'CN_SH':'上海市','CN_SN':'陝西省','CN_SX':'山西省','CN_TJ':'天津市',
+            'CN_XJ':'新疆維吾爾自治區','CN_XZ':'西藏自治區','CN_YN':'雲南省','CN_ZJ':'浙江省',
+            // 台灣（繁體）
+            'TW_CHA':'彰化縣','TW_CYI':'嘉義市','TW_CYQ':'嘉義縣','TW_HSQ':'新竹縣',
+            'TW_HSZ':'新竹市','TW_HUA':'花蓮縣','TW_ILA':'宜蘭縣','TW_KEE':'基隆市',
+            'TW_KHH':'高雄市','TW_KIN':'金門縣','TW_LIE':'連江縣','TW_MIA':'苗栗縣',
+            'TW_NAN':'南投縣','TW_NWT':'新北市','TW_PEN':'澎湖縣','TW_PIF':'屏東縣',
+            'TW_TAO':'桃園市','TW_TNN':'臺南市','TW_TPE':'臺北市','TW_TTT':'臺東縣',
+            'TW_TXG':'臺中市','TW_YUN':'雲林縣',
+            // 香港（繁體）
+            'HK_HCW':'中西區','HK_HEA':'東區','HK_HSO':'南區','HK_HWC':'灣仔區',
+            'HK_KKC':'九龍城區','HK_KKT':'觀塘區','HK_KSS':'深水埗區','HK_KWT':'黃大仙區',
+            'HK_KYT':'油尖旺區','HK_NIS':'離島區','HK_NKT':'葵青區','HK_NNO':'北區',
+            'HK_NSK':'西貢區','HK_NST':'沙田區','HK_NTM':'屯門區','HK_NTP':'大埔區',
+            'HK_NTW':'荃灣區','HK_NYL':'元朗區',
+            'MO_MO':'澳門',
+        },
+    };
+
+    /* 城市清單（用正確的 ISO state code 索引）*/
+    const CITY_DATA = {
+        CN: {
+            AH:['合肥','芜湖','蚌埠','淮南','马鞍山','铜陵','安庆','黄山','滁州','阜阳','宿州','六安','宣城','亳州','淮北'],
+            BJ:['北京'],CQ:['重庆'],SH:['上海'],TJ:['天津'],
+            FJ:['福州','厦门','莆田','泉州','漳州','南平','三明','龙岩','宁德'],
+            GD:['广州','深圳','珠海','汕头','佛山','韶关','河源','梅州','惠州','汕尾','东莞','中山','江门','阳江','湛江','茂名','肇庆','清远','潮州','揭阳','云浮'],
+            GS:['兰州','嘉峪关','金昌','白银','天水','武威','张掖','平凉','酒泉','庆阳','定西','陇南'],
+            GX:['南宁','柳州','桂林','梧州','北海','防城港','钦州','贵港','玉林','百色','贺州','河池','来宾','崇左'],
+            GZ:['贵阳','六盘水','遵义','安顺','毕节','铜仁'],
+            HA:['郑州','开封','洛阳','平顶山','安阳','新乡','焦作','许昌','南阳','商丘','信阳','周口','驻马店'],
+            HB:['武汉','黄石','十堰','宜昌','襄阳','鄂州','荆门','孝感','荆州','黄冈','咸宁','随州','恩施'],
+            HE:['石家庄','唐山','秦皇岛','邯郸','邢台','保定','张家口','承德','沧州','廊坊','衡水'],
+            HI:['海口','三亚','儋州','琼海','万宁','文昌'],
+            HL:['哈尔滨','齐齐哈尔','鸡西','鹤岗','双鸭山','大庆','伊春','佳木斯','牡丹江','黑河','绥化'],
+            HN:['长沙','株洲','湘潭','衡阳','邵阳','岳阳','常德','张家界','益阳','郴州','永州','怀化','娄底'],
+            JL:['长春','吉林','四平','辽源','通化','白山','松原','白城'],
+            JS:['南京','无锡','徐州','常州','苏州','南通','连云港','淮安','盐城','扬州','镇江','泰州','宿迁'],
+            JX:['南昌','景德镇','萍乡','九江','新余','鹰潭','赣州','吉安','宜春','抚州','上饶'],
+            LN:['沈阳','大连','鞍山','抚顺','本溪','丹东','锦州','营口','阜新','辽阳','盘锦','铁岭','朝阳','葫芦岛'],
+            NM:['呼和浩特','包头','乌海','赤峰','通辽','鄂尔多斯','呼伦贝尔','巴彦淖尔','乌兰察布'],
+            NX:['银川','石嘴山','吴忠','固原','中卫'],
+            QH:['西宁','海东'],
+            SC:['成都','自贡','攀枝花','泸州','德阳','绵阳','广元','遂宁','内江','乐山','南充','眉山','宜宾','广安','达州','雅安','巴中','资阳'],
+            SD:['济南','青岛','淄博','枣庄','东营','烟台','潍坊','济宁','泰安','威海','日照','滨州','德州','聊城','临沂','菏泽'],
+            SN:['西安','铜川','宝鸡','咸阳','渭南','延安','汉中','榆林','安康','商洛'],
+            SX:['太原','大同','阳泉','长治','晋城','朔州','晋中','运城','忻州','临汾','吕梁'],
+            XJ:['乌鲁木齐','克拉玛依','吐鲁番','哈密','昌吉','伊宁','库尔勒','阿克苏','喀什','和田'],
+            XZ:['拉萨','昌都','山南','日喀则','那曲','林芝'],
+            YN:['昆明','曲靖','玉溪','保山','昭通','丽江','普洱','临沧','大理'],
+            ZJ:['杭州','宁波','温州','嘉兴','湖州','绍兴','金华','衢州','舟山','台州','丽水'],
+        },
+        // 台湾（使用实际 ISO state code）
+        TW: {
+            TPE:['台北'],NWT:['新北'],KEE:['基隆'],TAO:['桃园'],
+            HSZ:['新竹'],HSQ:['新竹县'],MIA:['苗栗'],
+            TXG:['台中'],CHA:['彰化'],NAN:['南投'],YUN:['云林'],
+            CYI:['嘉义市'],CYQ:['嘉义县'],TNN:['台南'],
+            KHH:['高雄'],PIF:['屏东'],ILA:['宜兰'],HUA:['花莲'],TTT:['台东'],
+            PEN:['澎湖'],KIN:['金门'],LIE:['马祖'],
+        },
+        // 马来西亚（使用实际 ISO state code：数字）
+        MY: {
+            '14':['吉隆坡'],'10':['莎阿南','八打灵再也','怡保'],'07':['槟城','乔治市'],
+            '01':['新山','柔佛巴鲁'],'04':['马六甲'],'12':['亚庇','山打根'],
+            '13':['古晋','美里'],'08':['怡保','太平'],'06':['关丹','彭亨'],
+        },
+        // 日本（使用实际 ISO state code：数字字符串）
+        JP: {
+            '13':['东京','横滨','千叶','埼玉','川崎'],
+            '27':['大阪','神户','京都','奈良'],
+            '23':['名古屋','浜松'],
+            '01':['札幌','函馆','旭川'],
+            '40':['福冈','北九州','长崎','熊本'],
+            '04':['仙台'],
+            '47':['那霸'],
+        },
+        // 韩国
+        KR: {
+            '11':['首尔'],'26':['釜山'],'28':['仁川'],'27':['大邱'],
+            '30':['大田'],'29':['光州'],'31':['蔚山'],'50':['济州'],
+        },
+        SG: { '01':['新加坡'] },
+    };
+
+    const locCountrySel        = document.getElementById('locCountry');
+    const locStateSel          = document.getElementById('locState');
+    const locCitySel           = document.getElementById('locCity');
+    const birthplaceHidden     = document.getElementById('birthplace');
+    const locationSearchingEl  = document.getElementById('locationSearching');
+    let _stateLatLon       = null;
+    let _countryTimezones  = []; // 當前選定國家的時區列表（來自 country.json）
+
+    // 官方使用單一民用時區的國家——即使 IANA 收錄了多條記錄（如中國有
+    // Asia/Shanghai UTC+8 和 Asia/Urumqi UTC+6，但官方全境使用 UTC+8）。
+    // 對這些國家，直接指定 UTC 偏移（單位：小時），不做經度近似選取。
+    const CIVIL_TZ_OVERRIDE = {
+        'CN': 8,   // 中国大陆 全境 UTC+8
+        'TW': 8,   // 台湾     UTC+8
+        'HK': 8,   // 香港     UTC+8
+        'MO': 8,   // 澳门     UTC+8
+        'SG': 8,   // 新加坡   UTC+8
+        'JP': 9,   // 日本     UTC+9
+        'KR': 9,   // 韩国     UTC+9
+        'IN': 5.5, // 印度     UTC+5:30
+    };
+
+    // 從國家時區清單推算 UTC 偏移（秒→小時）
+    function getUtcOffsetForLon(lon) {
+        // 優先使用官方覆蓋表（解決「中國有 UTC+6 舊記錄導致西部省份誤判」等問題）
+        const iso2 = document.getElementById('locCountry') ? document.getElementById('locCountry').value : '';
+        if (iso2 && CIVIL_TZ_OVERRIDE[iso2] !== undefined) {
+            return CIVIL_TZ_OVERRIDE[iso2];
+        }
+        if (_countryTimezones.length === 1) {
+            return _countryTimezones[0].gmtOffset / 3600;
+        }
+        if (_countryTimezones.length > 1) {
+            // 多時區國家（如美國、俄羅斯）：選 gmtOffset/3600 最接近 lon/15 的那個
+            const approx = lon / 15;
+            let best = _countryTimezones[0];
+            let bestDiff = Math.abs(best.gmtOffset / 3600 - approx);
+            for (const tz of _countryTimezones) {
+                const diff = Math.abs(tz.gmtOffset / 3600 - approx);
+                if (diff < bestDiff) { bestDiff = diff; best = tz; }
+            }
+            return best.gmtOffset / 3600;
+        }
+        // 無時區資料：回退到地理經度近似
+        return Math.round(lon / 15);
+    }
+
+    const LOC_PRIORITY = ['CN','TW','HK','MO','SG','MY','JP','KR','US','GB','AU','CA','DE','FR'];
+
+    // 英文界面的國家名稱覆蓋（部分地區需要更精確的描述）
+    const COUNTRY_EN = {
+        CN: 'China (Mainland)',
+        TW: 'Taiwan Region',
+        HK: 'Hong Kong SAR',
+        MO: 'Macau SAR',
+    };
+
+    // 取得國家顯示名稱（依當前語言）
+    function getCountryDisplay(c) {
+        const lang = I18N.getLanguage();
+        // 中港澳台使用特定中文名稱，其餘一律顯示英文原名（保持一致）
+        const zhMap = COUNTRY_ZH[lang] || COUNTRY_ZH['zh-CN'];
+        if (lang.startsWith('zh') && zhMap[c.isoCode]) return zhMap[c.isoCode];
+        // 英文及無覆蓋的中文地區：使用英文原名（COUNTRY_EN 僅處理特殊情況）
+        if (COUNTRY_EN[c.isoCode]) return COUNTRY_EN[c.isoCode];
+        return c.name;
+    }
+
+    // 取得省/州顯示名稱（依當前語言；僅中港澳台有中文覆蓋，其餘顯示英文原名）
+    function getStateDisplay(s, countryCode) {
+        const lang = I18N.getLanguage();
+        if (lang.startsWith('zh')) {
+            const map = STATE_ZH[lang] || STATE_ZH['zh-CN'];
+            const zh  = map[`${countryCode}_${s.isoCode}`];
+            if (zh) return zh;
+        }
+        return s.name;
+    }
+
+    // 重置下拉並禁用（placeholder 使用 i18n）
+    function resetSelect(sel, i18nKey) {
+        sel.innerHTML = `<option value="">${I18N.t(i18nKey)}</option>`;
+        sel.disabled = true;
+    }
+
+    function clearBirthplace() {
+        birthplaceHidden.value = '';
+        _stateLatLon           = null;
+    }
+
+    async function loadCSCData() {
+        if (_cscCountries) return;
+        locationSearchingEl.style.display = '';
+        try {
+            const [cr, sr] = await Promise.all([
+                fetch(`${CSC_CDN}/country.json`).then(r => r.json()),
+                fetch(`${CSC_CDN}/state.json`).then(r => r.json()),
+            ]);
+            _cscCountries = cr;
+            _cscStates    = sr;
+        } catch (e) {
+            console.warn('CSC data load failed', e);
+        } finally {
+            locationSearchingEl.style.display = 'none';
+        }
+    }
+
+    // 將國家清單填入 locCountry（保留首個 placeholder option）
+    function renderCountryOptions() {
+        if (!_cscCountries) return;
+        // 移除舊有非 placeholder 的選項
+        while (locCountrySel.options.length > 1) locCountrySel.remove(1);
+        const sorted = [
+            ..._cscCountries.filter(c => LOC_PRIORITY.includes(c.isoCode)),
+            ..._cscCountries.filter(c => !LOC_PRIORITY.includes(c.isoCode)).sort((a, b) => a.name.localeCompare(b.name)),
+        ];
+        sorted.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.isoCode;
+            opt.textContent = getCountryDisplay(c);
+            locCountrySel.appendChild(opt);
+        });
+    }
+
+    // 選擇中國大陸時，排除數據庫把 HK/MO/TW 當作中國州的條目
+    const CN_EXCLUDE_STATES = new Set(['HK', 'MO', 'TW']);
+
+    // 將省/州填入 locState
+    function renderStateOptions(iso2) {
+        resetSelect(locStateSel, 'loc_placeholder_state');
+        if (!iso2 || !_cscStates) return;
+        let states = _cscStates.filter(s => s.countryCode === iso2);
+        if (iso2 === 'CN') states = states.filter(s => !CN_EXCLUDE_STATES.has(s.isoCode));
+        if (!states.length) return;
+        states.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.isoCode;
+            opt.dataset.lat = s.latitude  || '';
+            opt.dataset.lon = s.longitude || '';
+            opt.textContent = getStateDisplay(s, iso2);
+            locStateSel.appendChild(opt);
+        });
+        locStateSel.disabled = false;
+        return states;
+    }
+
+    // 初始化：懶加載國家清單
+    (async function initCountries() {
+        await loadCSCData();
+        renderCountryOptions();
+    })();
+
+    // 語言切換時重新渲染國家+省份選項文字
+    document.addEventListener('i18n:change', () => {
+        const currentCountry = locCountrySel.value;
+        const currentState   = locStateSel.value;
+        const currentCity    = locCitySel.value;
+
+        // 更新 placeholder 文字（data-i18n 的 option 由 applyI18n 處理，
+        // 但被 resetSelect 替換掉的需手動更新）
+        if (locStateSel.options.length === 1) {
+            locStateSel.options[0].textContent = I18N.t('loc_placeholder_state');
+        }
+        if (locCitySel.options.length === 1) {
+            locCitySel.options[0].textContent = I18N.t('loc_placeholder_city');
+        }
+
+        renderCountryOptions();
+        if (currentCountry) locCountrySel.value = currentCountry;
+
+        if (currentCountry && _cscStates) {
+            renderStateOptions(currentCountry);
+            if (currentState) {
+                locStateSel.value = currentState;
+            }
+        }
+        // city 選項都是中文城市名，語言切換不影響其內容
+    });
+
+    locCountrySel.addEventListener('change', () => {
+        const iso2 = locCountrySel.value;
+        resetSelect(locStateSel, 'loc_placeholder_state');
+        resetSelect(locCitySel,  'loc_placeholder_city');
+        clearBirthplace();
+        // 記錄當前國家的時區清單，供後續 utcOffset 計算使用
+        _countryTimezones = [];
+        if (iso2 && _cscCountries) {
+            const country = _cscCountries.find(c => c.isoCode === iso2);
+            if (country && Array.isArray(country.timezones)) {
+                _countryTimezones = country.timezones;
+            }
+        }
+        if (!iso2 || !_cscStates) return;
+        const states = renderStateOptions(iso2);
+        if (states && states.length === 1) {
+            locStateSel.value = states[0].isoCode;
+            locStateSel.dispatchEvent(new Event('change'));
+        }
+    });
+
+    locStateSel.addEventListener('change', () => {
+        const iso2      = locCountrySel.value;
+        const stateCode = locStateSel.value;
+        resetSelect(locCitySel, 'loc_placeholder_city');
+        clearBirthplace();
+        if (!stateCode) return;
+
+        // 保存省份坐標為 fallback（提交时若城市查询失败则使用）
+        const stateOpt = locStateSel.querySelector(`option[value="${CSS.escape(stateCode)}"]`);
+        if (stateOpt) {
+            const lat = parseFloat(stateOpt.dataset.lat);
+            const lon = parseFloat(stateOpt.dataset.lon);
+            if (!isNaN(lon)) {
+                _stateLatLon = { lat, lon };
+            }
+        }
+        const stateName   = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
+        const countryName = locCountrySel.options[locCountrySel.selectedIndex]?.textContent || iso2;
+        // 只更新显示名，坐标留空等提交时查询
+        birthplaceHidden.value    = `${stateName}, ${countryName}`;
+        // 若有內嵌城市資料，展開城市下拉
+        const cityList = (CITY_DATA[iso2] || {})[stateCode];
+        if (cityList && cityList.length) {
+            cityList.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = c;
+                locCitySel.appendChild(opt);
+            });
+            locCitySel.disabled = false;
+        }
+        // 否則城市下拉保持 disabled，直接使用省份坐標
+    });
+
+    locCitySel.addEventListener('change', () => {
+        const city      = locCitySel.value;
+        const stateCode = locStateSel.value;
+        const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
+        const countryName = locCountrySel.options[locCountrySel.selectedIndex]?.textContent || locCountrySel.value;
+        // 只更新显示名称，坐标在提交时统一获取
+        if (city) {
+            birthplaceHidden.value = `${city}, ${stateName}`;
+        } else {
+            birthplaceHidden.value = `${stateName}, ${countryName}`;
+        }
+    });
+
     function populateTimeSelects() {
         birthHourSelect.innerHTML = Array.from({ length: 24 }, (_, h) => {
             const v = String(h).padStart(2, '0');
@@ -1527,8 +2375,7 @@
     function updateLangSwitchLabel() {
         if (!window.I18N) return;
         const lang = window.I18N.getLanguage();
-        const key = lang === 'zh-TW' ? 'lang_zh_tw' : (lang === 'zh-CN' ? 'lang_zh_cn' : 'lang_en');
-        langSwitchLabel.textContent = window.I18N.t(key);
+        langSwitchLabel.textContent = lang === 'zh-TW' ? '語言' : (lang === 'en' ? 'Language' : '语言');
     }
 
     // 语言切换：重新渲染带固定词汇（大运/年/月等）的动态内容
@@ -1615,6 +2462,9 @@
     updateAuthUI();
 
     // 登入／註冊共用同一個彈窗，靠 authMode 切換標題、按鈕文案跟底部提示（前端模擬，暫無後端）
+    const subscribeRow = document.getElementById('subscribeRow');
+    const subscribeEmailCheckbox = document.getElementById('subscribeEmail');
+
     function applyAuthMode() {
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (authMode === 'signup') {
@@ -1622,11 +2472,13 @@
             loginSubmitBtn.textContent = t('btn_signup_submit');
             authToggleToSignup.style.display = 'none';
             authToggleToLogin.style.display = '';
+            subscribeRow.style.display = '';
         } else {
             loginModalTitle.textContent = t('login_modal_title');
             loginSubmitBtn.textContent = t('btn_login_submit');
             authToggleToSignup.style.display = '';
             authToggleToLogin.style.display = 'none';
+            subscribeRow.style.display = 'none';
         }
     }
 
@@ -1722,7 +2574,12 @@
             return;
         }
 
-        setLoggedIn(true, loginEmailInput.value.trim());
+        const email = loginEmailInput.value.trim();
+        setLoggedIn(true, email);
+        if (authMode === 'signup') {
+            const subscribed = subscribeEmailCheckbox.checked;
+            localStorage.setItem('ew_email_subscribe', subscribed ? '1' : '0');
+        }
         loginModal.classList.remove('open');
         loginForm.reset();
         resetCodeState();
@@ -1804,28 +2661,76 @@
         });
     });
 
-    document.getElementById('addBaziForm').addEventListener('submit', (e) => {
+    document.getElementById('addBaziForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nickname = document.getElementById('nickname').value.trim();
-        const gender = parseInt(document.getElementById('gender').value, 10);
+        const nickname  = document.getElementById('nickname').value.trim();
+        const gender    = parseInt(document.getElementById('gender').value, 10);
         const birthDate = `${birthYearSelect.value}/${birthMonthSelect.value}/${birthDaySelect.value}`;
         const birthTime = `${birthHourSelect.value}:${birthMinuteSelect.value}`;
         const birthplace = document.getElementById('birthplace').value.trim();
+        const useTrueSolarTime = document.getElementById('useTrueSolarTime').checked;
 
         if (!nickname || !birthDate || !birthTime || !birthplace) {
             alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
             return;
         }
+        if (useTrueSolarTime && !locStateSel.value) {
+            alert(window.I18N ? window.I18N.t('alert_need_birthplace') : '請先搜尋並選擇出生地點');
+            return;
+        }
 
-        // 真實八字四柱與大運由 computeBaziForProfile() 現場排盤（見上方），
-        // 這裡只需保存出生資料本身，不再快取死的四柱結果。
+        // ── 提交时统一查询坐标 ──────────────────────────────────────
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        locationSearchingEl.style.display = '';
+
+        let finalLon       = null;
+        let finalUtcOffset = undefined;
+
+        try {
+            const iso2      = locCountrySel.value;
+            const city      = locCitySel.value;
+            const stateCode = locStateSel.value;
+            const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
+
+            if (iso2 && (city || stateCode)) {
+                // 只用城市+省名（不拼 countryName，避免自定义名称如"中国大陆"导致 Nominatim 无结果）
+                // countrycodes 参数已限定国家，不需要在 q 里再写国家名
+                const q = city ? `${city}, ${stateName}` : stateName;
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=${iso2.toLowerCase()}`;
+                try {
+                    const res  = await fetch(url, { headers: { 'Accept-Language': 'zh,en' }, signal: AbortSignal.timeout(8000) });
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        finalLon = parseFloat(data[0].lon);
+                    }
+                } catch (_) { /* 网络失败，使用省级坐标 */ }
+
+                // Nominatim 失败时回退到省级坐标
+                if (finalLon === null && _stateLatLon) {
+                    finalLon = _stateLatLon.lon;
+                }
+
+                if (finalLon !== null) {
+                    finalUtcOffset = getUtcOffsetForLon(finalLon);
+                }
+            }
+        } finally {
+            locationSearchingEl.style.display = 'none';
+            if (submitBtn) submitBtn.disabled = false;
+        }
+
+        // 真實八字四柱與大運由 computeBaziForProfile() 現場排盤
         const profile = {
             id: 'p-' + Date.now(),
             nickname,
             gender,
             birthDate,
             birthTime,
-            birthplace
+            birthplace,
+            birthplaceLon: finalLon,
+            utcOffset: finalUtcOffset,
+            useTrueSolarTime
         };
 
         profiles.push(profile);
@@ -1844,7 +2749,12 @@
             `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
         );
         setBirthTimeSelects('12:00');
-        document.getElementById('birthplace').value = '北京';
+        // 重置地點三級選單
+        locCountrySel.value = '';
+        resetSelect(locStateSel, 'loc_placeholder_state');
+        resetSelect(locCitySel,  'loc_placeholder_city');
+        clearBirthplace();
+        document.getElementById('useTrueSolarTime').checked = false;
     });
 })();
 </script>

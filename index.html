@@ -46,13 +46,15 @@
         }
 
         /* 圆盘 img 与 龙 img 尺寸完全相同（同为2880×1800画布），叠在同一个盒子里，
-           中心自然重合，一起旋转 */
+           中心自然重合，一起旋转。
+           transform-origin 基于 alpha 质心实测：disk/dragon 圆心均在画布约(1491,898)处，
+           即 51.77% / 49.9%（而非画布几何中心的 50% 50%，两者差约 50px）。 */
         .disk-wrap img {
             display: block;
             width: 100%;
             height: auto;
             animation: spin 90s linear infinite;
-            transform-origin: center center;
+            transform-origin: 51.77% 49.9%;
         }
 
         .disk-wrap .disk-img {
