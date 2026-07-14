@@ -69,8 +69,8 @@
             left: 0;
         }
 
-        /* 手机端卷轴图片 */
-        .scroll {
+        /* 金色卷轴（手机端图片 / 电脑端视频）：全画布覆盖，top:0 left:0 自动对齐PS位置 */
+        .scroll, .scroll-video {
             position: fixed;
             width: 100%;
             height: auto;
@@ -80,25 +80,8 @@
             z-index: 3;
         }
 
-        /* 电脑端视频：用容器带 bg-paper 背景，让 darken 在容器内混合，
-           绕过视频 GPU 层无法跨层 mix-blend-mode 的限制 */
-        .scroll-video-wrap {
-            display: none;
-            position: fixed;
-            width: 100%;
-            left: 0;
-            top: 0;
-            background: url('assets/bg-paper.jpg') center / cover no-repeat;
-            z-index: 3;
-        }
-
-        .scroll-video {
-            display: block;
-            width: 100%;
-            height: auto;
-            mix-blend-mode: darken;
-            opacity: 0.95;
-        }
+        /* 电脑端视频默认隐藏，仅在 ≥721px 时显示 */
+        .scroll-video { display: none; opacity: 0.95; }
 
         /* 文字图层：全画布导出，自动对齐 */
         .text {
@@ -175,11 +158,11 @@
                 top: 1.92vh; /* 3.92vh - 2vh */
             }
 
-            /* 电脑端隐藏图片卷轴，改用视频容器 */
+            /* 电脑端隐藏图片卷轴，改用视频 */
             .scroll-picture { display: none; }
-            .scroll-video-wrap {
+            .scroll-video {
                 display: block;
-                top: 15.92vh;
+                top: 15.92vh; /* 圆盘顶部 1.92vh + 14vh */
             }
 
             /* 让「乐天知运」文字垂直居中于视频：
@@ -242,29 +225,28 @@
 <!-- z-index 1：宣纸底层 -->
 <div class="bg"></div>
 
-<!-- 圆盘：darken + 30% 不透明度；龙与圆盘同为2880×1800画布，直接叠在同一个盒子里，圆心自动重合 -->
-<div class="disk-wrap">
-    <img class="disk-img" src="assets/disk.png" alt="" draggable="false">
-    <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
-</div>
+<!-- 点击整页跳转排盘（landing 为用户可见页，index 仅底层计算） -->
+<div style="position:fixed;inset:0;z-index:5;cursor:pointer;"
+     onclick="window.location.href='landing.html'">
 
-<!-- 卷轴：手機端用图片，電腦端用视频 -->
-<picture class="scroll-picture">
-    <img class="scroll" src="assets/scroll-2.png" alt="" draggable="false">
-</picture>
-<!-- 电脑端视频容器：内置 bg-paper 背景，使 darken 在容器内混合，解决视频 GPU 层跨层问题 -->
-<div class="scroll-video-wrap">
+    <!-- 圆盘：darken + 30% 不透明度；龙与圆盘同为2880×1800画布，直接叠在同一个盒子里，圆心自动重合 -->
+    <div class="disk-wrap">
+        <img class="disk-img" src="assets/disk.png" alt="" draggable="false">
+        <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
+    </div>
+
+    <!-- 卷轴：手機端用图片，電腦端用视频 -->
+    <picture class="scroll-picture">
+        <img class="scroll" src="assets/scroll-2.png" alt="" draggable="false">
+    </picture>
     <video class="scroll-video" autoplay loop muted playsinline>
         <source src="assets/video.mp4" type="video/mp4">
     </video>
+
+    <!-- 文字图层 -->
+    <img class="text" src="assets/text.png" alt="" draggable="false">
+
 </div>
-
-<!-- 文字图层 -->
-<img class="text" src="assets/text.png" alt="" draggable="false">
-
-<!-- 点击整页跳转排盘（透明覆盖层，z-index:5 高于所有图层，捕获点击） -->
-<div style="position:fixed;inset:0;z-index:5;cursor:pointer;"
-     onclick="window.location.href='landing.html'"></div>
 
 <!-- z-index 10：品牌名 & 按钮，始终在最上 -->
 <img class="brand" src="assets/english.png" alt="ElementaWall" draggable="false" style="mix-blend-mode: multiply;">
