@@ -21,6 +21,7 @@
             font-family: var(--font-kai);
             color: var(--ink);
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .bg-paper {
@@ -275,6 +276,12 @@
                 top: 11.62vh;
                 width: 263.65vw;
             }
+            .nav-user { gap: 8px; }
+            .nav-link-item,
+            .lang-switch-btn {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
             .page-content {
                 width: calc(100% - 24px);
                 padding: 32px 20px;
@@ -393,10 +400,9 @@
     const aboutSwitchBtn = document.getElementById('aboutSwitchBtn');
     const aboutMenu = document.getElementById('aboutMenu');
 
-    const LANG_LABELS = { 'zh-TW': '繁中', 'zh-CN': '简中', 'en': 'EN' };
-
     function updateLangLabel() {
-        langSwitchLabel.textContent = LANG_LABELS[getLang()] || getLang();
+        const lang = getLang();
+        langSwitchLabel.textContent = lang === 'zh-TW' ? '語言' : (lang === 'en' ? 'Language' : '语言');
     }
     updateLangLabel();
     document.addEventListener('i18n:change', updateLangLabel);

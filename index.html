@@ -69,8 +69,8 @@
             left: 0;
         }
 
-        /* 金色卷轴（手机端图片 / 电脑端视频）：全画布覆盖，top:0 left:0 自动对齐PS位置 */
-        .scroll, .scroll-video {
+        /* 金色卷轴（手机/电脑端视频）：全画布覆盖，left:0 自动对齐 */
+        .scroll-video, .scroll-video-mobile {
             position: fixed;
             width: 100%;
             height: auto;
@@ -82,6 +82,12 @@
 
         /* 电脑端视频默认隐藏，仅在 ≥721px 时显示 */
         .scroll-video { display: none; opacity: 0.95; }
+
+        /* 手机端视频：默认显示，≥721px 时隐藏 */
+        .scroll-video-mobile {
+            display: block;
+            opacity: 0.95;
+        }
 
         /* 文字图层：全画布导出，自动对齐 */
         .text {
@@ -158,8 +164,9 @@
                 top: 1.92vh; /* 3.92vh - 2vh */
             }
 
-            /* 电脑端隐藏图片卷轴，改用视频 */
+            /* 电脑端隐藏图片卷轴和手机视频，改用桌面视频 */
             .scroll-picture { display: none; }
+            .scroll-video-mobile { display: none; }
             .scroll-video {
                 display: block;
                 top: 15.92vh; /* 圆盘顶部 1.92vh + 14vh */
@@ -195,19 +202,15 @@
                 width: 263.65vw; /* 3274.5/1242*100 */
             }
 
-            /* 手機端卷轴往下挪，對齊到「樂天知運」文字目前的高度；整體再往上挪3vh，
-               另外再整體上移1vh */
-            .scroll {
+            /* 手机端视频卷轴：与原 scroll-2.png 对齐位置 */
+            .scroll-video-mobile {
                 top: 20vh;
             }
 
-            /* 手機端「樂天知運 故不憂」文字图层要跟卷轴一起挪動，
-               同時放大：讓文字區塊的渲染高度跟卷轴宽度（100vw）差不多——
-               原圖比例(画布2880×1800)下，寬度160vw時渲染高度恰好=160vw×1800/2880=100vw，
-               所以寬度改為165.38vw，並用left:-32.69vw保持水平居中；
-               另外再跟卷轴一起整體上移1vh */
+            /* 手机端文字：与电脑端相同思路，让「乐天知运」居中于视频高度
+               text_top = video_top(20vh) + video_half(21.43vw) - text_center_in_canvas(36.8vw) */
             .text {
-                top: 13vh;
+                top: calc(20vh - 15.37vw);
                 left: -32.69vw;
                 width: 165.38vw;
             }
@@ -235,10 +238,10 @@
         <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
     </div>
 
-    <!-- 卷轴：手機端用图片，電腦端用视频 -->
-    <picture class="scroll-picture">
-        <img class="scroll" src="assets/scroll-2.png" alt="" draggable="false">
-    </picture>
+    <!-- 卷轴：手机端用 video-2，电脑端用 video -->
+    <video class="scroll-video-mobile" autoplay loop muted playsinline>
+        <source src="assets/video-2.mp4" type="video/mp4">
+    </video>
     <video class="scroll-video" autoplay loop muted playsinline>
         <source src="assets/video.mp4" type="video/mp4">
     </video>
