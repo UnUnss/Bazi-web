@@ -295,7 +295,7 @@
         <img src="assets/english.png" alt="ElementaWall" draggable="false">
     </div>
     <div class="nav-user">
-        <a href="landing.html" class="nav-link-item" data-i18n="nav_home">首頁</a>
+        <a href="javascript:void(0)" class="nav-link-item" data-i18n="nav_back" onclick="history.length>1?history.back():location.href='landing.html'">返回</a>
         <div class="about-switch-wrap" id="aboutSwitchWrap">
             <button type="button" class="nav-link-item about-switch-btn" id="aboutSwitchBtn">
                 <span data-i18n="nav_about">關於我們</span><span class="caret">▼</span>
@@ -316,6 +316,7 @@
                 <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
             </div>
         </div>
+        <a href="landing.html" class="nav-link-item" data-i18n="nav_login">登入 / 註冊</a>
     </div>
 </nav>
 

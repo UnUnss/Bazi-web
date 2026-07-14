@@ -69,8 +69,8 @@
             left: 0;
         }
 
-        /* 金色卷轴：全画布导出，top:0 left:0 自动对齐PS位置 */
-        .scroll {
+        /* 金色卷轴（手机端图片 / 电脑端视频）：全画布覆盖，top:0 left:0 自动对齐PS位置 */
+        .scroll, .scroll-video {
             position: fixed;
             width: 100%;
             height: auto;
@@ -79,6 +79,9 @@
             mix-blend-mode: darken;
             z-index: 3;
         }
+
+        /* 电脑端视频默认隐藏，仅在 ≥721px 时显示 */
+        .scroll-video { display: none; opacity: 0.95; }
 
         /* 文字图层：全画布导出，自动对齐 */
         .text {
@@ -155,12 +158,17 @@
                 top: 1.92vh; /* 3.92vh - 2vh */
             }
 
-            .scroll {
-                top: -2vh;
+            /* 电脑端隐藏图片卷轴，改用视频 */
+            .scroll-picture { display: none; }
+            .scroll-video {
+                display: block;
+                top: 15.92vh; /* 圆盘顶部 1.92vh + 14vh */
             }
 
+            /* 让「乐天知运」文字垂直居中于视频：
+               text_top = video_top(15.92vh) + video_half_height(11.57vw) - text_center_in_canvas(22.25vw) */
             .text {
-                top: -2vh;
+                top: calc(15.92vh - 10.68vw);
             }
 
             /* logo 在整体上移2vh的基础上，再向下移1vh，合计上移1vh */
@@ -227,11 +235,13 @@
         <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
     </div>
 
-    <!-- 卷轴：darken 混合，手機端換用 scroll-2.png（跟手機版 PSD 配套的素材） -->
-    <picture>
-        <source media="(max-width: 720px)" srcset="assets/scroll-2.png">
-        <img class="scroll" src="assets/scroll.png" alt="" draggable="false">
+    <!-- 卷轴：手機端用图片，電腦端用视频 -->
+    <picture class="scroll-picture">
+        <img class="scroll" src="assets/scroll-2.png" alt="" draggable="false">
     </picture>
+    <video class="scroll-video" autoplay loop muted playsinline>
+        <source src="assets/video.mp4" type="video/mp4">
+    </video>
 
     <!-- 文字图层 -->
     <img class="text" src="assets/text.png" alt="" draggable="false">
