@@ -149,6 +149,7 @@
             background: rgba(255, 252, 245, 0.6);
             color: var(--ink);
             cursor: pointer;
+            white-space: nowrap;
         }
 
         .nav-link-item:hover,
@@ -259,7 +260,7 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            padding: 32px 24px 40px;
+            padding: 32px 24px 20px;
         }
 
         .bazi-pillars {
@@ -305,7 +306,7 @@
             font-size: 11px;
             color: var(--ink-muted);
             letter-spacing: 0.05em;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
             opacity: 0.75;
         }
 
@@ -330,14 +331,14 @@
         }
 
         .bazi-section-label {
-            font-size: 14px;
+            font-size: 16px;
             letter-spacing: 0.2em;
             color: var(--ink-soft);
             margin-bottom: 20px;
         }
 
         .monthly-insight {
-            margin-top: 16px;
+            margin-top: -8px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -346,7 +347,7 @@
 
         .insight-line {
             font-size: 14px;
-            letter-spacing: 0.12em;
+            letter-spacing: 0.14em;
             color: var(--ink-soft);
         }
 
@@ -449,7 +450,7 @@
             font-size: 16px;
             letter-spacing: 0.2em;
             color: var(--ink-soft);
-            margin-bottom: 16px;
+            margin-bottom: 8px;
             font-weight: 400;
         }
 
@@ -1140,7 +1141,7 @@
             .nav-link-item,
             .lang-switch-btn,
             .btn-login {
-                font-size: 12px;
+                font-size: 13px;
                 padding: 5px 10px;
             }
 
@@ -1163,13 +1164,23 @@
             }
 
             .action-row {
-                flex-direction: column;
+                flex-direction: row;
+                gap: 8px;
+            }
+
+            .action-row > .btn-outline,
+            .action-row > .switch-wrap {
+                flex: 0 0 auto;
+            }
+
+            .action-row > .switch-wrap > .btn-outline {
                 width: 100%;
-                max-width: 280px;
             }
 
             .btn-outline {
-                width: 100%;
+                font-size: 13px;
+                padding: 9px 16px;
+                white-space: nowrap;
             }
 
             .wallpaper-grid {
@@ -1196,7 +1207,7 @@
             }
 
             .btn-download {
-                font-size: 12px;
+                font-size: 14px;
                 padding: 7px 14px;
                 margin-top: 8px;
             }
@@ -1223,7 +1234,7 @@
             </button>
             <div class="about-menu" id="aboutMenu" role="menu">
                 <a href="about.html" data-i18n="nav_about">關於我們</a>
-                <a href="#" data-i18n="nav_contact">聯絡我們</a>
+                <a href="contact.html" data-i18n="nav_contact">聯絡我們</a>
                 <a href="policy.html" data-i18n="nav_policy">用戶服務與隱私協議</a>
             </div>
         </div>
@@ -1834,6 +1845,12 @@
         '才华灵感':       { 'zh-TW': '才華運', 'zh-CN': '才华运', 'en': 'Talent'   },
     };
 
+    const WX_NAME = {
+        'zh-TW': { '木': '木', '水': '水', '金': '金', '火': '火', '土': '土' },
+        'zh-CN': { '木': '木', '水': '水', '金': '金', '火': '火', '土': '土' },
+        'en':    { '木': 'Wood', '水': 'Water', '金': 'Metal', '火': 'Fire', '土': 'Earth' },
+    };
+
     function renderInsight(insight) {
         const el = document.getElementById('monthlyInsight');
         const favorLine = document.getElementById('insightFavorLine');
@@ -1846,7 +1863,9 @@
         if (!insight) { el.style.display = 'none'; return; }
 
         const favorEl = insight.favorable_element || '';
-        favorLine.innerHTML = `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>&ensp;${favorEl}`;
+        const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
+        const favorElName = wxNameMap[favorEl] || favorEl;
+        favorLine.innerHTML = `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>&ensp;${favorElName}`;
 
         const weakDomains = insight.weak_domains || [];
         const boostNames = weakDomains.map((d) => {
@@ -1882,12 +1901,12 @@
         const assistPrefix = lang === 'en' ? 'Boost ' : '助力';
 
         // xx运只来自补运域，不用五行运
-        // 1个补运 → 4张全显示同一个；2个补运 → 中间两张各显示一个，1和4显示补运1
+        // 1个补运 → 4张全显示同一个
+        // 2个补运 → Card1&4 显示[补运1]，Card2&3 同时显示[补运1]、[补运2]
         const b0 = boostYuns[0] || (lang === 'en' ? 'Luck' : '运'); // 保底（理论上必有补运）
-        const b1 = boostYuns[1] || b0;
-        const descMap = boostYuns.length >= 2
-            ? [b0, b0, b1, b0]
-            : [b0, b0, b0, b0];
+        const sep = lang === 'en' ? ' & ' : '、';
+        const bMiddle = boostYuns.length >= 2 ? boostYuns.join(sep) : b0;
+        const descMap = [b0, bMiddle, bMiddle, b0];
 
         function makeCard(variantIdx, descSuffix) {
             const v = favorVariants[variantIdx % favorVariants.length];
@@ -2684,7 +2703,10 @@
         userMenu.classList.remove('open');
     }
 
-    document.getElementById('btnDownloadHistory').addEventListener('click', showMockNotice);
+    document.getElementById('btnDownloadHistory').addEventListener('click', () => {
+        userMenu.classList.remove('open');
+        location.href = 'download-history.html';
+    });
     document.getElementById('btnAccount').addEventListener('click', showMockNotice);
 
     document.getElementById('btnAddBazi').addEventListener('click', () => {
