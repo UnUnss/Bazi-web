@@ -11,7 +11,7 @@
     -->
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=5"></script>
+    <script src="i18n.js?v=7"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -49,7 +49,6 @@
             font-family: var(--font-kai);
             color: var(--ink);
             min-height: 100vh;
-            background-color: #e8dfc8;
             overflow-x: hidden;
         }
 
@@ -260,7 +259,7 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            padding: 56px 24px 40px;
+            padding: 32px 24px 40px;
         }
 
         .bazi-pillars {
@@ -327,7 +326,32 @@
             display: flex;
             gap: 16px;
             position: relative;
-            margin-bottom: 64px;
+            margin-bottom: 40px;
+        }
+
+        .bazi-section-label {
+            font-size: 14px;
+            letter-spacing: 0.2em;
+            color: var(--ink-soft);
+            margin-bottom: 20px;
+        }
+
+        .monthly-insight {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .insight-line {
+            font-size: 14px;
+            letter-spacing: 0.12em;
+            color: var(--ink-soft);
+        }
+
+        .insight-label {
+            color: var(--ink-soft);
         }
 
         .btn-outline {
@@ -425,7 +449,7 @@
             font-size: 16px;
             letter-spacing: 0.2em;
             color: var(--ink-soft);
-            margin-bottom: 28px;
+            margin-bottom: 16px;
             font-weight: 400;
         }
 
@@ -434,7 +458,7 @@
             flex-direction: row;
             gap: 32px;
             box-sizing: border-box;
-            padding: 28px 24px 24px;
+            padding: 12px 24px 24px;
             border-radius: 6px;
             align-items: flex-start;
         }
@@ -515,14 +539,14 @@
         .disk-wrap .disk-img {
             position: relative;
             mix-blend-mode: darken;
-            opacity: 0.1;
+            opacity: 0.2;
         }
 
         .disk-wrap .dragon-img {
             position: absolute;
             top: 0;
             left: 0;
-            opacity: 0.3;
+            opacity: 0.5;
         }
 
         @keyframes spin {
@@ -1237,6 +1261,20 @@
 
 <div class="content-wrap">
 <main class="hero">
+    <div class="action-row">
+        <button type="button" class="btn-outline" id="btnAddBazi" data-i18n="btn_add_bazi">+ 新增檔案</button>
+        <div class="switch-wrap">
+            <button type="button" class="btn-outline" id="btnSwitchBazi">
+                <span data-i18n="btn_switch_bazi">切換檔案</span><span class="caret">▼</span>
+            </button>
+            <div class="bazi-menu" id="baziMenu" role="menu">
+                <!-- 由 JS 填充 -->
+            </div>
+        </div>
+    </div>
+
+    <p class="bazi-section-label" data-i18n="bazi_board_title">八字排盤</p>
+
     <!-- 八字四柱 -->
     <div class="bazi-pillars" id="baziPillars">
         <div class="pillar">
@@ -1267,16 +1305,10 @@
     <!-- 真太陽時校正提示（useTrueSolarTime=true 時顯示） -->
     <div class="tst-hint" id="tstHint" style="display:none"></div>
 
-    <div class="action-row">
-        <button type="button" class="btn-outline" id="btnAddBazi" data-i18n="btn_add_bazi">+ 新增八字</button>
-        <div class="switch-wrap">
-            <button type="button" class="btn-outline" id="btnSwitchBazi">
-                <span data-i18n="btn_switch_bazi">切換八字</span><span class="caret">▼</span>
-            </button>
-            <div class="bazi-menu" id="baziMenu" role="menu">
-                <!-- 由 JS 填充 -->
-            </div>
-        </div>
+    <!-- 本月喜用 / 本月補運 文字行 -->
+    <div class="monthly-insight" id="monthlyInsight" style="display:none">
+        <p class="insight-line" id="insightFavorLine"></p>
+        <p class="insight-line" id="insightBoostLine"></p>
     </div>
 </main>
 
@@ -1792,42 +1824,84 @@
         }).join('');
     }
 
+    // 领域关键字 → 简短中文名称（用于本月補運摘要行）
+    // key 与 bazi_logic.js DOMAIN_MAPPING_* 保持一致
+    const DOMAIN_SHORT = {
+        '人际关系、合伙': { 'zh-TW': '人緣運', 'zh-CN': '人缘运', 'en': 'Social'   },
+        '感情与桃花':     { 'zh-TW': '桃花運', 'zh-CN': '桃花运', 'en': 'Romance'  },
+        '事业':           { 'zh-TW': '事業運', 'zh-CN': '事业运', 'en': 'Career'   },
+        '健康与贵人运':   { 'zh-TW': '健康運', 'zh-CN': '健康运', 'en': 'Health'   },
+        '才华灵感':       { 'zh-TW': '才華運', 'zh-CN': '才华运', 'en': 'Talent'   },
+    };
+
+    function renderInsight(insight) {
+        const el = document.getElementById('monthlyInsight');
+        const favorLine = document.getElementById('insightFavorLine');
+        const boostLine = document.getElementById('insightBoostLine');
+        if (!el || !favorLine || !boostLine) return;
+
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
+
+        if (!insight) { el.style.display = 'none'; return; }
+
+        const favorEl = insight.favorable_element || '';
+        favorLine.innerHTML = `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>&ensp;${favorEl}`;
+
+        const weakDomains = insight.weak_domains || [];
+        const boostNames = weakDomains.map((d) => {
+            const map = DOMAIN_SHORT[d];
+            return map ? (map[lang] || map['zh-TW']) : d;
+        });
+        boostLine.innerHTML = `<span class="insight-label">${t('wallpaper_boost_group_title')}</span>&ensp;${boostNames.join('、') || '—'}`;
+
+        el.style.display = '';
+    }
+
     // 本月壁紙區塊：卡片內容完全由 computeMonthlyInsight() 的計算結果生成——
     // 第一張永遠對應「本月喜用」單一五行，之後 1~2 張對應本月最需要補運的生活領域。
     const wallpaperGrid = document.getElementById('wallpaperGrid');
 
     function renderWallpapers(profile) {
         const insight = computeMonthlyInsight(profile);
+        renderInsight(insight);
         const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
         const t = window.I18N ? window.I18N.t : (k) => k;
-        const cards = [];
 
-        function pushCard(variant, tag, stripColor) {
-            if (!variant) return;
-            const text = variant[lang] || variant['zh-TW'];
-            const name = stripColor ? text.name.replace(/\s*[·•·]\s*.+$/, '') : text.name;
-            cards.push({ img: variant.img, tag, name, desc: text.desc });
-        }
+        // 喜用五行图片/标题（全部4张统一使用喜用色命名）
+        const favorEl = (insight && insight.favorable_element) || '水';
+        const favorVariants = WUXING_WALLPAPER[favorEl] || WUXING_WALLPAPER['水'];
 
-        // 「本月喜用」固定 2 張：永遠是同一個計算出來的喜用五行，取它的 2 個文案變體
-        const favorVariants = (insight && WUXING_WALLPAPER[insight.favorable_element])
-            || WUXING_WALLPAPER['水']; // 計算失敗時的保底
-        const favorTag = t('wallpaper_favor_group_title');
-        pushCard(favorVariants[0], favorTag);
-        pushCard(favorVariants[1], favorTag);
-
-        // 「本月補運」固定 2 張：算出 2 個弱勢領域就各取 1 個變體；只算出 1 個就取它的 2 個變體湊滿
+        // 补运域短名
         const weakDomains = (insight && insight.weak_domains) || [];
-        const boostTag = t('wallpaper_boost_group_title');
-        if (weakDomains.length >= 2 && DOMAIN_WALLPAPER[weakDomains[0]] && DOMAIN_WALLPAPER[weakDomains[1]]) {
-            pushCard(DOMAIN_WALLPAPER[weakDomains[0]][0], boostTag, true);
-            pushCard(DOMAIN_WALLPAPER[weakDomains[1]][1], boostTag, true);
-        } else {
-            const domainVariants = (weakDomains[0] && DOMAIN_WALLPAPER[weakDomains[0]])
-                || DOMAIN_WALLPAPER['感情与桃花']; // 計算失敗時的保底
-            pushCard(domainVariants[0], boostTag, true);
-            pushCard(domainVariants[1], boostTag, true);
+        const boostYuns = weakDomains.map((d) => {
+            const map = DOMAIN_SHORT[d];
+            return map ? (map[lang] || map['zh-TW']) : d;
+        });
+
+        const assistPrefix = lang === 'en' ? 'Boost ' : '助力';
+
+        // xx运只来自补运域，不用五行运
+        // 1个补运 → 4张全显示同一个；2个补运 → 中间两张各显示一个，1和4显示补运1
+        const b0 = boostYuns[0] || (lang === 'en' ? 'Luck' : '运'); // 保底（理论上必有补运）
+        const b1 = boostYuns[1] || b0;
+        const descMap = boostYuns.length >= 2
+            ? [b0, b0, b1, b0]
+            : [b0, b0, b0, b0];
+
+        function makeCard(variantIdx, descSuffix) {
+            const v = favorVariants[variantIdx % favorVariants.length];
+            if (!v) return null;
+            const text = v[lang] || v['zh-TW'];
+            return { img: v.img, name: text.name, desc: assistPrefix + descSuffix };
         }
+
+        const cards = [
+            makeCard(0, descMap[0]),
+            makeCard(1, descMap[1]),
+            makeCard(0, descMap[2]),
+            makeCard(1, descMap[3]),
+        ].filter(Boolean);
 
         function cardHtml(c) {
             return `<article class="wallpaper-card">
@@ -1842,17 +1916,12 @@
             </article>`;
         }
 
-        const favorCards = cards.slice(0, 2);
-        const boostCards = cards.slice(2, 4);
-
         wallpaperGrid.innerHTML = `
             <div class="wallpaper-group">
-                <p class="wallpaper-group-title">${escapeHtml(favorTag)}</p>
-                <div class="wallpaper-row">${favorCards.map(cardHtml).join('')}</div>
+                <div class="wallpaper-row">${cards.slice(0, 2).map(cardHtml).join('')}</div>
             </div>
             <div class="wallpaper-group">
-                <p class="wallpaper-group-title">${escapeHtml(boostTag)}</p>
-                <div class="wallpaper-row">${boostCards.map(cardHtml).join('')}</div>
+                <div class="wallpaper-row">${cards.slice(2, 4).map(cardHtml).join('')}</div>
             </div>
         `;
     }
@@ -1902,6 +1971,9 @@
         renderPillars(active);
         renderMenu(profiles, activeId);
         renderWallpapers(active);
+        // 直接用 t() 设置标签文字，不依赖 data-i18n 静态扫描
+        const boardLabel = document.querySelector('.bazi-section-label');
+        if (boardLabel && window.I18N) boardLabel.textContent = window.I18N.t('bazi_board_title');
     }
 
     refresh();
