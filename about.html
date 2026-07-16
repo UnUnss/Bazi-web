@@ -11,8 +11,6 @@
 
         :root {
             --ink: #2a1e0a;
-            --ink-soft: #5a4a28;
-            --ink-muted: #8a7a58;
             --line: rgba(42, 30, 10, 0.28);
             --font-kai: "CooperZhengKai", serif;
         }
@@ -75,6 +73,7 @@
             justify-content: flex-end;
             padding: calc(84px - 2vh) 52px 20px;
             position: relative;
+            z-index: 50;
             min-height: 22px;
         }
 
@@ -94,6 +93,8 @@
         }
 
         .nav-user {
+            position: relative;
+            z-index: 51;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -180,7 +181,7 @@
             background: rgba(42, 30, 10, 0.05);
         }
 
-        /* ─── 內容區 ─── */
+        /* ─── 內容區：屋頂 + 動態珠簾 ─── */
         .page-content {
             max-width: 960px;
             width: calc(100% - 48px);
@@ -188,11 +189,37 @@
             text-align: center;
         }
 
-        .page-content img {
+        .curtain-stage {
+            position: relative;
             width: 150%;
+            margin-left: -25%;
+            isolation: isolate;
+        }
+
+        #curtain {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: default;
+            touch-action: none;
+        }
+
+        .temple {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .temple img {
+            width: 100%;
             height: auto;
             display: block;
-            margin-left: -25%;
         }
 
         @media (max-width: 720px) {
@@ -220,7 +247,11 @@
             }
             .page-content {
                 width: calc(100% - 24px);
-                margin-top: 16px;
+                margin: -34px auto 48px;
+            }
+            .curtain-stage {
+                width: 150%;
+                margin-left: -25%;
             }
         }
     </style>
@@ -245,7 +276,7 @@
             </button>
             <div class="about-menu" id="aboutMenu" role="menu">
                 <a href="about.html" data-i18n="nav_about">關於我們</a>
-                <a href="#" data-i18n="nav_contact">聯絡我們</a>
+                <a href="contact.html" data-i18n="nav_contact">聯絡我們</a>
                 <a href="policy.html" data-i18n="nav_policy">用戶服務與隱私協議</a>
             </div>
         </div>
@@ -264,7 +295,12 @@
 </nav>
 
 <main class="page-content">
-    <img src="assets/aboutus.png" alt="About ElementaWall" draggable="false">
+    <div class="curtain-stage" id="curtainStage" aria-label="關於我們">
+        <canvas id="curtain" aria-label="動態文字珠簾"></canvas>
+        <div class="temple" id="temple">
+            <img id="templeImg" src="assets/house.png" width="2880" height="1800" alt="" draggable="false" decoding="async">
+        </div>
+    </div>
 </main>
 
 <script>
@@ -312,6 +348,435 @@
         langMenu.classList.remove('open');
         aboutMenu.classList.remove('open');
     });
+})();
+
+(function () {
+    const IMG_W = 2880;
+    const IMG_H = 1800;
+    const TEXT_TOP = 600;
+    const COL_LEFT = 679;
+    const COL_RIGHT = 2210;
+    const FONT_SIZE = 30;
+
+    const stage = document.getElementById('curtainStage');
+    const canvas = document.getElementById('curtain');
+    const ctx = canvas.getContext('2d');
+    const templeImg = document.getElementById('templeImg');
+    const chains = [];
+    let glyphs = [];
+    const mouse = { x: -999, y: -999, oldX: -999, oldY: -999, active: false };
+    const physics = { strength: 0.72, radius: 34, friction: 0.965, gravity: 0.18 };
+    const sound = {
+        context: null,
+        output: null,
+        lastStrike: [],
+        lastGlobal: 0,
+        voices: 0,
+        scale: [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760]
+    };
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let fontReady = false;
+    let fontCss = '30px CooperZhengKai, "KaiTi", "楷体", serif';
+    let fontPx = 30;
+
+    function parseGlyphs(text) {
+        const out = [];
+        let pendingGap = false;
+        for (const ch of text) {
+            if (/\s/.test(ch)) {
+                pendingGap = true;
+                continue;
+            }
+            out.push({ ch, gapBefore: pendingGap && out.length > 0 });
+            pendingGap = false;
+        }
+        return out;
+    }
+
+    function isHan(ch) {
+        return ch && /\p{Script=Han}/u.test(ch);
+    }
+
+    function isSideways(ch) {
+        return !!(ch && !isHan(ch));
+    }
+
+    function stepFor(glyph) {
+        if (glyph.gapBefore) {
+            return (isHan(glyph.ch) ? 1.26 : 1.12) * fontPx;
+        }
+        if (isSideways(glyph.ch)) return 0.66 * fontPx;
+        return 0.878 * fontPx;
+    }
+
+    function columnCount(curtainWidth) {
+        const minPitch = Math.max(fontPx * 1.45, 14);
+        const byPitch = Math.floor(curtainWidth / minPitch) + 1;
+        if (width < 520) return Math.max(12, Math.min(18, byPitch));
+        if (width < 780) return Math.max(14, Math.min(22, byPitch));
+        if (width < 1100) return Math.max(18, Math.min(26, byPitch));
+        return Math.max(22, Math.min(30, byPitch));
+    }
+
+    function unlockSound() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        if (!sound.context) {
+            const context = new AudioContext();
+            const output = context.createGain();
+            const compressor = context.createDynamicsCompressor();
+            const delay = context.createDelay(0.3);
+            const feedback = context.createGain();
+            const wet = context.createGain();
+
+            output.gain.value = 0.62;
+            compressor.threshold.value = -18;
+            compressor.ratio.value = 3;
+            delay.delayTime.value = 0.11;
+            feedback.gain.value = 0.14;
+            wet.gain.value = 0.13;
+
+            output.connect(compressor);
+            output.connect(delay);
+            delay.connect(feedback);
+            feedback.connect(delay);
+            delay.connect(wet);
+            wet.connect(compressor);
+            compressor.connect(context.destination);
+            sound.context = context;
+            sound.output = output;
+        }
+        if (sound.context.state === 'suspended') sound.context.resume().catch(() => {});
+    }
+
+    function strikeChain(columnIndex, impact, x) {
+        const context = sound.context;
+        if (!context || context.state !== 'running' || impact < 1.1) return;
+
+        const timestamp = performance.now();
+        if (timestamp - (sound.lastStrike[columnIndex] || 0) < 95) return;
+        if (timestamp - sound.lastGlobal < 28 || sound.voices >= 8) return;
+
+        sound.lastStrike[columnIndex] = timestamp;
+        sound.lastGlobal = timestamp;
+        sound.voices += 1;
+
+        const now = context.currentTime;
+        const frequency = sound.scale[columnIndex % sound.scale.length];
+        const level = 0.028 + Math.min(impact, 18) / 18 * 0.075;
+        const duration = 0.72 + Math.random() * 0.32;
+        const spatial = context.createStereoPanner ? context.createStereoPanner() : context.createGain();
+        const pan = Math.max(-0.9, Math.min(0.9, x / width * 2 - 1));
+        if (spatial.pan) spatial.pan.setValueAtTime(pan, now);
+        spatial.connect(sound.output);
+
+        [
+            { ratio: 1, amount: 1, decay: 1 },
+            { ratio: 2.01, amount: 0.24, decay: 0.62 },
+            { ratio: 3.96, amount: 0.1, decay: 0.38 }
+        ].forEach((partial) => {
+            const oscillator = context.createOscillator();
+            const envelope = context.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency * partial.ratio, now);
+            oscillator.detune.setValueAtTime((Math.random() - 0.5) * 8, now);
+            envelope.gain.setValueAtTime(level * partial.amount, now);
+            envelope.gain.exponentialRampToValueAtTime(0.0001, now + duration * partial.decay);
+            oscillator.connect(envelope);
+            envelope.connect(spatial);
+            oscillator.start(now);
+            oscillator.stop(now + duration + 0.05);
+        });
+
+        window.setTimeout(() => {
+            sound.voices = Math.max(0, sound.voices - 1);
+            spatial.disconnect();
+        }, (duration + 0.15) * 1000);
+    }
+
+    function build() {
+        chains.length = 0;
+        if (!width || !glyphs.length) return;
+
+        const scale = width / IMG_W;
+        fontPx = Math.max(12, FONT_SIZE * scale);
+        const left = COL_LEFT * scale;
+        const right = COL_RIGHT * scale;
+        const curtainWidth = right - left;
+        const top = TEXT_TOP * scale;
+        const columns = columnCount(curtainWidth);
+        physics.radius = Math.max(20, fontPx * 2.2);
+        physics.gravity = 0.16 * Math.max(0.6, Math.min(1.2, scale * 2));
+
+        const steps = glyphs.map((g) => stepFor(g));
+        const totalStep = steps.reduce((sum, s) => sum + s, 0);
+        const targetLen = totalStep / Math.max(1, columns);
+        const bucket = Array.from({ length: columns }, () => []);
+        let col = columns - 1;
+        let colLen = 0;
+
+        for (let i = 0; i < glyphs.length; i += 1) {
+            const step = steps[i];
+            if (
+                bucket[col].length > 0 &&
+                col > 0 &&
+                colLen + step > targetLen &&
+                colLen >= targetLen * 0.7
+            ) {
+                col -= 1;
+                colLen = 0;
+            }
+            if (bucket[col].length === 0) {
+                bucket[col].push(glyphs[i]);
+            } else {
+                colLen += step;
+                bucket[col].push(glyphs[i]);
+            }
+        }
+
+        let maxBottom = top;
+        for (let column = 0; column < columns; column += 1) {
+            const items = bucket[column];
+            if (!items.length) continue;
+            const x = columns === 1 ? left : left + column * curtainWidth / (columns - 1);
+            const chain = [];
+            let y = top;
+            for (let row = 0; row < items.length; row += 1) {
+                const glyph = items[row];
+                const rest = row === 0 ? 0 : stepFor(glyph);
+                if (row > 0) y += rest;
+                chain.push({
+                    x,
+                    y,
+                    oldX: x,
+                    oldY: y,
+                    anchorX: x,
+                    anchorY: y,
+                    pinned: row === 0,
+                    restLength: rest || stepFor(glyph),
+                    char: glyph.ch,
+                    sideways: isSideways(glyph.ch)
+                });
+            }
+            chains.push(chain);
+            maxBottom = Math.max(maxBottom, chain[chain.length - 1].y + fontPx);
+        }
+
+        const targetBottom = maxBottom - fontPx;
+        for (const chain of chains) {
+            if (chain.length < 2) continue;
+            const span = chain[chain.length - 1].y - chain[0].y;
+            const want = targetBottom - chain[0].y;
+            if (span < 8 || want <= span * 1.02) continue;
+            const factor = want / span;
+            if (factor > 1.35) continue;
+            for (let i = 1; i < chain.length; i += 1) {
+                const p = chain[i];
+                p.restLength *= factor;
+                p.y = chain[0].y + (p.y - chain[0].y) * factor;
+                p.oldY = p.y;
+            }
+        }
+        maxBottom = top;
+        for (const chain of chains) {
+            if (chain.length) {
+                maxBottom = Math.max(maxBottom, chain[chain.length - 1].y + fontPx);
+            }
+        }
+
+        fontCss = `${fontPx}px CooperZhengKai, "KaiTi", "楷体", serif`;
+        ctx.font = fontCss;
+
+        const roofH = width * (IMG_H / IMG_W);
+        const needed = Math.max(roofH, maxBottom + fontPx * 2.2);
+        if (Math.abs(needed - height) > 1) {
+            stage.style.height = `${needed}px`;
+            height = needed;
+            dpr = Math.min(2, window.devicePixelRatio || 1);
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.font = fontCss;
+        }
+    }
+
+    function resize() {
+        const rect = stage.getBoundingClientRect();
+        width = rect.width;
+        const roofH = width * (IMG_H / IMG_W);
+        height = Math.max(rect.height, roofH);
+        stage.style.height = `${height}px`;
+        dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        build();
+    }
+
+    function injectMouseDelta() {
+        if (!mouse.active) return;
+        const moveX = mouse.x - mouse.oldX;
+        const moveY = mouse.y - mouse.oldY;
+        const speed = Math.hypot(moveX, moveY);
+        if (speed < 0.01 || speed > 80) return;
+        for (let chainIndex = 0; chainIndex < chains.length; chainIndex += 1) {
+            const chain = chains[chainIndex];
+            let strongestImpact = 0;
+            for (let index = 1; index < chain.length; index += 1) {
+                const point = chain[index];
+                const distance = Math.hypot(point.x - mouse.oldX, point.y - mouse.oldY);
+                if (distance >= physics.radius) continue;
+                const falloff = 1 - distance / physics.radius;
+                strongestImpact = Math.max(strongestImpact, speed * falloff);
+                point.x += moveX * physics.strength * falloff;
+                point.y += moveY * physics.strength * falloff;
+            }
+            if (strongestImpact > 0) strikeChain(chainIndex, strongestImpact, chain[0].x);
+        }
+    }
+
+    function integrate() {
+        for (const chain of chains) {
+            for (const point of chain) {
+                if (point.pinned) continue;
+                const velocityX = (point.x - point.oldX) * physics.friction;
+                const velocityY = (point.y - point.oldY) * physics.friction;
+                point.oldX = point.x;
+                point.oldY = point.y;
+                point.x += velocityX;
+                point.y += velocityY + physics.gravity;
+            }
+        }
+    }
+
+    function constrain() {
+        for (let pass = 0; pass < 8; pass += 1) {
+            for (const chain of chains) {
+                const anchor = chain[0];
+                anchor.x = anchor.anchorX;
+                anchor.y = anchor.anchorY;
+                for (let index = 1; index < chain.length; index += 1) {
+                    const a = chain[index - 1];
+                    const b = chain[index];
+                    const dx = b.x - a.x;
+                    const dy = b.y - a.y;
+                    const distance = Math.max(0.0001, Math.hypot(dx, dy));
+                    const difference = (distance - b.restLength) / distance;
+                    if (a.pinned) {
+                        b.x -= dx * difference;
+                        b.y -= dy * difference;
+                    } else {
+                        const cx = dx * difference * 0.5;
+                        const cy = dy * difference * 0.5;
+                        a.x += cx;
+                        a.y += cy;
+                        b.x -= cx;
+                        b.y -= cy;
+                    }
+                }
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        if (!fontReady) return;
+        ctx.font = fontCss;
+        ctx.fillStyle = '#2a1e0a';
+        ctx.globalAlpha = 1;
+        for (const chain of chains) {
+            for (const point of chain) {
+                if (!point.char) continue;
+                if (point.sideways) {
+                    ctx.save();
+                    ctx.translate(point.x, point.y + fontPx * 0.28);
+                    ctx.rotate(Math.PI / 2);
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(point.char, 0, 0);
+                    ctx.restore();
+                } else {
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(point.char, point.x, point.y);
+                }
+            }
+        }
+    }
+
+    function frame() {
+        integrate();
+        constrain();
+        draw();
+        requestAnimationFrame(frame);
+    }
+
+    function pointerPos(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+        };
+    }
+
+    function enter(event) {
+        unlockSound();
+        const p = pointerPos(event);
+        mouse.x = mouse.oldX = p.x;
+        mouse.y = mouse.oldY = p.y;
+        mouse.active = true;
+    }
+
+    function move(event) {
+        if (!mouse.active) enter(event);
+        mouse.oldX = mouse.x;
+        mouse.oldY = mouse.y;
+        const p = pointerPos(event);
+        mouse.x = p.x;
+        mouse.y = p.y;
+        injectMouseDelta();
+    }
+
+    function leave() {
+        mouse.active = false;
+    }
+
+    async function loadBodyText() {
+        try {
+            const response = await fetch('assets/tiantan.txt');
+            if (!response.ok) throw new Error(String(response.status));
+            glyphs = parseGlyphs(await response.text());
+            build();
+        } catch (error) {
+            console.warn('tiantan.txt load failed', error);
+        }
+    }
+
+    async function boot() {
+        try {
+            await document.fonts.load(`${FONT_SIZE}px CooperZhengKai`);
+        } catch (_) { /* ignore */ }
+        fontReady = true;
+        if (!templeImg.complete) {
+            await new Promise((resolve) => {
+                templeImg.addEventListener('load', resolve, { once: true });
+                templeImg.addEventListener('error', resolve, { once: true });
+            });
+        }
+        resize();
+        await loadBodyText();
+        frame();
+    }
+
+    canvas.addEventListener('pointerenter', enter);
+    canvas.addEventListener('pointermove', move);
+    canvas.addEventListener('pointerleave', leave);
+    canvas.addEventListener('pointerdown', unlockSound, { passive: true });
+    window.addEventListener('pointerdown', unlockSound, { passive: true });
+    window.addEventListener('resize', resize);
+    boot();
 })();
 </script>
 </body>

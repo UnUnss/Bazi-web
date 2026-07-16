@@ -306,7 +306,7 @@
             font-size: 11px;
             color: var(--ink-muted);
             letter-spacing: 0.05em;
-            margin-bottom: 28px;
+            margin-bottom: 0;
             opacity: 0.75;
         }
 
@@ -338,7 +338,8 @@
         }
 
         .monthly-insight {
-            margin-top: -8px;
+            /* 与有真太阳时提示时一致：间距挂在本月喜用上，避免非太阳时塌缩贴住大运行 */
+            margin-top: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1187,10 +1188,19 @@
                 flex-direction: column;
                 gap: 16px;
                 padding: 20px 14px 16px;
+                /* column 布局下交叉轴是水平方向；flex-start 会让 group
+                   按内容收缩并靠左。图片未缓存时更易塌缩，刷新后又偶发正常。 */
+                align-items: stretch;
+            }
+
+            .wallpaper-group {
+                width: 100%;
+                min-width: 0;
             }
 
             .wallpaper-row {
                 gap: 10px;
+                width: 100%;
             }
 
             .wallpaper-meta {
@@ -1395,6 +1405,14 @@
                         <span class="toggle-thumb"></span>
                     </label>
                 </div>
+                <div class="true-solar-row" style="margin-top:8px;">
+                    <span data-i18n="form_dst_label">夏令時</span>
+                    <label class="toggle-switch" aria-label="夏令時">
+                        <input type="checkbox" id="useDST">
+                        <span class="toggle-track"></span>
+                        <span class="toggle-thumb"></span>
+                    </label>
+                </div>
             </div>
             <button type="submit" class="btn-save" data-i18n="btn_save">保存八字</button>
         </form>
@@ -1523,7 +1541,8 @@
             birthDate: '1984/01/15',
             birthTime: '12:00',
             birthplace: '北京',
-            useTrueSolarTime: false
+            useTrueSolarTime: false,
+            useDST: false
         }
     ];
 
@@ -1689,6 +1708,14 @@
             let fmm = isNaN(mm_raw) ? 0 : mm_raw;
             let tstCorrected = null; // 記錄真太陽時校正結果，供 UI 顯示
 
+            // 夏令時校正：時鐘撥快1小時，還原標準時需減去1小時
+            if (profile.useDST) {
+                const totalMin = fhh * 60 + fmm - 60;
+                const adjMin = ((totalMin % 1440) + 1440) % 1440;
+                fhh = Math.floor(adjMin / 60);
+                fmm = adjMin % 60;
+            }
+
             // 若啟用真太陽時校正，且已有出生地經度，則修正時間
             if (profile.useTrueSolarTime && profile.birthplaceLon != null) {
                 const t = calcTrueSolarTime(y, m, d, fhh, fmm,
@@ -1797,15 +1824,23 @@
             branch.className = 'pillar-branch ' + wxClass(p.zhi);
         });
 
-        // 真太陽時提示
+        // 真太陽時 / 夏令時提示
         const tstHint = document.getElementById('tstHint');
         if (tstHint) {
-            if (bazi.tstCorrected) {
-                const t = bazi.tstCorrected;
-                const hh = String(t.hh).padStart(2, '0');
-                const mm = String(t.mm).padStart(2, '0');
-                const origTime = profile.birthTime || '';
-                tstHint.textContent = `☀ 真太陽時 ${hh}:${mm}（時鐘時間 ${origTime}）`;
+            if (bazi.tstCorrected || profile.useDST) {
+                let hintText = '';
+                if (bazi.tstCorrected) {
+                    const t = bazi.tstCorrected;
+                    const hh = String(t.hh).padStart(2, '0');
+                    const mm = String(t.mm).padStart(2, '0');
+                    const origTime = profile.birthTime || '';
+                    hintText = `☀ 真太陽時 ${hh}:${mm}（時鐘時間 ${origTime}）`;
+                }
+                if (profile.useDST) {
+                    const t = window.I18N ? window.I18N.t : (k) => k;
+                    hintText += (hintText ? '｜' : '') + t('form_dst_label');
+                }
+                tstHint.textContent = hintText;
                 tstHint.style.display = '';
             } else {
                 tstHint.style.display = 'none';
@@ -2765,6 +2800,7 @@
         const birthTime = `${birthHourSelect.value}:${birthMinuteSelect.value}`;
         const birthplace = document.getElementById('birthplace').value.trim();
         const useTrueSolarTime = document.getElementById('useTrueSolarTime').checked;
+        const useDST = document.getElementById('useDST').checked;
 
         if (!nickname || !birthDate || !birthTime || !birthplace) {
             alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
@@ -2826,7 +2862,8 @@
             birthplace,
             birthplaceLon: finalLon,
             utcOffset: finalUtcOffset,
-            useTrueSolarTime
+            useTrueSolarTime,
+            useDST
         };
 
         profiles.push(profile);
