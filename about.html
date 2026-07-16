@@ -204,7 +204,8 @@
             height: 100%;
             display: block;
             cursor: default;
-            touch-action: none;
+            /* 允许手机端上下滚动；左右拨帘仍由 pointer 事件处理 */
+            touch-action: pan-y;
         }
 
         .temple {
@@ -247,7 +248,7 @@
             }
             .page-content {
                 width: calc(100% - 24px);
-                margin: -34px auto 48px;
+                margin: -44px auto 48px;
             }
             .curtain-stage {
                 width: 150%;
@@ -356,7 +357,7 @@
     const TEXT_TOP = 600;
     const COL_LEFT = 679;
     const COL_RIGHT = 2210;
-    const FONT_SIZE = 30;
+    const FONT_SIZE = 27;
 
     const stage = document.getElementById('curtainStage');
     const canvas = document.getElementById('curtain');
@@ -378,8 +379,8 @@
     let height = 0;
     let dpr = 1;
     let fontReady = false;
-    let fontCss = '30px CooperZhengKai, "KaiTi", "楷体", serif';
-    let fontPx = 30;
+    let fontCss = '27px CooperZhengKai, "KaiTi", "楷体", serif';
+    let fontPx = 27;
 
     function parseGlyphs(text) {
         const out = [];
@@ -501,7 +502,9 @@
         if (!width || !glyphs.length) return;
 
         const scale = width / IMG_W;
-        fontPx = Math.max(12, FONT_SIZE * scale);
+        const isMobile = width < 720;
+        /* 手機端字再縮 10% */
+        fontPx = Math.max(10, FONT_SIZE * scale * (isMobile ? 0.9 : 1));
         const left = COL_LEFT * scale;
         const right = COL_RIGHT * scale;
         const curtainWidth = right - left;

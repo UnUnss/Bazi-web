@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title data-i18n="meta_title">八字定製每月運勢壁紙</title>
     <!--
         汇迹正楷 CooperZhengKai 楷體字型：字型檔案自行打包在 assets/fonts/cooper-zhengkai/，
@@ -43,29 +43,36 @@
         html {
             font-family: var(--font-kai);
             overflow-x: hidden;
+            /* iOS 橡皮筋/动态工具栏露边时不要露出默认白底 */
+            background: #f2e8d4;
         }
 
         body {
             font-family: var(--font-kai);
             color: var(--ink);
             min-height: 100vh;
+            min-height: 100dvh;
             overflow-x: hidden;
+            background: #f2e8d4;
+            /* 刘海 / Home 指示条安全区 */
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         /*
          * 宣纸背景用独立的 position:fixed 图层（跟 index.html 封面页的 .bg 一致），
          * 不要直接写在 body 的 background 上。
          * 原因：body 在非 fixed attachment 下，background-size: cover 是按
-         * body 的「整页可滚动高度」（landing 页内容较长，可能有 1800~2500px）
-         * 去计算覆盖比例的，不是按视口高度算的——这会让浏览器把图片放大很多倍
-         * 去覆盖整页高度，超采样放大后自然就发糊了。
-         * 而用一个 position:fixed; inset:0 的图层，它的盒子永远等于视口大小，
-         * cover 缩放比例始终锚定视口，不会被页面长度拖着放大，画面就跟
-         * index.html 封面页一样清晰。
+         * body 的「整页可滚动高度」去算的，会糊。
+         * iOS Safari 动态顶栏/底栏伸缩时，仅 inset:0 会跟不上视觉视口，
+         * 上下留出白边；故略放大固定层以盖住橡皮筋与工具栏变化区。
          */
         .bg-paper {
             position: fixed;
-            inset: 0;
+            top: -40vh;
+            right: 0;
+            bottom: -40vh;
+            left: 0;
             z-index: -2;
             background: url('assets/bg-paper.jpg') center / cover no-repeat;
             pointer-events: none;
@@ -1149,6 +1156,8 @@
             .content-wrap {
                 width: calc(100% - 24px);
                 border-radius: 6px;
+                /* 底部下载按钮避开 Safari 浮动地址栏 */
+                padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
             }
 
             .bazi-pillars {
