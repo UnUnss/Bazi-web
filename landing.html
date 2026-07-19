@@ -504,18 +504,101 @@
 
         .wallpaper-preview {
             width: 100%;
-            aspect-ratio: 3 / 4;
             border-radius: 2px;
             position: relative;
             overflow: hidden;
             box-shadow: 0 6px 20px rgba(42, 30, 10, 0.12);
+            container-type: inline-size;
         }
 
         .wallpaper-preview img {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
             display: block;
+        }
+
+        /* ─── 手機鎖屏模擬遮層 ─────────────────────────── */
+
+        .phone-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .phone-overlay-top {
+            padding: 7% 6% 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .phone-overlay-logo {
+            width: 95%;
+            max-width: none;
+            filter: brightness(0) invert(1);
+            opacity: 0.88;
+            transform: scale(2.4);
+            transform-origin: top center;
+        }
+
+        .phone-overlay-clock {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 6%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .phone-clock-time {
+            font-size: 22.4cqw;
+            font-weight: 200;
+            color: rgba(255,255,255,0.95);
+            text-shadow: 0 1px 10px rgba(0,0,0,0.35);
+            line-height: 1;
+            letter-spacing: 0.02em;
+            position: relative;
+            top: -55px;
+        }
+
+        .phone-clock-date {
+            font-size: 3.6cqw;
+            color: rgba(255,255,255,0.82);
+            text-shadow: 0 1px 6px rgba(0,0,0,0.3);
+            margin-top: 5%;
+            letter-spacing: 0.06em;
+        }
+
+        .phone-overlay-bottom {
+            padding: 0 11% 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .phone-icon-btn {
+            width: 18%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .phone-icon-btn svg {
+            width: 45%;
+            height: 45%;
+            color: rgba(255,255,255,0.92);
         }
 
         /* ─── 左上角转动圆盘（坐标与动效跟 index.html 封面页保持一致） ─── */
@@ -638,6 +721,13 @@
             margin-bottom: 10px;
         }
 
+        .pay-price-currency {
+            font-size: 14px;
+            color: var(--ink-soft);
+            letter-spacing: 0.06em;
+            align-self: baseline;
+        }
+
         .pay-price {
             font-size: 32px;
             font-weight: 600;
@@ -655,10 +745,123 @@
             font-size: 12px;
             color: var(--ink-muted);
             letter-spacing: 0.04em;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
+        }
+
+        .pay-tier-section {
+            margin-bottom: 22px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+        }
+
+        .pay-tier-title {
+            font-size: 12px;
+            color: var(--ink-soft);
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+
+        .pay-tier-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .pay-tier-btn {
+            font-family: inherit;
+            font-size: 12.5px;
+            letter-spacing: 0.04em;
+            line-height: 1.4;
+            padding: 9px 6px;
+            background: rgba(255, 252, 245, 0.5);
+            color: var(--ink-soft);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+            text-align: center;
+        }
+
+        .pay-tier-btn .tier-qty {
+            display: block;
+            font-size: 13px;
+            color: var(--ink);
+            margin-bottom: 2px;
+        }
+
+        .pay-tier-btn .tier-price {
+            display: block;
+        }
+
+        .pay-tier-btn:hover {
+            background: rgba(255, 252, 245, 0.85);
+        }
+
+        .pay-tier-btn.active {
+            background: var(--ink);
+            border-color: var(--ink);
+        }
+
+        .pay-tier-btn.active .tier-qty,
+        .pay-tier-btn.active .tier-price {
+            color: #faf6ec;
+        }
+
+        .pay-tier-btn.pay-tier-year {
+            grid-column: 1 / -1;
+        }
+
+        .pay-tier-info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .pay-tier-info {
+            padding: 4px 6px 9px;
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .pay-tier-info .tier-qty {
+            font-size: 16px;
+            color: var(--ink);
+        }
+
+        .pay-tier-info .tier-price {
+            font-size: 12.5px;
+            color: var(--ink-muted);
+        }
+
+        .pay-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-add-cart {
+            flex: 1;
+            font-family: inherit;
+            font-size: 13.5px;
+            letter-spacing: 0.08em;
+            padding: 13px 8px;
+            background: rgba(255, 252, 245, 0.6);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-add-cart:hover {
+            background: rgba(255, 252, 245, 0.95);
         }
 
         .btn-pay-confirm {
+            flex: 1;
             width: 100%;
             font-family: inherit;
             font-size: 15px;
@@ -674,6 +877,157 @@
 
         .btn-pay-confirm:hover {
             background: #3d2e14;
+        }
+
+        /* ─── 購物車（下載列表） ──────────────────────── */
+
+        .nav-cart-wrap {
+            position: relative;
+        }
+
+        .nav-cart-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 3px;
+            border-radius: 8px;
+            background: #b5442e;
+            color: #faf6ec;
+            font-size: 10px;
+            line-height: 16px;
+            text-align: center;
+            display: none;
+        }
+
+        .nav-cart-badge.show {
+            display: block;
+        }
+
+        .cart-modal {
+            max-width: 420px;
+        }
+
+        .cart-list {
+            max-height: 320px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+
+        .cart-empty {
+            text-align: center;
+            color: var(--ink-muted);
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            padding: 24px 0;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .cart-item-checkbox {
+            width: 17px;
+            height: 17px;
+            flex-shrink: 0;
+            accent-color: var(--ink);
+            cursor: pointer;
+        }
+
+        .cart-item-thumb {
+            width: 44px;
+            height: 58px;
+            border-radius: 2px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .cart-item-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .cart-item-name {
+            flex: 1;
+            font-size: 13.5px;
+            letter-spacing: 0.04em;
+            color: var(--ink);
+        }
+
+        .cart-item-remove {
+            border: none;
+            background: transparent;
+            color: var(--ink-muted);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .cart-item-remove:hover {
+            color: var(--ink);
+        }
+
+        .cart-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .cart-select-all {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--ink-soft);
+            letter-spacing: 0.04em;
+            cursor: pointer;
+        }
+
+        .cart-select-all input {
+            accent-color: var(--ink);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+
+        .cart-clear {
+            border: none;
+            background: transparent;
+            color: var(--ink-muted);
+            font-size: 12.5px;
+            letter-spacing: 0.04em;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .cart-total-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+        }
+
+        .cart-total-label {
+            font-size: 13px;
+            color: var(--ink-soft);
+            letter-spacing: 0.06em;
+        }
+
+        .cart-total-price {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--ink);
         }
 
         /* ─── 新增八字彈窗 ─────────────────────────────── */
@@ -1261,6 +1615,18 @@
                 <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
             </div>
         </div>
+        <div class="nav-cart-wrap" id="navCartWrap" style="display:none;">
+            <div class="nav-user-icon" id="cartBtn" data-i18n-aria-label="nav_cart_aria" aria-label="下載列表">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.7">
+                    <circle cx="9" cy="20" r="1.4" fill="currentColor" stroke="none" />
+                    <circle cx="18" cy="20" r="1.4" fill="currentColor" stroke="none" />
+                    <path d="M2.5 3h2.4l1.6 11.2a1.8 1.8 0 0 0 1.78 1.55h9.9a1.8 1.8 0 0 0 1.77-1.47l1.28-6.9H6.1"
+                          stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
+            <span class="nav-cart-badge" id="cartBadge">0</span>
+        </div>
         <div class="auth-area" id="authArea">
             <button type="button" class="btn-login" id="btnLogin" data-i18n="nav_login">登入 / 註冊</button>
             <div class="user-menu-wrap" id="userMenuWrap" style="display:none;">
@@ -1431,11 +1797,60 @@
         </div>
         <p class="pay-wallpaper-name" id="payWallpaperName"></p>
         <div class="pay-price-row">
-            <span class="pay-price">$5.99</span>
-            <span class="pay-price-unit" data-i18n="pay_per_image">/ 張</span>
+            <span class="pay-price-currency">US</span><span class="pay-price" id="payPrice">$5.99</span>
+            <span class="pay-price-unit" id="payPriceUnit" data-i18n="pay_per_image">/ 張</span>
         </div>
-        <p class="pay-notice" data-i18n="pay_notice">虛擬商品，購買後不支持退款</p>
-        <button type="button" class="btn-pay-confirm" id="btnPayConfirm" data-i18n="pay_confirm">確認支付</button>
+        <p class="pay-notice" id="payNotice" data-i18n="pay_notice">虛擬商品，購買後不支持退款</p>
+
+        <div class="pay-tier-section">
+            <p class="pay-tier-title" data-i18n="pay_tier_title">更划算的選擇</p>
+            <div class="pay-tier-info-row">
+                <div class="pay-tier-info">
+                    <span class="tier-qty" data-i18n="pay_tier_2_qty">2 張</span>
+                    <span class="tier-price">US$9.99</span>
+                </div>
+                <div class="pay-tier-info">
+                    <span class="tier-qty" data-i18n="pay_tier_4_qty">4 張</span>
+                    <span class="tier-price">US$19.99</span>
+                </div>
+            </div>
+            <div class="pay-tier-row" id="payTierRow">
+                <button type="button" class="pay-tier-btn pay-tier-year" data-tier="year" data-price="219.99">
+                    <span class="tier-qty" data-i18n="pay_tier_year_qty">包年無限下載</span>
+                    <span class="tier-price">US$219.99</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="pay-actions">
+            <button type="button" class="btn-add-cart" id="btnAddCart" data-i18n="pay_add_cart">加入購物車</button>
+            <button type="button" class="btn-pay-confirm" id="btnPayConfirm" data-i18n="pay_confirm">確認支付</button>
+        </div>
+    </div>
+</div>
+
+<!-- 下載列表（購物車）彈窗 -->
+<div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true">
+    <div class="modal cart-modal">
+        <button type="button" class="modal-close" id="cartModalClose" aria-label="關閉">×</button>
+        <h2 data-i18n="cart_title">下載列表</h2>
+
+        <div class="cart-toolbar" id="cartToolbar" style="display:none;">
+            <label class="cart-select-all">
+                <input type="checkbox" id="cartSelectAll">
+                <span data-i18n="cart_select_all">全選</span>
+            </label>
+            <button type="button" class="cart-clear" id="cartClear" data-i18n="cart_clear">清空列表</button>
+        </div>
+
+        <div class="cart-list" id="cartList"></div>
+
+        <div class="cart-total-row" id="cartTotalRow" style="display:none;">
+            <span class="cart-total-label" data-i18n="cart_total_label">結算金額</span>
+            <span class="cart-total-price" id="cartTotalPrice">US$0.00</span>
+        </div>
+
+        <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout">結算</button>
     </div>
 </div>
 
@@ -1562,58 +1977,98 @@
     // 「本月喜用」壁紙文案：key 為 bazi_logic.js get_monthly_favorable_element() 算出的單一五行。
     // UI 固定顯示 2 張「本月喜用」卡片，所以每個五行準備 2 個文案變體（畫風/色調略有不同），
     // 而不是拿 2 個不同五行硬湊——實際喜用五行永遠只有一個，2 張卡片呈現的是同一個計算結果。
-    // 圖片素材目前只有 2 款通用畫風，之後壁紙庫擴充時，直接把 img 換成對應素材路徑即可，
-    // 卡片張數（2+2）不會因為擴充素材而變動。
+    // 4 款壁紙素材：1=暖金葫蘆，2=藍蝶，3=青藤葫蘆，4=水墨蘭花
+    // 每個五行元素準備 4 個變體，對應本月 4 張卡片，保證每張圖都不同。
     const WUXING_WALLPAPER = {
         '水': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-2.png',
               'zh-TW': { name: '水 · 深藍', desc: '滋養日主，平穩情緒，助你沉靜思考' },
               'zh-CN': { name: '水 · 深蓝', desc: '滋养日主，平稳情绪，助你沉静思考' },
               'en': { name: 'Water · Deep Blue', desc: 'Nourishes your Day Master and calms emotions, helping you think clearly.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
+            { img: 'assets/wallpapers/wallpaper-4.png',
               'zh-TW': { name: '水 · 湖藍', desc: '增強直覺與應變力，助你隨機而動、化解阻力' },
               'zh-CN': { name: '水 · 湖蓝', desc: '增强直觉与应变力，助你随机而动、化解阻力' },
-              'en': { name: 'Water · Lake Blue', desc: 'Sharpens intuition and adaptability, helping you navigate change with ease.' } }
+              'en': { name: 'Water · Lake Blue', desc: 'Sharpens intuition and adaptability, helping you navigate change with ease.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '水 · 靈動', desc: '滋潤心靈，助你以柔克剛、靜中求變' },
+              'zh-CN': { name: '水 · 灵动', desc: '滋润心灵，助你以柔克刚、静中求变' },
+              'en': { name: 'Water · Flow', desc: 'Refreshes the mind, helping you adapt with grace and find change in stillness.' } },
+            { img: 'assets/wallpapers/wallpaper-3.png',
+              'zh-TW': { name: '水 · 沉靜', desc: '深化洞察，助你看清方向、穩步前行' },
+              'zh-CN': { name: '水 · 沉静', desc: '深化洞察，助你看清方向、稳步前行' },
+              'en': { name: 'Water · Still', desc: 'Deepens insight, helping you see clearly and move forward with purpose.' } }
         ],
         '木': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-3.png',
               'zh-TW': { name: '木 · 青竹', desc: '生扶日主，舒展心緒，助你穩健前行' },
               'zh-CN': { name: '木 · 青竹', desc: '生扶日主，舒展心绪，助你稳健前行' },
               'en': { name: 'Wood · Bamboo Green', desc: 'Supports your Day Master and eases the mind, helping you move forward steadily.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
+            { img: 'assets/wallpapers/wallpaper-4.png',
               'zh-TW': { name: '木 · 嫩芽綠', desc: '帶來成長動能，助你開展新計畫、穩步擴張' },
               'zh-CN': { name: '木 · 嫩芽绿', desc: '带来成长动能，助你开展新计划、稳步扩张' },
-              'en': { name: 'Wood · Sprout Green', desc: 'Brings growth momentum, helping you launch new plans and expand steadily.' } }
+              'en': { name: 'Wood · Sprout Green', desc: 'Brings growth momentum, helping you launch new plans and expand steadily.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '木 · 蓬勃', desc: '催旺生機與創意，助你迸發靈感、大展身手' },
+              'zh-CN': { name: '木 · 蓬勃', desc: '催旺生机与创意，助你迸发灵感、大展身手' },
+              'en': { name: 'Wood · Vitality', desc: 'Boosts vitality and creativity, sparking new ideas and bold action.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '木 · 舒展', desc: '舒緩壓力，助你保持彈性、從容應對挑戰' },
+              'zh-CN': { name: '木 · 舒展', desc: '舒缓压力，助你保持弹性、从容应对挑战' },
+              'en': { name: 'Wood · Ease', desc: 'Relieves stress and keeps you flexible, helping you meet challenges with ease.' } }
         ],
         '火': [
-            { img: 'assets/wallpapers/wallpaper-2.png',
+            { img: 'assets/wallpapers/wallpaper-1.png',
               'zh-TW': { name: '火 · 緋紅', desc: '生旺表達與人氣，助你展現自信與熱情' },
               'zh-CN': { name: '火 · 绯红', desc: '生旺表达与人气，助你展现自信与热情' },
               'en': { name: 'Fire · Crimson', desc: 'Energizes charisma and self-expression, helping you shine with confidence.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-2.png',
               'zh-TW': { name: '火 · 珊瑚橘', desc: '提升行動力與熱度，助你主動出擊、把握時機' },
               'zh-CN': { name: '火 · 珊瑚橘', desc: '提升行动力与热度，助你主动出击、把握时机' },
-              'en': { name: 'Fire · Coral Orange', desc: 'Boosts drive and energy, helping you seize the moment and take action.' } }
+              'en': { name: 'Fire · Coral Orange', desc: 'Boosts drive and energy, helping you seize the moment and take action.' } },
+            { img: 'assets/wallpapers/wallpaper-3.png',
+              'zh-TW': { name: '火 · 耀光', desc: '強化魄力與領導力，助你在關鍵時刻脫穎而出' },
+              'zh-CN': { name: '火 · 耀光', desc: '强化魄力与领导力，助你在关键时刻脱颖而出' },
+              'en': { name: 'Fire · Radiance', desc: 'Strengthens boldness and leadership, helping you stand out at the key moment.' } },
+            { img: 'assets/wallpapers/wallpaper-4.png',
+              'zh-TW': { name: '火 · 赤焰', desc: '激活熱情與表現欲，適合社交、展示與舞台' },
+              'zh-CN': { name: '火 · 赤焰', desc: '激活热情与表现欲，适合社交、展示与舞台' },
+              'en': { name: 'Fire · Blaze', desc: 'Ignites passion and presence — great for social events, showcases, and the spotlight.' } }
         ],
         '土': [
-            { img: 'assets/wallpapers/wallpaper-2.png',
+            { img: 'assets/wallpapers/wallpaper-1.png',
               'zh-TW': { name: '土 · 赭黃', desc: '穩固根基，助你踏實積累、抗壓性更強' },
               'zh-CN': { name: '土 · 赭黄', desc: '稳固根基，助你踏实积累、抗压性更强' },
               'en': { name: 'Earth · Ochre', desc: 'Strengthens your foundation, helping you build steadily and stay resilient.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-3.png',
               'zh-TW': { name: '土 · 焦糖棕', desc: '增強穩定感，助你沉穩應對變化、少走彎路' },
               'zh-CN': { name: '土 · 焦糖棕', desc: '增强稳定感，助你沉稳应对变化、少走弯路' },
-              'en': { name: 'Earth · Caramel Brown', desc: 'Adds a sense of stability, helping you handle change calmly and steadily.' } }
+              'en': { name: 'Earth · Caramel Brown', desc: 'Adds a sense of stability, helping you handle change calmly and steadily.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '土 · 厚土', desc: '凝聚安定之氣，助你建立秩序、把握節奏' },
+              'zh-CN': { name: '土 · 厚土', desc: '凝聚安定之气，助你建立秩序、把握节奏' },
+              'en': { name: 'Earth · Grounded', desc: 'Gathers calm energy, helping you establish order and find your rhythm.' } },
+            { img: 'assets/wallpapers/wallpaper-4.png',
+              'zh-TW': { name: '土 · 豐收', desc: '催旺積累與收穫運，助你看到努力的成果' },
+              'zh-CN': { name: '土 · 丰收', desc: '催旺积累与收获运，助你看到努力的成果' },
+              'en': { name: 'Earth · Harvest', desc: 'Boosts accumulation and reward, helping you reap the fruits of your effort.' } }
         ],
         '金': [
-            { img: 'assets/wallpapers/wallpaper-2.png',
+            { img: 'assets/wallpapers/wallpaper-1.png',
               'zh-TW': { name: '金 · 暖金', desc: '生旺財氣與貴人運，助你把握機會、行動果斷' },
               'zh-CN': { name: '金 · 暖金', desc: '生旺财气与贵人运，助你把握机会、行动果断' },
               'en': { name: 'Metal · Warm Gold', desc: 'Boosts wealth and helpful connections, sharpening your decisiveness.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-4.png',
               'zh-TW': { name: '金 · 銀白', desc: '提升決策力與條理，助你理清思路、精準出手' },
               'zh-CN': { name: '金 · 银白', desc: '提升决策力与条理，助你理清思路、精准出手' },
-              'en': { name: 'Metal · Silver White', desc: 'Sharpens judgment and clarity, helping you plan precisely and act on point.' } }
+              'en': { name: 'Metal · Silver White', desc: 'Sharpens judgment and clarity, helping you plan precisely and act on point.' } },
+            { img: 'assets/wallpapers/wallpaper-3.png',
+              'zh-TW': { name: '金 · 清剛', desc: '強化執行力，助你排除干擾、聚焦目標' },
+              'zh-CN': { name: '金 · 清刚', desc: '强化执行力，助你排除干扰、聚焦目标' },
+              'en': { name: 'Metal · Clarity', desc: 'Reinforces drive and focus, helping you cut through noise and hit your goals.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '金 · 精凝', desc: '凝聚精氣，助你磨練技藝、提升專業競爭力' },
+              'zh-CN': { name: '金 · 精凝', desc: '凝聚精气，助你磨练技艺、提升专业竞争力' },
+              'en': { name: 'Metal · Refined', desc: 'Concentrates energy, helping you hone your craft and sharpen your edge.' } }
         ]
     };
 
@@ -1630,47 +2085,87 @@
             { img: 'assets/wallpapers/wallpaper-1.png',
               'zh-TW': { name: '桃花運 · 玫瑰粉', desc: '提升魅力與親和力，宜主動表達心意' },
               'zh-CN': { name: '桃花运 · 玫瑰粉', desc: '提升魅力与亲和力，宜主动表达心意' },
-              'en': { name: 'Romance Luck · Rose Pink', desc: 'Enhances charm and warmth — a good time to express how you feel.' } }
+              'en': { name: 'Romance Luck · Rose Pink', desc: 'Enhances charm and warmth — a good time to express how you feel.' } },
+            { img: 'assets/wallpapers/wallpaper-4.png',
+              'zh-TW': { name: '桃花運 · 芳心', desc: '凝聚浪漫氣場，助你吸引有緣之人、深化情感' },
+              'zh-CN': { name: '桃花运 · 芳心', desc: '凝聚浪漫气场，助你吸引有缘之人、深化情感' },
+              'en': { name: 'Romance Luck · Blossom', desc: 'Draws a romantic aura, helping you attract kindred spirits and deepen bonds.' } },
+            { img: 'assets/wallpapers/wallpaper-3.png',
+              'zh-TW': { name: '桃花運 · 相遇', desc: '開啟緣分之門，助你在日常中邂逅美好' },
+              'zh-CN': { name: '桃花运 · 相遇', desc: '开启缘分之门，助你在日常中邂逅美好' },
+              'en': { name: 'Romance Luck · Encounter', desc: 'Opens the door to fate, helping you find beauty and connection in everyday moments.' } }
         ],
         '事业': [
-            { img: 'assets/wallpapers/wallpaper-2.png',
+            { img: 'assets/wallpapers/wallpaper-1.png',
               'zh-TW': { name: '事業運 · 金黃', desc: '催旺事業與貴人運，宜把握機會、大膽出手' },
               'zh-CN': { name: '事业运 · 金黄', desc: '催旺事业与贵人运，宜把握机会、大胆出手' },
               'en': { name: 'Career Luck · Golden', desc: 'Boosts career momentum and helpful connections — seize opportunities boldly.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-4.png',
               'zh-TW': { name: '事業運 · 琥珀橘', desc: '提升執行力與魄力，宜主動爭取、勇於表現' },
               'zh-CN': { name: '事业运 · 琥珀橘', desc: '提升执行力与魄力，宜主动争取、勇于表现' },
-              'en': { name: 'Career Luck · Amber Orange', desc: 'Boosts follow-through and drive — a good time to step up and speak up.' } }
+              'en': { name: 'Career Luck · Amber Orange', desc: 'Boosts follow-through and drive — a good time to step up and speak up.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '事業運 · 躍升', desc: '助你突破瓶頸、開拓新局面，邁向更高的目標' },
+              'zh-CN': { name: '事业运 · 跃升', desc: '助你突破瓶颈、开拓新局面，迈向更高的目标' },
+              'en': { name: 'Career Luck · Rise', desc: 'Helps you break through bottlenecks and aim for higher goals.' } },
+            { img: 'assets/wallpapers/wallpaper-3.png',
+              'zh-TW': { name: '事業運 · 穩進', desc: '鞏固專業地位，助你穩步成長、贏得信任' },
+              'zh-CN': { name: '事业运 · 稳进', desc: '巩固专业地位，助你稳步成长、赢得信任' },
+              'en': { name: 'Career Luck · Steady', desc: 'Consolidates your standing, helping you grow steadily and earn trust.' } }
         ],
         '人际关系、合伙': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-3.png',
               'zh-TW': { name: '人緣運 · 淺綠', desc: '催旺人際與合作運，宜多與人交流、廣結善緣' },
               'zh-CN': { name: '人缘运 · 浅绿', desc: '催旺人际与合作运，宜多与人交流、广结善缘' },
               'en': { name: 'Social Luck · Soft Green', desc: 'Boosts relationships and teamwork — a good time to connect with others.' } },
             { img: 'assets/wallpapers/wallpaper-2.png',
               'zh-TW': { name: '人緣運 · 薄荷綠', desc: '增強溝通與信任感，宜主動聯繫、修復關係' },
               'zh-CN': { name: '人缘运 · 薄荷绿', desc: '增强沟通与信任感，宜主动联系、修复关系' },
-              'en': { name: 'Social Luck · Mint Green', desc: 'Improves communication and trust — a good time to reach out and reconnect.' } }
+              'en': { name: 'Social Luck · Mint Green', desc: 'Improves communication and trust — a good time to reach out and reconnect.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '人緣運 · 和諧', desc: '化解誤解，助你修復關係、重建和諧局面' },
+              'zh-CN': { name: '人缘运 · 和谐', desc: '化解误解，助你修复关系、重建和谐局面' },
+              'en': { name: 'Social Luck · Harmony', desc: 'Clears misunderstandings, helping you repair bonds and restore balance.' } },
+            { img: 'assets/wallpapers/wallpaper-4.png',
+              'zh-TW': { name: '人緣運 · 相契', desc: '凝聚志同道合的夥伴，助你事半功倍' },
+              'zh-CN': { name: '人缘运 · 相契', desc: '凝聚志同道合的伙伴，助你事半功倍' },
+              'en': { name: 'Social Luck · Alliance', desc: 'Brings like-minded partners together, helping you achieve more with less effort.' } }
         ],
         '才华灵感': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-4.png',
               'zh-TW': { name: '才華運 · 靈感綠', desc: '激發創意與表達欲，適合學習、創作與輸出想法' },
               'zh-CN': { name: '才华运 · 灵感绿', desc: '激发创意与表达欲，适合学习、创作与输出想法' },
               'en': { name: 'Creativity Luck · Inspired Green', desc: 'Sparks fresh ideas — a good time to learn, create, and share your thinking.' } },
             { img: 'assets/wallpapers/wallpaper-2.png',
               'zh-TW': { name: '才華運 · 天青藍', desc: '提升專注與思路清晰度，適合鑽研、深度思考' },
               'zh-CN': { name: '才华运 · 天青蓝', desc: '提升专注与思路清晰度，适合钻研、深度思考' },
-              'en': { name: 'Creativity Luck · Sky Blue', desc: 'Sharpens focus and clarity — a good time for deep thinking and study.' } }
+              'en': { name: 'Creativity Luck · Sky Blue', desc: 'Sharpens focus and clarity — a good time for deep thinking and study.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '才華運 · 迸發', desc: '點燃表達欲，助你大膽呈現自己的獨特風采' },
+              'zh-CN': { name: '才华运 · 迸发', desc: '点燃表达欲，助你大胆呈现自己的独特风采' },
+              'en': { name: 'Creativity Luck · Spark', desc: 'Ignites your voice, helping you boldly show your unique brilliance.' } },
+            { img: 'assets/wallpapers/wallpaper-3.png',
+              'zh-TW': { name: '才華運 · 沉澱', desc: '深化內在積累，助你將靈感轉化為扎實成果' },
+              'zh-CN': { name: '才华运 · 沉淀', desc: '深化内在积累，助你将灵感转化为扎实成果' },
+              'en': { name: 'Creativity Luck · Depth', desc: 'Deepens your inner reservoir, helping you turn inspiration into solid results.' } }
         ],
         '健康与贵人运': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
+            { img: 'assets/wallpapers/wallpaper-3.png',
               'zh-TW': { name: '健康運 · 靜心綠', desc: '提升氣色與貴人助力，宜多休息、放慢腳步調養' },
               'zh-CN': { name: '健康运 · 静心绿', desc: '提升气色与贵人助力，宜多休息、放慢脚步调养' },
               'en': { name: 'Wellness Luck · Calm Green', desc: 'Improves vitality and support from others — take time to rest and recharge.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
+            { img: 'assets/wallpapers/wallpaper-4.png',
               'zh-TW': { name: '健康運 · 霧藍', desc: '增強身心平衡，宜規律作息、適度運動調理' },
               'zh-CN': { name: '健康运 · 雾蓝', desc: '增强身心平衡，宜规律作息、适度运动调理' },
-              'en': { name: 'Wellness Luck · Misty Blue', desc: 'Improves balance and wellbeing — keep a steady routine and gentle exercise.' } }
+              'en': { name: 'Wellness Luck · Misty Blue', desc: 'Improves balance and wellbeing — keep a steady routine and gentle exercise.' } },
+            { img: 'assets/wallpapers/wallpaper-1.png',
+              'zh-TW': { name: '健康運 · 滋養', desc: '補充能量，助你恢復活力、感受身體的自癒力' },
+              'zh-CN': { name: '健康运 · 滋养', desc: '补充能量，助你恢复活力、感受身体的自愈力' },
+              'en': { name: 'Wellness Luck · Nourish', desc: 'Replenishes energy, helping you restore vitality and feel your body\'s natural healing.' } },
+            { img: 'assets/wallpapers/wallpaper-2.png',
+              'zh-TW': { name: '健康運 · 貴人', desc: '廣引貴人護持，在關鍵時刻獲得善意與支援' },
+              'zh-CN': { name: '健康运 · 贵人', desc: '广引贵人护持，在关键时刻获得善意与支援' },
+              'en': { name: 'Wellness Luck · Benefactor', desc: 'Draws in helpful allies, bringing goodwill and support at the moments you need most.' } }
         ]
     };
 
@@ -1956,31 +2451,70 @@
         const cards = [
             makeCard(0, descMap[0]),
             makeCard(1, descMap[1]),
-            makeCard(0, descMap[2]),
-            makeCard(1, descMap[3]),
+            makeCard(2, descMap[2]),
+            makeCard(3, descMap[3]),
         ].filter(Boolean);
 
-        function cardHtml(c) {
+        // 同一素材（img）可能會出現在多張卡片上（如本月第1、3張共用同一張底圖），
+        // 所以下載/加購物車用「卡片位置」cardKey 區分，而不是單純用 img 判斷是否重複。
+        function cardHtml(c, idx) {
+            const cardKey = c.img + '#' + idx;
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" />
+                    <div class="phone-overlay">
+                        <div class="phone-overlay-top">
+                            <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" />
+                        </div>
+                        <div class="phone-overlay-clock">
+                            <div class="phone-clock-time">--:--</div>
+                            <div class="phone-clock-date"></div>
+                        </div>
+                        <div class="phone-overlay-bottom">
+                            <div class="phone-icon-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M8 2h8l1 6-3 2v2l1 10H9L10 12 7 10z"/>
+                                    <line x1="12" y1="8" x2="12" y2="10"/>
+                                </svg>
+                            </div>
+                            <div class="phone-icon-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                    <circle cx="12" cy="13" r="4"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="wallpaper-meta">
                     <p class="name">${escapeHtml(c.name)}</p>
                     <p class="desc">${escapeHtml(c.desc)}</p>
-                    <button type="button" class="btn-download" data-img="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
+                    <button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
                 </div>
             </article>`;
         }
 
+        const cardHtmls = cards.map((c, idx) => cardHtml(c, idx));
         wallpaperGrid.innerHTML = `
             <div class="wallpaper-group">
-                <div class="wallpaper-row">${cards.slice(0, 2).map(cardHtml).join('')}</div>
+                <div class="wallpaper-row">${cardHtmls.slice(0, 2).join('')}</div>
             </div>
             <div class="wallpaper-group">
-                <div class="wallpaper-row">${cards.slice(2, 4).map(cardHtml).join('')}</div>
+                <div class="wallpaper-row">${cardHtmls.slice(2, 4).join('')}</div>
             </div>
         `;
+        // 固定顯示示例時間，不顯示日期
+        wallpaperGrid.querySelectorAll('.phone-clock-time').forEach((el) => { el.textContent = '09:00'; });
+        wallpaperGrid.querySelectorAll('.phone-clock-date').forEach((el) => { el.style.display = 'none'; });
+    }
+
+
+    // 未登入時打開登入彈窗，返回 false；已登入返回 true
+    function requireLogin() {
+        if (localStorage.getItem('bazi_logged_in') === '1') return true;
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) loginModal.classList.add('open');
+        return false;
     }
 
     // 點擊下載按鈕 → 先彈出支付確認框
@@ -1988,21 +2522,56 @@
     const payModalClose = document.getElementById('payModalClose');
     const payPreviewImg = document.getElementById('payPreviewImg');
     const payWallpaperName = document.getElementById('payWallpaperName');
+    const payPrice = document.getElementById('payPrice');
+    const payPriceUnit = document.getElementById('payPriceUnit');
+    const payNotice = document.getElementById('payNotice');
+    const payTierRow = document.getElementById('payTierRow');
+    const btnAddCart = document.getElementById('btnAddCart');
     const btnPayConfirm = document.getElementById('btnPayConfirm');
     let pendingDownloadImg = '';
     let pendingDownloadName = '';
+    let pendingDownloadKey = '';
+    let selectedTier = '1';
+
+    // 套餐檔位：1 張 / 2 張 / 4 張 / 包年（包年解鎖全站付費功能，不限次數下載）。
+    // 2 張、4 張目前僅作為「更划算」的展示（不可點擊），實際多張結算走下方購物車（下載列表）。
+    const PAY_TIER_PRICE = { '1': '5.99', '2': '9.99', '4': '19.99', 'year': '219.99' };
+    const PAY_TIER_UNIT_KEY = { '1': 'pay_per_image', '2': 'pay_per_2_images', '4': 'pay_per_4_images', 'year': 'pay_per_year' };
+    const PAY_TIER_NOTICE_KEY = { '1': 'pay_notice', '2': 'pay_notice', '4': 'pay_notice', 'year': 'pay_notice_year' };
+
+    function applyTierUI(tier) {
+        selectedTier = tier;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const btn = payTierRow.querySelector(`.pay-tier-btn[data-tier="${tier}"]`);
+        payTierRow.querySelectorAll('.pay-tier-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        payPrice.textContent = '$' + (PAY_TIER_PRICE[tier] || PAY_TIER_PRICE['1']);
+        payPriceUnit.setAttribute('data-i18n', PAY_TIER_UNIT_KEY[tier] || 'pay_per_image');
+        payPriceUnit.textContent = t(PAY_TIER_UNIT_KEY[tier] || 'pay_per_image');
+        payNotice.setAttribute('data-i18n', PAY_TIER_NOTICE_KEY[tier] || 'pay_notice');
+        payNotice.textContent = t(PAY_TIER_NOTICE_KEY[tier] || 'pay_notice');
+    }
+
+    payTierRow.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pay-tier-btn');
+        if (!btn || btn.disabled) return;
+        if (!requireLogin()) { payModal.classList.remove('open'); return; }
+        applyTierUI(btn.getAttribute('data-tier'));
+    });
 
     wallpaperGrid.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-download');
         if (!btn) return;
         const img = btn.getAttribute('data-img');
         const name = btn.getAttribute('data-name') || '';
+        const key = btn.getAttribute('data-key') || img;
         if (!img) return;
         pendingDownloadImg = img;
         pendingDownloadName = name;
+        pendingDownloadKey = key;
         payPreviewImg.src = img;
         payPreviewImg.alt = name;
         payWallpaperName.textContent = name;
+        applyTierUI('1');
         payModal.classList.add('open');
     });
 
@@ -2012,11 +2581,166 @@
     });
 
     btnPayConfirm.addEventListener('click', () => {
+        if (!requireLogin()) { payModal.classList.remove('open'); return; }
         const t = window.I18N ? window.I18N.t : (k) => k;
-        // 前端模擬支付，後端接入時替換此處邏輯
+        // 前端模擬支付，後端接入時替換此處邏輯（selectedTier 為當前選中的套餐：1/year）
         payModal.classList.remove('open');
         alert(t('mock_feature_notice'));
     });
+
+    // ─── 下載列表（購物車） ─────────────────────────────
+    const CART_STORAGE_KEY = 'bazi_cart_items';
+    const cartModal = document.getElementById('cartModal');
+    const cartModalClose = document.getElementById('cartModalClose');
+    const cartBtn = document.getElementById('cartBtn');
+    const cartBadge = document.getElementById('cartBadge');
+    const cartList = document.getElementById('cartList');
+    const cartToolbar = document.getElementById('cartToolbar');
+    const cartSelectAll = document.getElementById('cartSelectAll');
+    const cartClear = document.getElementById('cartClear');
+    const cartTotalRow = document.getElementById('cartTotalRow');
+    const cartTotalPrice = document.getElementById('cartTotalPrice');
+    const btnCartCheckout = document.getElementById('btnCartCheckout');
+
+    function loadCart() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
+            return Array.isArray(raw) ? raw : [];
+        } catch (_) { return []; }
+    }
+    function saveCart(items) {
+        try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items)); } catch (_) {}
+    }
+
+    let cartItems = loadCart(); // [{ id, img, name, checked }]
+
+    function updateCartBadge() {
+        const count = cartItems.length;
+        cartBadge.textContent = String(count);
+        cartBadge.classList.toggle('show', count > 0);
+    }
+
+    // 依已勾選數量計算結算金額：以 4 張 $19.99、2 張 $9.99、1 張 $5.99 的檔位組合出最省價格
+    function computeCartTotal(count) {
+        let n = count;
+        let total = 0;
+        total += Math.floor(n / 4) * 19.99; n %= 4;
+        total += Math.floor(n / 2) * 9.99; n %= 2;
+        total += n * 5.99;
+        return total;
+    }
+
+    function renderCart() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        updateCartBadge();
+
+        if (cartItems.length === 0) {
+            cartList.innerHTML = `<p class="cart-empty">${escapeHtml(t('cart_empty'))}</p>`;
+            cartToolbar.style.display = 'none';
+            cartTotalRow.style.display = 'none';
+            btnCartCheckout.disabled = false;
+            return;
+        }
+
+        cartToolbar.style.display = 'flex';
+        cartList.innerHTML = cartItems.map((it) => `
+            <div class="cart-item" data-id="${escapeHtml(it.id)}">
+                <input type="checkbox" class="cart-item-checkbox" ${it.checked ? 'checked' : ''} />
+                <div class="cart-item-thumb"><img src="${escapeHtml(it.img)}" alt="${escapeHtml(it.name)}" draggable="false" /></div>
+                <span class="cart-item-name">${escapeHtml(it.name)}</span>
+                <button type="button" class="cart-item-remove" aria-label="移除">×</button>
+            </div>
+        `).join('');
+
+        const checkedCount = cartItems.filter((it) => it.checked).length;
+        cartSelectAll.checked = checkedCount === cartItems.length;
+        cartTotalRow.style.display = checkedCount > 0 ? 'flex' : 'none';
+        cartTotalPrice.textContent = 'US$' + computeCartTotal(checkedCount).toFixed(2);
+    }
+
+    function openCartModal() {
+        cartItems = loadCart();
+        renderCart();
+        cartModal.classList.add('open');
+    }
+
+    cartBtn.addEventListener('click', openCartModal);
+    cartModalClose.addEventListener('click', () => { cartModal.classList.remove('open'); });
+    cartModal.addEventListener('click', (e) => {
+        if (e.target === cartModal) cartModal.classList.remove('open');
+    });
+
+    cartList.addEventListener('click', (e) => {
+        const row = e.target.closest('.cart-item');
+        if (!row) return;
+        const id = row.getAttribute('data-id');
+        if (e.target.closest('.cart-item-remove')) {
+            cartItems = cartItems.filter((it) => it.id !== id);
+            saveCart(cartItems);
+            renderCart();
+            return;
+        }
+        if (e.target.classList.contains('cart-item-checkbox')) {
+            const item = cartItems.find((it) => it.id === id);
+            if (item) item.checked = e.target.checked;
+            saveCart(cartItems);
+            renderCart();
+        }
+    });
+
+    cartSelectAll.addEventListener('change', () => {
+        const checked = cartSelectAll.checked;
+        cartItems.forEach((it) => { it.checked = checked; });
+        saveCart(cartItems);
+        renderCart();
+    });
+
+    cartClear.addEventListener('click', () => {
+        cartItems = [];
+        saveCart(cartItems);
+        renderCart();
+    });
+
+    btnCartCheckout.addEventListener('click', () => {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const checkedCount = cartItems.filter((it) => it.checked).length;
+        if (checkedCount === 0) return;
+        // 前端模擬結算，後端接入時替換此處邏輯（依 checkedCount 對應 1/2/4 張的檔位金額）
+        cartItems = cartItems.filter((it) => !it.checked);
+        saveCart(cartItems);
+        renderCart();
+        alert(t('mock_feature_notice'));
+    });
+
+    btnAddCart.addEventListener('click', () => {
+        if (!requireLogin()) return;
+        if (!pendingDownloadImg) return;
+        const key = pendingDownloadKey || pendingDownloadImg;
+        const exists = cartItems.some((it) => (it.key || it.img) === key);
+        if (!exists) {
+            cartItems.push({
+                id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+                key,
+                img: pendingDownloadImg,
+                name: pendingDownloadName,
+                checked: true
+            });
+            saveCart(cartItems);
+        }
+        updateCartBadge();
+
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const original = btnAddCart.textContent;
+        btnAddCart.textContent = t('pay_added_cart');
+        btnAddCart.disabled = true;
+        setTimeout(() => {
+            btnAddCart.textContent = original;
+            btnAddCart.disabled = false;
+            payModal.classList.remove('open');
+        }, 700);
+    });
+
+    updateCartBadge();
 
     let profiles = loadProfiles();
     let activeId = getActiveId(profiles);
@@ -2577,6 +3301,8 @@
         btnLogin.style.display = logged ? 'none' : '';
         userMenuWrap.style.display = logged ? '' : 'none';
         userMenuEmail.textContent = logged ? (localStorage.getItem(AUTH_EMAIL_KEY) || '') : '';
+        const navCartWrap = document.getElementById('navCartWrap');
+        if (navCartWrap) navCartWrap.style.display = logged ? '' : 'none';
     }
 
     function setLoggedIn(value, email) {
