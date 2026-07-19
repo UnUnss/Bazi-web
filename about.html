@@ -101,7 +101,8 @@
         }
 
         .nav-link-item,
-        .lang-switch-btn {
+        .lang-switch-btn,
+        .btn-login {
             display: inline-flex;
             align-items: center;
             gap: 5px;
@@ -118,9 +119,72 @@
         }
 
         .nav-link-item:hover,
-        .lang-switch-btn:hover {
+        .lang-switch-btn:hover,
+        .btn-login:hover {
             background: rgba(255, 252, 245, 0.9);
         }
+
+        .auth-area {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-menu-wrap {
+            position: relative;
+        }
+
+        .nav-user-icon {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            border: 1px solid var(--line);
+            background: rgba(255, 252, 245, 0.6);
+            color: var(--ink);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .nav-user-icon:hover { background: rgba(255, 252, 245, 0.9); }
+
+        .user-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 160px;
+            background: rgba(255, 252, 245, 0.96);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+            overflow: hidden;
+        }
+
+        .user-menu.open { display: block; }
+
+        .user-menu-email {
+            padding: 9px 14px;
+            font-size: 12px;
+            color: var(--ink-soft);
+            letter-spacing: 0.02em;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .user-menu-email:empty { display: none; }
+
+        .user-menu button {
+            display: block; width: 100%;
+            font-family: inherit; font-size: 13px;
+            letter-spacing: 0.04em; padding: 9px 14px;
+            border: none; background: transparent;
+            color: var(--ink); cursor: pointer; text-align: left;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+        }
+
+        .user-menu button:last-child { border-bottom: none; }
+        .user-menu button:hover { background: rgba(42, 30, 10, 0.05); }
 
         .lang-switch-wrap,
         .about-switch-wrap {
@@ -291,7 +355,22 @@
                 <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
             </div>
         </div>
-        <a href="landing.html" class="nav-link-item" data-i18n="nav_login">登入 / 註冊</a>
+        <div class="auth-area" id="authArea">
+            <button type="button" class="btn-login" id="btnLogin" data-i18n="nav_login">登入 / 註冊</button>
+            <div class="user-menu-wrap" id="userMenuWrap" style="display:none;">
+                <div class="nav-user-icon" id="userMenuBtn" aria-label="用戶">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="user-menu" id="userMenu" role="menu">
+                    <div class="user-menu-email" id="userMenuEmail"></div>
+                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
+                    <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
+                    <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
+                </div>
+            </div>
+        </div>
     </div>
 </nav>
 
@@ -780,6 +859,35 @@
     window.addEventListener('pointerdown', unlockSound, { passive: true });
     window.addEventListener('resize', resize);
     boot();
+})();
+
+(function () {
+    const AUTH_KEY = 'bazi_logged_in', AUTH_EMAIL_KEY = 'bazi_logged_in_email';
+    const btnLogin = document.getElementById('btnLogin');
+    const userMenuWrap = document.getElementById('userMenuWrap');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenu = document.getElementById('userMenu');
+    const userMenuEmail = document.getElementById('userMenuEmail');
+    function isLoggedIn() { return localStorage.getItem(AUTH_KEY) === '1'; }
+    function updateAuthUI() {
+        const logged = isLoggedIn();
+        btnLogin.style.display = logged ? 'none' : '';
+        userMenuWrap.style.display = logged ? '' : 'none';
+        userMenuEmail.textContent = logged ? (localStorage.getItem(AUTH_EMAIL_KEY) || '') : '';
+    }
+    updateAuthUI();
+    btnLogin.addEventListener('click', () => { location.href = 'landing.html'; });
+    userMenuBtn.addEventListener('click', e => { e.stopPropagation(); userMenu.classList.toggle('open'); });
+    document.getElementById('btnDownloadHistory').addEventListener('click', () => { location.href = 'download-history.html'; });
+    document.getElementById('btnAccount').addEventListener('click', () => {
+        alert(window.I18N ? window.I18N.t('mock_feature_notice') : '此功能即將推出');
+        userMenu.classList.remove('open');
+    });
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        localStorage.removeItem(AUTH_KEY); localStorage.removeItem(AUTH_EMAIL_KEY);
+        updateAuthUI(); userMenu.classList.remove('open');
+    });
+    document.addEventListener('click', () => { userMenu.classList.remove('open'); });
 })();
 </script>
 </body>
