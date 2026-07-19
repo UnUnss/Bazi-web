@@ -529,21 +529,20 @@
         }
 
         .phone-overlay-top {
-            padding: 7% 6% 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            height: 22%;
             position: relative;
             z-index: 1;
         }
 
-        .phone-overlay-logo {
-            width: 95%;
-            max-width: none;
+        .wallpaper-preview .phone-overlay-logo {
+            position: absolute;
+            width: 200cqw;
+            height: auto;
+            left: 50%;
+            top: 7%;
+            transform: translateX(-50%);
             filter: brightness(0) invert(1);
             opacity: 0.88;
-            transform: scale(2.4);
-            transform-origin: top center;
         }
 
         .phone-overlay-clock {
