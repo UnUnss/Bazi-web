@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ElementaWall · 天干地支八字壁紙</title>
+    <!-- 预加载首屏关键资源 -->
+    <link rel="preload" href="assets/disk.webp" as="image">
+    <link rel="preload" href="assets/bg-paper-opt.jpg" as="image">
     <!-- 楷体字型自托管在 assets/fonts/cooper-zhengkai/，不依赖外部 CDN 或系统字体 -->
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
     <style>
@@ -27,7 +30,7 @@
         .bg {
             position: fixed;
             inset: 0;
-            background: url('assets/bg-paper.jpg') center / cover no-repeat;
+            background: url('assets/bg-paper-opt.jpg') center / cover no-repeat;
             z-index: 1;
         }
 
@@ -224,7 +227,7 @@
 
     <!-- 圆盘：darken + 30% 不透明度；龙与圆盘同为2880×1800画布，直接叠在同一个盒子里，圆心自动重合 -->
     <div class="disk-wrap">
-        <img class="disk-img" src="assets/disk.png" alt="" draggable="false">
+        <img class="disk-img" src="assets/disk.webp" alt="" draggable="false">
         <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
     </div>
 

@@ -360,4 +360,16 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => applyI18n());
+
+    // 当页面从 iOS BFCache（返回/前进缓存）恢复时，重新从 localStorage 读取语言并刷新 DOM，
+    // 避免切换语言后按返回键语言回退的问题（BFCache 会保留旧的 JS 内存状态）。
+    window.addEventListener('pageshow', (e) => {
+        if (!e.persisted) return;
+        const saved = (() => { try { return localStorage.getItem(STORAGE_KEY); } catch (_) { return null; } })();
+        if (saved && DICTS[saved] && saved !== currentLang) {
+            currentLang = saved;
+            applyI18n();
+            document.dispatchEvent(new CustomEvent('i18n:change', { detail: { lang: currentLang } }));
+        }
+    });
 })(window);
