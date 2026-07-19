@@ -69,8 +69,8 @@
             left: 0;
         }
 
-        /* 金色卷轴（手机/电脑端视频）：全画布覆盖，left:0 自动对齐 */
-        .scroll-video, .scroll-video-mobile {
+        /* 金色卷轴：全画布覆盖，JS 按端动态注入 */
+        .scroll-video {
             position: fixed;
             width: 100%;
             height: auto;
@@ -78,14 +78,6 @@
             top: 0;
             mix-blend-mode: darken;
             z-index: 3;
-        }
-
-        /* 电脑端视频默认隐藏，仅在 ≥721px 时显示 */
-        .scroll-video { display: none; opacity: 0.95; }
-
-        /* 手机端视频：默认显示，≥721px 时隐藏 */
-        .scroll-video-mobile {
-            display: block;
             opacity: 0.95;
         }
 
@@ -164,11 +156,9 @@
                 top: 1.92vh; /* 3.92vh - 2vh */
             }
 
-            /* 电脑端隐藏图片卷轴和手机视频，改用桌面视频 */
+            /* 电脑端隐藏图片卷轴，改用桌面视频 */
             .scroll-picture { display: none; }
-            .scroll-video-mobile { display: none; }
             .scroll-video {
-                display: block;
                 top: 15.92vh; /* 圆盘顶部 1.92vh + 14vh */
             }
 
@@ -203,7 +193,7 @@
             }
 
             /* 手机端视频卷轴：与原 scroll-2.png 对齐位置 */
-            .scroll-video-mobile {
+            .scroll-video {
                 top: 20vh;
             }
 
@@ -238,13 +228,26 @@
         <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
     </div>
 
-    <!-- 卷轴：手机端用 video-2，电脑端用 video -->
-    <video class="scroll-video-mobile" autoplay loop muted playsinline>
-        <source src="assets/video-2.mp4" type="video/mp4">
-    </video>
-    <video class="scroll-video" autoplay loop muted playsinline>
-        <source src="assets/video.mp4" type="video/mp4">
-    </video>
+    <!-- 卷轴视频：JS 按端动态注入，避免另一端预加载 -->
+    <script>
+    (function () {
+        var src = window.innerWidth >= 721
+            ? 'assets/video-opt.mp4'
+            : 'assets/video-2-opt.mp4';
+        var v = document.createElement('video');
+        v.className = 'scroll-video';
+        v.autoplay = true;
+        v.loop = true;
+        v.muted = true;
+        v.playsInline = true;
+        v.setAttribute('playsinline', '');
+        var s = document.createElement('source');
+        s.src = src;
+        s.type = 'video/mp4';
+        v.appendChild(s);
+        document.currentScript.parentNode.insertBefore(v, document.currentScript.nextSibling);
+    })();
+    </script>
 
     <!-- 文字图层 -->
     <img class="text" src="assets/text.png" alt="" draggable="false">
