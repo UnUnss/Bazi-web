@@ -236,16 +236,18 @@
             : 'assets/video-2-opt.mp4';
         var v = document.createElement('video');
         v.className = 'scroll-video';
-        v.autoplay = true;
-        v.loop = true;
-        v.muted = true;
-        v.playsInline = true;
+        v.setAttribute('autoplay', '');
+        v.setAttribute('loop', '');
+        v.setAttribute('muted', '');
         v.setAttribute('playsinline', '');
+        v.muted = true;
         var s = document.createElement('source');
         s.src = src;
         s.type = 'video/mp4';
         v.appendChild(s);
         document.currentScript.parentNode.insertBefore(v, document.currentScript.nextSibling);
+        v.load();
+        v.play().catch(function () {});
     })();
     </script>
 
