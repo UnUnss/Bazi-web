@@ -52,10 +52,15 @@ export default async function handler(req, res) {
   const auth = await assertAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
-  const { filename, folder, contentType } = req.body;
+  const { filename, folder, contentType, variant } = req.body;
   if (!filename || !folder) return res.status(400).json({ error: 'Missing params' });
 
-  const key = `wallpapers/${folder}/${filename}`;
+  // variant=preview → wallpapers/{folder}/preview/{name}
+  // 默认原图 → wallpapers/{folder}/{name}
+  const safeName = String(filename).replace(/^.*[\\/]/, '');
+  const key = variant === 'preview'
+    ? `wallpapers/${folder}/preview/${safeName}`
+    : `wallpapers/${folder}/${safeName}`;
 
   try {
     const url = await getSignedUrl(

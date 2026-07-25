@@ -2532,8 +2532,10 @@
                 const nameDisp = lang === 'en'
                     ? `${favorEl} · ${tagStr}`
                     : `${favorEl} · ${tagStr}`;
+                // 页面只展示预览图；下载用原图 r2_key
+                const previewKey = w.preview_key || w.r2_key;
                 return {
-                    img:   `${R2_PUBLIC_URL}/${w.r2_key}`,
+                    img:   `${R2_PUBLIC_URL}/${previewKey}`,
                     r2key: w.r2_key,
                     name:  nameDisp,
                     desc:  assistPrefix + descMap[i],

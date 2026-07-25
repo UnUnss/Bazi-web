@@ -77,3 +77,7 @@ grant execute on function public.is_admin_email(text) to anon, authenticated;
 -- 若还没有任何管理员行：先在 Authentication → Users 找到用户 UUID，再执行：
 -- insert into public.profiles (id, email, is_admin)
 -- values ('这里填用户UUID', '你的管理员邮箱@qq.com', true);
+
+-- 壁纸预览图路径（页面展示用；原图仍在 r2_key）
+alter table public.wallpapers
+  add column if not exists preview_key text;

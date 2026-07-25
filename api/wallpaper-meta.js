@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   const auth = await assertAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
-  const { folder_number, element, tags, r2_key, filename } = req.body;
+  const { folder_number, element, tags, r2_key, preview_key, filename } = req.body;
   if (!element || !r2_key || !filename) return res.status(400).json({ error: 'Missing params' });
 
   const { error: insertError } = await sb.from('wallpapers').insert({
@@ -41,6 +41,7 @@ export default async function handler(req, res) {
     element,
     tags: tags || [],
     r2_key,
+    preview_key: preview_key || null,
     filename,
   });
 
