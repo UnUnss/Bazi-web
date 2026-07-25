@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>壁纸上传管理</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; color: #1c1c1c; min-height: 100vh; }
+
+/* ── 登录 ── */
+#loginSection { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.login-card { background: #fff; border-radius: 8px; padding: 40px; width: 360px; box-shadow: 0 1px 12px rgba(0,0,0,.08); }
+.login-card h1 { font-size: 17px; font-weight: 600; margin-bottom: 28px; letter-spacing: .04em; }
+.form-row { margin-bottom: 14px; }
+.form-row label { display: block; font-size: 12px; color: #777; margin-bottom: 6px; letter-spacing: .04em; }
+.form-row input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; outline: none; transition: border-color .15s; }
+.form-row input:focus { border-color: #555; }
+.btn-primary { width: 100%; padding: 11px; background: #1c1c1c; color: #fff; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; letter-spacing: .04em; }
+.btn-primary:disabled { opacity: .45; cursor: default; }
+.btn-outline { width: 100%; padding: 10px; background: #fff; color: #1c1c1c; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+.login-msg { font-size: 12px; color: #d44; margin-top: 10px; min-height: 16px; }
+.login-ok  { color: #2a7; }
+
+/* ── 主区域 ── */
+#mainSection { display: none; }
+.header { background: #fff; border-bottom: 1px solid #eee; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 52px; }
+.header h1 { font-size: 15px; font-weight: 600; letter-spacing: .08em; }
+.header-right { display: flex; align-items: center; gap: 16px; font-size: 13px; color: #888; }
+.btn-sm { padding: 6px 14px; font-size: 12px; background: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; color: #444; }
+
+/* 标签页 */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid #e8e8e6; background: #fff; padding: 0 32px; }
+.tab { padding: 12px 0; margin-right: 28px; font-size: 13px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; letter-spacing: .04em; }
+.tab.active { color: #1c1c1c; border-bottom-color: #1c1c1c; }
+
+.tab-content { display: none; padding: 28px 32px 80px; max-width: 1200px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* ── 上传标签页 ── */
+.drop-zone { border: 1.5px dashed #ccc; border-radius: 8px; padding: 48px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 24px; }
+.drop-zone.drag-over { border-color: #555; background: #fafaf9; }
+.drop-zone svg { color: #ccc; margin-bottom: 10px; }
+.drop-zone p { color: #999; font-size: 13px; }
+.drop-zone p.hint { font-size: 11px; margin-top: 4px; color: #bbb; }
+.drop-zone input[type=file] { display: none; }
+
+#unknownWrap { display: none; background: #fff8e6; border: 1px solid #f0d090; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #a06010; }
+
+/* 队列卡片网格 */
+#queueSection { display: none; }
+.queue-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.queue-toolbar span { font-size: 13px; color: #888; }
+#btnUpload { padding: 9px 28px; background: #1c1c1c; color: #fff; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; }
+#btnUpload:disabled { opacity: .4; cursor: default; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.wp-card { background: #fff; border-radius: 6px; overflow: hidden; border: 1px solid #eee; }
+.wp-card .thumb { width: 100%; aspect-ratio: 9/16; object-fit: cover; background: #f0f0ee; display: block; }
+.wp-card .thumb-placeholder { width: 100%; aspect-ratio: 9/16; background: #f5f5f3; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 11px; }
+.wp-card .card-info { padding: 8px 10px; }
+.wp-card .card-name { font-size: 11px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px; }
+.wp-card .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.wp-card .card-status { font-size: 11px; }
+.card-status.pending   { color: #aaa; }
+.card-status.uploading { color: #2563eb; }
+.card-status.done      { color: #16a34a; }
+.card-status.error     { color: #dc2626; }
+
+/* ── 管理标签页 ── */
+.manage-toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; border: 1px solid #ddd; background: #fff; cursor: pointer; color: #555; }
+.filter-btn.active { background: #1c1c1c; color: #fff; border-color: #1c1c1c; }
+#managedGrid .wp-card .thumb { cursor: default; }
+.empty-hint { color: #bbb; font-size: 13px; text-align: center; padding: 60px 0; }
+
+/* 标签样式 */
+.tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; white-space: nowrap; }
+.el-水 { background: #dbeafe; color: #1d4ed8; }
+.el-木 { background: #dcfce7; color: #166534; }
+.el-火 { background: #fee2e2; color: #b91c1c; }
+.el-土 { background: #fef9c3; color: #854d0e; }
+.el-金 { background: #f3f4f6; color: #374151; }
+.el-tag { background: #f0f0ee; color: #555; }
+</style>
+</head>
+<body>
+
+<!-- ══════════ 登录 ══════════ -->
+<div id="loginSection">
+  <div class="login-card">
+    <h1>壁纸上传管理</h1>
+    <div id="stepEmail">
+      <div class="form-row">
+        <label>管理员邮箱</label>
+        <input type="email" id="emailInput" placeholder="your@email.com" autocomplete="email" />
+      </div>
+      <button class="btn-primary" id="btnSendCode">获取验证码</button>
+    </div>
+    <div id="stepOtp" style="display:none; margin-top:16px;">
+      <div class="form-row">
+        <label>验证码</label>
+        <input type="text" id="otpInput" placeholder="6 位数字" maxlength="6" inputmode="numeric" />
+      </div>
+      <button class="btn-primary" id="btnVerify">登录</button>
+      <button class="btn-outline" id="btnResend">重新发送</button>
+    </div>
+    <p class="login-msg" id="loginMsg"></p>
+  </div>
+</div>
+
+<!-- ══════════ 主区域 ══════════ -->
+<div id="mainSection">
+  <div class="header">
+    <h1>壁纸管理</h1>
+    <div class="header-right">
+      <span id="adminEmail"></span>
+      <button class="btn-sm" id="btnLogout">退出</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="upload">上传</div>
+    <div class="tab" data-tab="manage">已上传壁纸</div>
+  </div>
+
+  <!-- ── 上传 Tab ── -->
+  <div class="tab-content active" id="tab-upload">
+    <div class="drop-zone" id="dropZone">
+      <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24">
+        <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+        <polyline points="16 8 12 4 8 8"/>
+        <line x1="12" y1="4" x2="12" y2="16"/>
+      </svg>
+    <p>将壁纸文件夹拖到此处</p>
+    <p class="hint">支持同时拖入多个编号文件夹 · 点击选择仅支持单个文件夹</p>
+      <input type="file" id="folderInput" webkitdirectory multiple />
+    </div>
+
+    <div id="unknownWrap">
+      <strong>以下文件夹编号未在映射表中找到，已跳过：</strong>
+      <span id="unknownList"></span>
+    </div>
+
+    <div id="queueSection">
+      <div class="queue-toolbar">
+        <span id="fileCount"></span>
+        <button id="btnUpload">开始上传</button>
+      </div>
+      <div class="card-grid" id="queueGrid"></div>
+    </div>
+  </div>
+
+  <!-- ── 管理 Tab ── -->
+  <div class="tab-content" id="tab-manage">
+    <div class="manage-toolbar" id="filterBar">
+      <button class="filter-btn active" data-el="全部">全部</button>
+      <button class="filter-btn" data-el="水">水</button>
+      <button class="filter-btn" data-el="木">木</button>
+      <button class="filter-btn" data-el="火">火</button>
+      <button class="filter-btn" data-el="土">土</button>
+      <button class="filter-btn" data-el="金">金</button>
+    </div>
+    <div id="manageEmpty" class="empty-hint">暂无已上传壁纸</div>
+    <div class="card-grid" id="managedGrid"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// 配置
+// ════════════════════════════════════════════
+const SUPABASE_URL  = 'https://yyiecrsibflscgjxmvbn.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A';
+
+// 文件夹编号 → 五行 + 运势标签映射表（共 140 个）
+const FOLDER_MAP = {
+  // ── 水（1–28）──
+  1:  { element: '水', tags: ['感情运'] },
+  2:  { element: '水', tags: ['事业运'] },
+  3:  { element: '水', tags: ['健康运'] },
+  4:  { element: '水', tags: ['贵人运'] },
+  5:  { element: '水', tags: ['财富运'] },
+  6:  { element: '水', tags: ['才华运'] },
+  7:  { element: '水', tags: ['人缘运'] },
+  8:  { element: '水', tags: ['感情运', '事业运'] },
+  9:  { element: '水', tags: ['感情运', '健康运'] },
+  10: { element: '水', tags: ['感情运', '贵人运'] },
+  11: { element: '水', tags: ['感情运', '财富运'] },
+  12: { element: '水', tags: ['感情运', '才华运'] },
+  13: { element: '水', tags: ['感情运', '人缘运'] },
+  14: { element: '水', tags: ['事业运', '健康运'] },
+  15: { element: '水', tags: ['事业运', '贵人运'] },
+  16: { element: '水', tags: ['事业运', '财富运'] },
+  17: { element: '水', tags: ['事业运', '才华运'] },
+  18: { element: '水', tags: ['事业运', '人缘运'] },
+  19: { element: '水', tags: ['健康运', '贵人运'] },
+  20: { element: '水', tags: ['健康运', '财富运'] },
+  21: { element: '水', tags: ['健康运', '才华运'] },
+  22: { element: '水', tags: ['健康运', '人缘运'] },
+  23: { element: '水', tags: ['贵人运', '财富运'] },
+  24: { element: '水', tags: ['贵人运', '才华运'] },
+  25: { element: '水', tags: ['贵人运', '人缘运'] },
+  26: { element: '水', tags: ['财富运', '才华运'] },
+  27: { element: '水', tags: ['财富运', '人缘运'] },
+  28: { element: '水', tags: ['才华运', '人缘运'] },
+  // ── 木（29–56）──
+  29: { element: '木', tags: ['感情运'] },
+  30: { element: '木', tags: ['事业运'] },
+  31: { element: '木', tags: ['健康运'] },
+  32: { element: '木', tags: ['贵人运'] },
+  33: { element: '木', tags: ['财富运'] },
+  34: { element: '木', tags: ['才华运'] },
+  35: { element: '木', tags: ['人缘运'] },
+  36: { element: '木', tags: ['感情运', '事业运'] },
+  37: { element: '木', tags: ['感情运', '健康运'] },
+  38: { element: '木', tags: ['感情运', '贵人运'] },
+  39: { element: '木', tags: ['感情运', '财富运'] },
+  40: { element: '木', tags: ['感情运', '才华运'] },
+  41: { element: '木', tags: ['感情运', '人缘运'] },
+  42: { element: '木', tags: ['事业运', '健康运'] },
+  43: { element: '木', tags: ['事业运', '贵人运'] },
+  44: { element: '木', tags: ['事业运', '财富运'] },
+  45: { element: '木', tags: ['事业运', '才华运'] },
+  46: { element: '木', tags: ['事业运', '人缘运'] },
+  47: { element: '木', tags: ['健康运', '贵人运'] },
+  48: { element: '木', tags: ['健康运', '财富运'] },
+  49: { element: '木', tags: ['健康运', '才华运'] },
+  50: { element: '木', tags: ['健康运', '人缘运'] },
+  51: { element: '木', tags: ['贵人运', '财富运'] },
+  52: { element: '木', tags: ['贵人运', '才华运'] },
+  53: { element: '木', tags: ['贵人运', '人缘运'] },
+  54: { element: '木', tags: ['财富运', '才华运'] },
+  55: { element: '木', tags: ['财富运', '人缘运'] },
+  56: { element: '木', tags: ['才华运', '人缘运'] },
+  // ── 火（57–84）──
+  57: { element: '火', tags: ['感情运'] },
+  58: { element: '火', tags: ['事业运'] },
+  59: { element: '火', tags: ['健康运'] },
+  60: { element: '火', tags: ['贵人运'] },
+  61: { element: '火', tags: ['财富运'] },
+  62: { element: '火', tags: ['才华运'] },
+  63: { element: '火', tags: ['人缘运'] },
+  64: { element: '火', tags: ['感情运', '事业运'] },
+  65: { element: '火', tags: ['感情运', '健康运'] },
+  66: { element: '火', tags: ['感情运', '贵人运'] },
+  67: { element: '火', tags: ['感情运', '财富运'] },
+  68: { element: '火', tags: ['感情运', '才华运'] },
+  69: { element: '火', tags: ['感情运', '人缘运'] },
+  70: { element: '火', tags: ['事业运', '健康运'] },
+  71: { element: '火', tags: ['事业运', '贵人运'] },
+  72: { element: '火', tags: ['事业运', '财富运'] },
+  73: { element: '火', tags: ['事业运', '才华运'] },
+  74: { element: '火', tags: ['事业运', '人缘运'] },
+  75: { element: '火', tags: ['健康运', '贵人运'] },
+  76: { element: '火', tags: ['健康运', '财富运'] },
+  77: { element: '火', tags: ['健康运', '才华运'] },
+  78: { element: '火', tags: ['健康运', '人缘运'] },
+  79: { element: '火', tags: ['贵人运', '财富运'] },
+  80: { element: '火', tags: ['贵人运', '才华运'] },
+  81: { element: '火', tags: ['贵人运', '人缘运'] },
+  82: { element: '火', tags: ['财富运', '才华运'] },
+  83: { element: '火', tags: ['财富运', '人缘运'] },
+  84: { element: '火', tags: ['才华运', '人缘运'] },
+  // ── 土（85–112）──
+  85:  { element: '土', tags: ['感情运'] },
+  86:  { element: '土', tags: ['事业运'] },
+  87:  { element: '土', tags: ['健康运'] },
+  88:  { element: '土', tags: ['贵人运'] },
+  89:  { element: '土', tags: ['财富运'] },
+  90:  { element: '土', tags: ['才华运'] },
+  91:  { element: '土', tags: ['人缘运'] },
+  92:  { element: '土', tags: ['感情运', '事业运'] },
+  93:  { element: '土', tags: ['感情运', '健康运'] },
+  94:  { element: '土', tags: ['感情运', '贵人运'] },
+  95:  { element: '土', tags: ['感情运', '财富运'] },
+  96:  { element: '土', tags: ['感情运', '才华运'] },
+  97:  { element: '土', tags: ['感情运', '人缘运'] },
+  98:  { element: '土', tags: ['事业运', '健康运'] },
+  99:  { element: '土', tags: ['事业运', '贵人运'] },
+  100: { element: '土', tags: ['事业运', '财富运'] },
+  101: { element: '土', tags: ['事业运', '才华运'] },
+  102: { element: '土', tags: ['事业运', '人缘运'] },
+  103: { element: '土', tags: ['健康运', '贵人运'] },
+  104: { element: '土', tags: ['健康运', '财富运'] },
+  105: { element: '土', tags: ['健康运', '才华运'] },
+  106: { element: '土', tags: ['健康运', '人缘运'] },
+  107: { element: '土', tags: ['贵人运', '财富运'] },
+  108: { element: '土', tags: ['贵人运', '才华运'] },
+  109: { element: '土', tags: ['贵人运', '人缘运'] },
+  110: { element: '土', tags: ['财富运', '才华运'] },
+  111: { element: '土', tags: ['财富运', '人缘运'] },
+  112: { element: '土', tags: ['才华运', '人缘运'] },
+  // ── 金（113–140）──
+  113: { element: '金', tags: ['感情运'] },
+  114: { element: '金', tags: ['事业运'] },
+  115: { element: '金', tags: ['健康运'] },
+  116: { element: '金', tags: ['贵人运'] },
+  117: { element: '金', tags: ['财富运'] },
+  118: { element: '金', tags: ['才华运'] },
+  119: { element: '金', tags: ['人缘运'] },
+  120: { element: '金', tags: ['感情运', '事业运'] },
+  121: { element: '金', tags: ['感情运', '健康运'] },
+  122: { element: '金', tags: ['感情运', '贵人运'] },
+  123: { element: '金', tags: ['感情运', '财富运'] },
+  124: { element: '金', tags: ['感情运', '才华运'] },
+  125: { element: '金', tags: ['感情运', '人缘运'] },
+  126: { element: '金', tags: ['事业运', '健康运'] },
+  127: { element: '金', tags: ['事业运', '贵人运'] },
+  128: { element: '金', tags: ['事业运', '财富运'] },
+  129: { element: '金', tags: ['事业运', '才华运'] },
+  130: { element: '金', tags: ['事业运', '人缘运'] },
+  131: { element: '金', tags: ['健康运', '贵人运'] },
+  132: { element: '金', tags: ['健康运', '财富运'] },
+  133: { element: '金', tags: ['健康运', '才华运'] },
+  134: { element: '金', tags: ['健康运', '人缘运'] },
+  135: { element: '金', tags: ['贵人运', '财富运'] },
+  136: { element: '金', tags: ['贵人运', '才华运'] },
+  137: { element: '金', tags: ['贵人运', '人缘运'] },
+  138: { element: '金', tags: ['财富运', '才华运'] },
+  139: { element: '金', tags: ['财富运', '人缘运'] },
+  140: { element: '金', tags: ['才华运', '人缘运'] },
+};
+
+// ════════════════════════════════════════════
+// Supabase
+// ════════════════════════════════════════════
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ════════════════════════════════════════════
+// 登录
+// ════════════════════════════════════════════
+async function checkSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const isAdmin = await checkAdmin(session.user.id);
+  if (isAdmin) enterMain(session.user.email);
+}
+
+async function checkAdmin(uid) {
+  const { data } = await sb.from('profiles').select('is_admin').eq('id', uid).single();
+  return data?.is_admin === true;
+}
+
+function enterMain(email) {
+  document.getElementById('loginSection').style.display = 'none';
+  document.getElementById('mainSection').style.display = 'block';
+  document.getElementById('adminEmail').textContent = email;
+  loadUploaded();
+}
+
+function setMsg(text, ok = false) {
+  const el = document.getElementById('loginMsg');
+  el.textContent = text;
+  el.className = 'login-msg' + (ok ? ' login-ok' : '');
+}
+
+document.getElementById('btnSendCode').addEventListener('click', async () => {
+  const email = document.getElementById('emailInput').value.trim();
+  if (!email) return setMsg('请输入邮箱');
+  document.getElementById('btnSendCode').disabled = true;
+  setMsg('发送中…');
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  document.getElementById('btnSendCode').disabled = false;
+  if (error) return setMsg('发送失败：' + error.message);
+  document.getElementById('stepOtp').style.display = '';
+  setMsg('验证码已发送，请查收邮件', true);
+});
+
+document.getElementById('btnVerify').addEventListener('click', async () => {
+  const email = document.getElementById('emailInput').value.trim();
+  const token = document.getElementById('otpInput').value.trim();
+  if (!token) return setMsg('请输入验证码');
+  document.getElementById('btnVerify').disabled = true;
+  setMsg('验证中…');
+  const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  document.getElementById('btnVerify').disabled = false;
+  if (error) return setMsg('验证码错误或已过期');
+  const isAdmin = await checkAdmin(data.user.id);
+  if (!isAdmin) { await sb.auth.signOut(); return setMsg('该账号无管理员权限'); }
+  enterMain(data.user.email);
+});
+
+document.getElementById('btnResend').addEventListener('click', () => document.getElementById('btnSendCode').click());
+document.getElementById('btnLogout').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+// ════════════════════════════════════════════
+// 标签页切换
+// ════════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ════════════════════════════════════════════
+// 拖拽 & 文件选择
+// ════════════════════════════════════════════
+const dropZone    = document.getElementById('dropZone');
+const folderInput = document.getElementById('folderInput');
+let pendingFiles  = [];
+
+dropZone.addEventListener('click', () => folderInput.click());
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', async e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  // 必须在第一个 await 前同步收集所有 entry，否则浏览器会清空 dataTransfer.items
+  const entries = [...e.dataTransfer.items]
+    .map(item => item.webkitGetAsEntry?.())
+    .filter(Boolean);
+  const unknownNums = new Set();
+  for (const entry of entries) {
+    await processEntry(entry, null, unknownNums);
+  }
+  showUnknown(unknownNums);
+  renderQueue();
+});
+
+folderInput.addEventListener('change', () => {
+  const unknownNums = new Set();
+  for (const file of folderInput.files) {
+    if (!isImage(file.name)) continue;
+    const parts = file.webkitRelativePath.split('/');
+    let folderNum = null;
+    if (parts.length >= 3) folderNum = parseInt(parts[parts.length - 2]);
+    else if (parts.length === 2) folderNum = parseInt(parts[0]);
+    if (isNaN(folderNum)) continue;
+    if (!FOLDER_MAP[folderNum]) { unknownNums.add(folderNum); continue; }
+    const { element, tags } = FOLDER_MAP[folderNum];
+    pendingFiles.push({ file, folderNum, element, tags, status: 'pending', previewUrl: URL.createObjectURL(file) });
+  }
+  showUnknown(unknownNums);
+  renderQueue();
+});
+
+async function processEntry(entry, parentNum, unknownNums) {
+  if (entry.isFile) {
+    if (parentNum !== null && isImage(entry.name)) {
+      const file = await entryToFile(entry);
+      const { element, tags } = FOLDER_MAP[parentNum];
+      pendingFiles.push({ file, folderNum: parentNum, element, tags, status: 'pending', previewUrl: URL.createObjectURL(file) });
+    }
+  } else if (entry.isDirectory) {
+    const num = parseInt(entry.name);
+    if (!isNaN(num)) {
+      if (!FOLDER_MAP[num]) { unknownNums.add(num); return; }
+      const entries = await readAllEntries(entry.createReader());
+      for (const e of entries) await processEntry(e, num, unknownNums);
+    } else {
+      const entries = await readAllEntries(entry.createReader());
+      for (const e of entries) await processEntry(e, null, unknownNums);
+    }
+  }
+}
+
+async function readAllEntries(reader) {
+  const all = [];
+  while (true) {
+    const batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+    if (!batch.length) break;
+    all.push(...batch);
+  }
+  return all;
+}
+
+function entryToFile(entry) { return new Promise((res, rej) => entry.file(res, rej)); }
+function isImage(name) { return /\.(jpe?g|png|webp|gif|avif|heic)$/i.test(name); }
+
+function showUnknown(set) {
+  const wrap = document.getElementById('unknownWrap');
+  if (!set.size) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  document.getElementById('unknownList').textContent = [...set].sort((a,b)=>a-b).join('、');
+}
+
+// ════════════════════════════════════════════
+// 队列卡片渲染
+// ════════════════════════════════════════════
+const STATUS_TEXT = { pending: '待上传', uploading: '上传中…', done: '✓ 完成', error: '✗ 失败' };
+
+function renderQueue() {
+  if (!pendingFiles.length) return;
+  document.getElementById('queueSection').style.display = 'block';
+  document.getElementById('fileCount').textContent = `共 ${pendingFiles.length} 张`;
+  document.getElementById('queueGrid').innerHTML = pendingFiles.map((f, i) =>
+    `<div class="wp-card" id="qcard-${i}">
+      <img class="thumb" src="${f.previewUrl}" alt="${esc(f.file.name)}" loading="lazy" />
+      <div class="card-info">
+        <div class="card-name" title="${esc(f.file.name)}">${esc(f.file.name)}</div>
+        <div class="card-tags">
+          <span class="tag el-${f.element}">${esc(f.element)}</span>
+          ${f.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
+        </div>
+        <div class="card-status ${f.status}">${STATUS_TEXT[f.status]}</div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+function updateQCard(i) {
+  const card = document.getElementById(`qcard-${i}`);
+  if (!card) return;
+  const f = pendingFiles[i];
+  const s = card.querySelector('.card-status');
+  s.className = `card-status ${f.status}`;
+  s.textContent = STATUS_TEXT[f.status];
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════════
+// 上传
+// ════════════════════════════════════════════
+document.getElementById('btnUpload').addEventListener('click', async () => {
+  const btn = document.getElementById('btnUpload');
+  btn.disabled = true;
+
+  const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  if (!isDev) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { alert('登录已过期，请重新登录'); location.reload(); return; }
+  }
+
+  for (let i = 0; i < pendingFiles.length; i++) {
+    const item = pendingFiles[i];
+    if (item.status === 'done') continue;
+    item.status = 'uploading';
+    updateQCard(i);
+    try {
+      if (isDev) {
+        // 本地测试：模拟上传延迟
+        await new Promise(r => setTimeout(r, 80));
+        item.status = 'done';
+      } else {
+        const { data: { session } } = await sb.auth.getSession();
+        const presignRes = await fetch('/api/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ filename: item.file.name, folder: item.folderNum, contentType: item.file.type || 'image/jpeg', element: item.element, tags: item.tags }),
+        });
+        if (!presignRes.ok) throw new Error('presign failed');
+        const { url, key } = await presignRes.json();
+        const uploadRes = await fetch(url, { method: 'PUT', headers: { 'Content-Type': item.file.type || 'image/jpeg' }, body: item.file });
+        if (!uploadRes.ok) throw new Error(`R2 upload failed: ${uploadRes.status}`);
+        // 上传成功后保存元数据到 Supabase
+        await fetch('/api/wallpaper-meta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            folder_number: item.folderNum,
+            element:       item.element,
+            tags:          item.tags,
+            r2_key:        key,
+            filename:      item.file.name,
+          }),
+        });
+        item.status = 'done';
+      }
+    } catch (err) {
+      console.error(err);
+      item.status = 'error';
+    }
+    updateQCard(i);
+  }
+  btn.disabled = false;
+  const done  = pendingFiles.filter(f => f.status === 'done').length;
+  const error = pendingFiles.filter(f => f.status === 'error').length;
+  document.getElementById('fileCount').textContent = `完成 ${done} 张${error ? `，失败 ${error} 张` : ''}`;
+  loadUploaded(); // 刷新管理面板
+});
+
+// ════════════════════════════════════════════
+// 管理面板：加载已上传壁纸
+// ════════════════════════════════════════════
+let allUploaded = [];
+let activeFilter = '全部';
+
+async function loadUploaded() {
+  const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (isDev) {
+    // 本地测试：直接用已完成的上传队列模拟
+    const now = new Date().toLocaleString('zh-CN', { hour12: false });
+    allUploaded = pendingFiles
+      .filter(f => f.status === 'done')
+      .map(f => ({
+        filename:    f.file.name,
+        element:     f.element,
+        tags:        f.tags,
+        preview_url: f.previewUrl,
+        r2_url:      f.previewUrl,
+        uploaded_at: now,
+      }));
+    renderManaged();
+    return;
+  }
+  // 生产：从 Supabase wallpapers 表加载
+  const { data, error } = await sb.from('wallpapers').select('*').order('uploaded_at', { ascending: false });
+  if (error || !data) return;
+  allUploaded = data;
+  renderManaged();
+}
+
+function renderManaged() {
+  const grid  = document.getElementById('managedGrid');
+  const empty = document.getElementById('manageEmpty');
+  const list  = activeFilter === '全部' ? allUploaded : allUploaded.filter(w => w.element === activeFilter);
+  if (!list.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = list.map(w => {
+    const tags = Array.isArray(w.tags) ? w.tags : [];
+    return `<div class="wp-card">
+      <img class="thumb" src="${esc(w.preview_url || w.r2_url || '')}" alt="${esc(w.filename || '')}" loading="lazy" onerror="this.style.display='none'" />
+      <div class="card-info">
+        <div class="card-name" title="${esc(w.filename || '')}">${esc(w.filename || '')}</div>
+        <div class="card-tags">
+          <span class="tag el-${esc(w.element)}">${esc(w.element)}</span>
+          ${tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
+        </div>
+        ${w.uploaded_at ? `<div style="font-size:11px;color:#bbb;margin-top:4px;">${esc(w.uploaded_at)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('filterBar').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  activeFilter = btn.dataset.el;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.el === activeFilter));
+  renderManaged();
+});
+
+// ════════════════════════════════════════════
+// 初始化
+// ════════════════════════════════════════════
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  enterMain('dev@localhost');
+} else {
+  checkSession();
+}
+</script>
+</body>
+</html>

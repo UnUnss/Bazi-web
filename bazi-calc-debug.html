@@ -193,7 +193,8 @@
                             // 动态计算流月喜用和弱势领域
                             const fav_info = get_monthly_favorable_element(baziDict, ly_zhi, gender);
                             const fav_wx = fav_info.favorable_element;
-                            const weak_domains = fav_info.weak_domains.join('、');
+                            const weak_domains = (fav_info.weak_domain_labels || fav_info.weak_domains.map(d => [d]))
+                                .map(names => names.join('、')).join(' / ');
                             
                             dayunStr += `<li style="list-style: none; margin-bottom: 5px;">
                                 ${liuYue.getMonthInChinese()}月: ${gz} <br/>

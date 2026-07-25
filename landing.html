@@ -1441,6 +1441,39 @@
             transform: translateX(18px);
         }
 
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 16px 0 12px;
+            color: var(--ink-muted);
+            font-size: 12px;
+        }
+        .auth-divider::before, .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--line);
+        }
+
+        .btn-google {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            font-family: inherit;
+            font-size: 14px;
+            color: var(--ink);
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: background 0.15s;
+        }
+        .btn-google:hover { background: #f9f9f7; }
+
         .auth-toggle {
             margin-top: 16px;
             text-align: center;
@@ -1878,6 +1911,11 @@
             </div>
             <button type="submit" class="btn-save" id="loginSubmitBtn">登入</button>
         </form>
+        <div class="auth-divider"><span>或</span></div>
+        <button type="button" class="btn-google" id="btnGoogleLogin">
+            <svg width="18" height="18" viewBox="0 0 48 48" style="margin-right:8px;flex-shrink:0;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+            <span data-i18n="btn_google_login">使用 Google 登入</span>
+        </button>
         <p class="auth-toggle" id="authToggleToSignup">
             <span data-i18n="auth_toggle_to_signup_prefix">還沒有帳號？</span><button type="button" class="auth-toggle-btn" id="btnSwitchToSignup" data-i18n="auth_toggle_to_signup_action">立即註冊</button>
         </p>
@@ -1887,6 +1925,8 @@
     </div>
 </div>
 
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- 八字真實排盤邏輯：與 bazi-calc-debug.html 共用同一套 lunar-javascript + bazi_logic.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lunar-javascript/1.7.4/lunar.min.js"></script>
 <script src="bazi_logic.js"></script>
@@ -2264,14 +2304,16 @@
 
     // 串接 bazi_logic.js：算出這個八字在「當前流月」的喜用五行、以及需要補運的弱勢生活領域，
     // 用於下方壁紙區塊動態選圖選文案，而不是寫死固定內容。
+    // v2：傳入完整流月干支（"壬申"2字）和大運/流年 period，啟用六層動態算法。
     function computeMonthlyInsight(profile) {
         try {
             const bazi = computeBaziForProfile(profile);
             const logicBazi = toLogicBazi(bazi.pillars);
             const nowYearMonth = getCurrentYearMonthGanZhi();
-            const liuyueZhi = nowYearMonth.month[1];
+            // 傳完整干支字串（2字），新算法可利用月干；period 含大運/流年供環境乘數計算
+            const liuyueGanZhi = nowYearMonth.month;
             const gender = profile.gender;
-            return get_monthly_favorable_element(logicBazi, liuyueZhi, gender);
+            return get_monthly_favorable_element(logicBazi, liuyueGanZhi, gender, bazi.period);
         } catch (err) {
             console.error('本月喜用計算失敗：', err);
             return null;
@@ -2367,15 +2409,33 @@
         }).join('');
     }
 
-    // 领域关键字 → 简短中文名称（用于本月補運摘要行）
-    // key 与 bazi_logic.js DOMAIN_MAPPING_* 保持一致
-    const DOMAIN_SHORT = {
-        '人际关系、合伙': { 'zh-TW': '人緣運', 'zh-CN': '人缘运', 'en': 'Social'   },
-        '感情与桃花':     { 'zh-TW': '桃花運', 'zh-CN': '桃花运', 'en': 'Romance'  },
-        '事业':           { 'zh-TW': '事業運', 'zh-CN': '事业运', 'en': 'Career'   },
-        '健康与贵人运':   { 'zh-TW': '健康運', 'zh-CN': '健康运', 'en': 'Health'   },
-        '才华灵感':       { 'zh-TW': '才華運', 'zh-CN': '才华运', 'en': 'Talent'   },
+    // 作图运名 i18n（logic 输出简体短名，最多两个）
+    const YUN_I18N = {
+        '感情运': { 'zh-TW': '感情運', 'zh-CN': '感情运', 'en': 'Romance' },
+        '事业运': { 'zh-TW': '事業運', 'zh-CN': '事业运', 'en': 'Career' },
+        '健康运': { 'zh-TW': '健康運', 'zh-CN': '健康运', 'en': 'Health' },
+        '贵人运': { 'zh-TW': '貴人運', 'zh-CN': '贵人运', 'en': 'Benefactor' },
+        '财富运': { 'zh-TW': '財富運', 'zh-CN': '财富运', 'en': 'Wealth' },
+        '才华运': { 'zh-TW': '才華運', 'zh-CN': '才华运', 'en': 'Talent' },
+        '人缘运': { 'zh-TW': '人緣運', 'zh-CN': '人缘运', 'en': 'Social' },
     };
+
+    function yunLabel(name, lang) {
+        const map = YUN_I18N[name];
+        if (!map) return name;
+        return map[lang] || map['zh-TW'] || name;
+    }
+
+    // 从 insight 取出最终 A/B 两个运名（已在 logic 里截断到最多 2 个）
+    function getBoostYunPair(insight, lang) {
+        const labels = insight && insight.weak_domain_labels;
+        if (labels && labels.length >= 1) {
+            const a = yunLabel((labels[0] && labels[0][0]) || '人缘运', lang);
+            const b = yunLabel((labels[1] && labels[1][0]) || a, lang);
+            return [a, b];
+        }
+        return [lang === 'en' ? 'Luck' : '运', lang === 'en' ? 'Luck' : '运'];
+    }
 
     const WX_NAME = {
         'zh-TW': { '木': '木', '水': '水', '金': '金', '火': '火', '土': '土' },
@@ -2399,12 +2459,9 @@
         const favorElName = wxNameMap[favorEl] || favorEl;
         favorLine.innerHTML = `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>&ensp;${favorElName}`;
 
-        const weakDomains = insight.weak_domains || [];
-        const boostNames = weakDomains.map((d) => {
-            const map = DOMAIN_SHORT[d];
-            return map ? (map[lang] || map['zh-TW']) : d;
-        });
-        boostLine.innerHTML = `<span class="insight-label">${t('wallpaper_boost_group_title')}</span>&ensp;${boostNames.join('、') || '—'}`;
+        const [yunA, yunB] = getBoostYunPair(insight, lang);
+        const sep = lang === 'en' ? ' & ' : '、';
+        boostLine.innerHTML = `<span class="insight-label">${t('wallpaper_boost_group_title')}</span>&ensp;${yunA}${sep}${yunB}`;
 
         el.style.display = '';
     }
@@ -2413,46 +2470,85 @@
     // 第一張永遠對應「本月喜用」單一五行，之後 1~2 張對應本月最需要補運的生活領域。
     const wallpaperGrid = document.getElementById('wallpaperGrid');
 
-    function renderWallpapers(profile) {
+    // ── 壁紙池工具函數 ─────────────────────────────────────
+    // 简单 32-bit hash，相同字符串永远返回相同值
+    function stableHash(str) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) {
+            h = (Math.imul(31, h) + str.charCodeAt(i)) >>> 0;
+        }
+        return h;
+    }
+    // 从 pool 中用 seedStr 稳定选出 count 张（同月同人同元素结果不变）
+    function pickStable(pool, seedStr, count) {
+        if (!pool || pool.length === 0) return [];
+        const h = stableHash(seedStr);
+        const start = h % pool.length;
+        return Array.from({ length: count }, (_, i) => pool[(start + i) % pool.length]);
+    }
+    // 壁纸缓存，避免重复请求（key = element）
+    const _wallpaperCache = {};
+    async function fetchWallpapers(element) {
+        if (_wallpaperCache[element]) return _wallpaperCache[element];
+        try {
+            const { data, error } = await _sb.from('wallpapers').select('*').eq('element', element);
+            if (!error && data && data.length > 0) {
+                _wallpaperCache[element] = data;
+                return data;
+            }
+        } catch (_) { /* 网络失败时降级到本地数据 */ }
+        return null; // null → 调用方降级到本地 WUXING_WALLPAPER
+    }
+
+    async function renderWallpapers(profile) {
         const insight = computeMonthlyInsight(profile);
         renderInsight(insight);
         const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
         const t = window.I18N ? window.I18N.t : (k) => k;
 
-        // 喜用五行图片/标题（全部4张统一使用喜用色命名）
+        // 喜用五行
         const favorEl = (insight && insight.favorable_element) || '水';
-        const favorVariants = WUXING_WALLPAPER[favorEl] || WUXING_WALLPAPER['水'];
 
-        // 补运域短名
-        const weakDomains = (insight && insight.weak_domains) || [];
-        const boostYuns = weakDomains.map((d) => {
-            const map = DOMAIN_SHORT[d];
-            return map ? (map[lang] || map['zh-TW']) : d;
-        });
-
-        const assistPrefix = lang === 'en' ? 'Boost ' : '助力';
-
-        // xx运只来自补运域，不用五行运
-        // 1个补运 → 4张全显示同一个
-        // 2个补运 → Card1&4 显示[补运1]，Card2&3 同时显示[补运1]、[补运2]
-        const b0 = boostYuns[0] || (lang === 'en' ? 'Luck' : '运'); // 保底（理论上必有补运）
+        // 补运标签
+        const [labelA, labelB] = getBoostYunPair(insight, lang);
         const sep = lang === 'en' ? ' & ' : '、';
-        const bMiddle = boostYuns.length >= 2 ? boostYuns.join(sep) : b0;
-        const descMap = [b0, bMiddle, bMiddle, b0];
+        const labelAB = labelA === labelB ? labelA : (labelA + sep + labelB);
+        const assistPrefix = lang === 'en' ? 'Boost ' : '助力';
+        const descMap = [labelA, labelAB, labelAB, labelB];
 
-        function makeCard(variantIdx, descSuffix) {
-            const v = favorVariants[variantIdx % favorVariants.length];
-            if (!v) return null;
-            const text = v[lang] || v['zh-TW'];
-            return { img: v.img, name: text.name, desc: assistPrefix + descSuffix };
+        // 尝试从 Supabase 获取壁纸（R2）；失败则降级到本地占位图
+        const dbWallpapers = await fetchWallpapers(favorEl);
+
+        let cards;
+        if (dbWallpapers && dbWallpapers.length > 0) {
+            // ── 使用 R2 壁纸 ──
+            const now = new Date();
+            const userId = (_currentSession && _currentSession.user && _currentSession.user.id) || 'guest';
+            const seedStr = `${userId}|${profile.id}|${now.getFullYear()}-${now.getMonth()}|${favorEl}`;
+            const picked = pickStable(dbWallpapers, seedStr, 4);
+
+            cards = picked.map((w, i) => {
+                const tagStr = Array.isArray(w.tags) ? w.tags.join('、') : (w.tags || '');
+                const nameDisp = lang === 'en'
+                    ? `${favorEl} · ${tagStr}`
+                    : `${favorEl} · ${tagStr}`;
+                return {
+                    img:   `${R2_PUBLIC_URL}/${w.r2_key}`,
+                    r2key: w.r2_key,
+                    name:  nameDisp,
+                    desc:  assistPrefix + descMap[i],
+                };
+            });
+        } else {
+            // ── 降级：使用本地占位图（WUXING_WALLPAPER）──
+            const favorVariants = WUXING_WALLPAPER[favorEl] || WUXING_WALLPAPER['水'];
+            cards = [0, 1, 2, 3].map((vi) => {
+                const v = favorVariants[vi % favorVariants.length];
+                if (!v) return null;
+                const text = v[lang] || v['zh-TW'];
+                return { img: v.img, r2key: null, name: text.name, desc: assistPrefix + descMap[vi] };
+            }).filter(Boolean);
         }
-
-        const cards = [
-            makeCard(0, descMap[0]),
-            makeCard(1, descMap[1]),
-            makeCard(2, descMap[2]),
-            makeCard(3, descMap[3]),
-        ].filter(Boolean);
 
         // 同一素材（img）可能會出現在多張卡片上（如本月第1、3張共用同一張底圖），
         // 所以下載/加購物車用「卡片位置」cardKey 區分，而不是單純用 img 判斷是否重複。
@@ -2488,7 +2584,7 @@
                 <div class="wallpaper-meta">
                     <p class="name">${escapeHtml(c.name)}</p>
                     <p class="desc">${escapeHtml(c.desc)}</p>
-                    <button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
+                    <button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(c.img)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
                 </div>
             </article>`;
         }
@@ -2510,7 +2606,7 @@
 
     // 未登入時打開登入彈窗，返回 false；已登入返回 true
     function requireLogin() {
-        if (localStorage.getItem('bazi_logged_in') === '1') return true;
+        if (isLoggedIn()) return true;
         const loginModal = document.getElementById('loginModal');
         if (loginModal) loginModal.classList.add('open');
         return false;
@@ -2530,6 +2626,7 @@
     let pendingDownloadImg = '';
     let pendingDownloadName = '';
     let pendingDownloadKey = '';
+    let pendingDownloadR2Key = '';
     let selectedTier = '1';
 
     // 套餐檔位：1 張 / 2 張 / 4 張 / 包年（包年解鎖全站付費功能，不限次數下載）。
@@ -2563,10 +2660,12 @@
         const img = btn.getAttribute('data-img');
         const name = btn.getAttribute('data-name') || '';
         const key = btn.getAttribute('data-key') || img;
+        const r2key = btn.getAttribute('data-r2key') || '';
         if (!img) return;
         pendingDownloadImg = img;
         pendingDownloadName = name;
         pendingDownloadKey = key;
+        pendingDownloadR2Key = r2key;
         payPreviewImg.src = img;
         payPreviewImg.alt = name;
         payWallpaperName.textContent = name;
@@ -2579,11 +2678,36 @@
         if (e.target === payModal) payModal.classList.remove('open');
     });
 
-    btnPayConfirm.addEventListener('click', () => {
+    btnPayConfirm.addEventListener('click', async () => {
         if (!requireLogin()) { payModal.classList.remove('open'); return; }
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        // 前端模擬支付，後端接入時替換此處邏輯（selectedTier 為當前選中的套餐：1/year）
         payModal.classList.remove('open');
+
+        // 如果有 r2_key，向后端请求原图下载链接
+        if (pendingDownloadR2Key) {
+            try {
+                const res = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${_currentSession.access_token}`,
+                    },
+                    body: JSON.stringify({ r2_key: pendingDownloadR2Key }),
+                });
+                if (res.ok) {
+                    const { url } = await res.json();
+                    // 用隐藏 <a> 触发下载
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = pendingDownloadName || 'wallpaper';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    return;
+                }
+            } catch (_) { /* 降级到提示 */ }
+        }
+        // 暂无 r2_key（本地占位图）或请求失败 → 原模拟提示
+        const t = window.I18N ? window.I18N.t : (k) => k;
         alert(t('mock_feature_notice'));
     });
 
@@ -2750,7 +2874,7 @@
         setActiveId(activeId);
         renderPillars(active);
         renderMenu(profiles, activeId);
-        renderWallpapers(active);
+        renderWallpapers(active); // async，fire-and-forget
         // 直接用 t() 设置标签文字，不依赖 data-i18n 静态扫描
         const boardLabel = document.querySelector('.bazi-section-label');
         if (boardLabel && window.I18N) boardLabel.textContent = window.I18N.t('bazi_board_title');
@@ -3272,8 +3396,15 @@
     });
 
     // 登入狀態（前端模擬，暫無後端）：登入後將登入按鈕替換為用戶頭像 + 下拉選單
-    const AUTH_KEY = 'bazi_logged_in';
-    const AUTH_EMAIL_KEY = 'bazi_logged_in_email';
+    // ── Supabase 初始化 ────────────────────────────────────
+    const _sb = supabase.createClient(
+        'https://yyiecrsibflscgjxmvbn.supabase.co',
+        'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A'
+    );
+
+    // R2 公共预览地址（测试期直接使用 public dev URL，生产替换为自定义域名）
+    const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
+
     const btnLogin = document.getElementById('btnLogin');
     const userMenuWrap = document.getElementById('userMenuWrap');
     const userMenuBtn = document.getElementById('userMenuBtn');
@@ -3290,32 +3421,36 @@
     const authToggleToSignup = document.getElementById('authToggleToSignup');
     const authToggleToLogin = document.getElementById('authToggleToLogin');
     let authMode = 'login';
+    let _currentSession = null;
 
     function isLoggedIn() {
-        return localStorage.getItem(AUTH_KEY) === '1';
+        return !!_currentSession;
     }
 
     function updateAuthUI() {
         const logged = isLoggedIn();
         btnLogin.style.display = logged ? 'none' : '';
         userMenuWrap.style.display = logged ? '' : 'none';
-        userMenuEmail.textContent = logged ? (localStorage.getItem(AUTH_EMAIL_KEY) || '') : '';
+        userMenuEmail.textContent = logged ? (_currentSession.user.email || '') : '';
         const navCartWrap = document.getElementById('navCartWrap');
         if (navCartWrap) navCartWrap.style.display = logged ? '' : 'none';
     }
 
-    function setLoggedIn(value, email) {
-        if (value) {
-            localStorage.setItem(AUTH_KEY, '1');
-            if (email) localStorage.setItem(AUTH_EMAIL_KEY, email);
-        } else {
-            localStorage.removeItem(AUTH_KEY);
-            localStorage.removeItem(AUTH_EMAIL_KEY);
-        }
+    // 监听登录状态变化
+    _sb.auth.onAuthStateChange((event, session) => {
+        _currentSession = session;
         updateAuthUI();
-    }
+        if (event === 'SIGNED_IN') {
+            loginModal.classList.remove('open');
+            resetCodeState();
+        }
+    });
 
-    updateAuthUI();
+    // 初始化：检查已有 session
+    _sb.auth.getSession().then(({ data: { session } }) => {
+        _currentSession = session;
+        updateAuthUI();
+    });
 
     // 登入／註冊共用同一個彈窗，靠 authMode 切換標題、按鈕文案跟底部提示（前端模擬，暫無後端）
     const subscribeRow = document.getElementById('subscribeRow');
@@ -3372,13 +3507,9 @@
         }
     });
 
-    // 驗證碼登入（前端模擬，暫無後端／簡訊服務）：點擊獲取後生成一個隨機 6 位碼，
-    // 直接彈窗告知（等同「模擬簡訊」），輸入一致即視為登入成功。
-    let mockSentCode = '';
     let codeCountdownTimer = null;
 
     function resetCodeState() {
-        mockSentCode = '';
         loginCodeInput.value = '';
         if (codeCountdownTimer) {
             clearInterval(codeCountdownTimer);
@@ -3388,19 +3519,17 @@
         btnGetCode.textContent = window.I18N ? window.I18N.t('btn_get_code') : '獲取驗證碼';
     }
 
-    btnGetCode.addEventListener('click', () => {
+    btnGetCode.addEventListener('click', async () => {
         const email = loginEmailInput.value.trim();
         const t = window.I18N ? window.I18N.t : (k) => k;
-        if (!email) {
-            alert(t('alert_fill_required'));
-            loginEmailInput.focus();
+        if (!email) { loginEmailInput.focus(); return; }
+        btnGetCode.disabled = true;
+        const { error } = await _sb.auth.signInWithOtp({ email });
+        if (error) {
+            alert(error.message);
+            btnGetCode.disabled = false;
             return;
         }
-
-        mockSentCode = String(Math.floor(100000 + Math.random() * 900000));
-        alert(t('code_sent_notice') + ' ' + mockSentCode);
-
-        btnGetCode.disabled = true;
         let remaining = 60;
         btnGetCode.textContent = remaining + 's';
         codeCountdownTimer = setInterval(() => {
@@ -3416,29 +3545,30 @@
         }, 1000);
     });
 
-    loginForm.addEventListener('submit', (e) => {
+    loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const t = window.I18N ? window.I18N.t : (k) => k;
-        const enteredCode = loginCodeInput.value.trim();
-
-        if (!mockSentCode) {
-            alert(t('code_not_sent_notice'));
-            return;
-        }
-        if (enteredCode !== mockSentCode) {
-            alert(t('code_invalid_notice'));
-            return;
-        }
-
         const email = loginEmailInput.value.trim();
-        setLoggedIn(true, email);
+        const token = loginCodeInput.value.trim();
+        if (!token) return;
+        loginSubmitBtn.disabled = true;
+        const { error } = await _sb.auth.verifyOtp({ email, token, type: 'email' });
+        loginSubmitBtn.disabled = false;
+        if (error) { alert(t('code_invalid_notice')); return; }
         if (authMode === 'signup') {
-            const subscribed = subscribeEmailCheckbox.checked;
+            const subscribed = document.getElementById('subscribeEmail').checked;
             localStorage.setItem('ew_email_subscribe', subscribed ? '1' : '0');
         }
-        loginModal.classList.remove('open');
         loginForm.reset();
         resetCodeState();
+    });
+
+    // Google 登录
+    document.getElementById('btnGoogleLogin').addEventListener('click', async () => {
+        await _sb.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.href },
+        });
     });
 
     applyAuthMode();
@@ -3455,8 +3585,8 @@
         e.stopPropagation();
     });
 
-    document.getElementById('btnLogout').addEventListener('click', () => {
-        setLoggedIn(false);
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+        await _sb.auth.signOut();
         userMenu.classList.remove('open');
     });
 
