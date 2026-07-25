@@ -81,3 +81,15 @@ grant execute on function public.is_admin_email(text) to anon, authenticated;
 -- 壁纸预览图路径（页面展示用；原图仍在 r2_key）
 alter table public.wallpapers
   add column if not exists preview_key text;
+
+-- 模拟登录：八字档案按邮箱归属（user_id 可空）
+alter table public.bazi_profiles
+  add column if not exists owner_email text;
+
+alter table public.bazi_profiles
+  alter column user_id drop not null;
+
+create index if not exists bazi_profiles_owner_email_idx
+  on public.bazi_profiles (owner_email);
+
+grant select, insert, update, delete on public.bazi_profiles to service_role;

@@ -2335,6 +2335,59 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
+    // 模拟登录：用邮箱把档案同步到 Supabase（经 /api/bazi-profiles）
+    async function cloudUpsertProfile(profile) {
+        const email = localStorage.getItem('bazi_logged_email');
+        if (!email || !profile || String(profile.id || '').startsWith('demo-')) return profile;
+        try {
+            const res = await fetch('/api/bazi-profiles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Email': email,
+                },
+                body: JSON.stringify({ profile }),
+            });
+            if (!res.ok) {
+                console.error('cloudUpsertProfile failed', await res.text());
+                return profile;
+            }
+            const data = await res.json();
+            return data.profile || profile;
+        } catch (err) {
+            console.error('cloudUpsertProfile', err);
+            return profile;
+        }
+    }
+
+    async function cloudLoadProfiles() {
+        const email = localStorage.getItem('bazi_logged_email');
+        if (!email) return null;
+        try {
+            const res = await fetch('/api/bazi-profiles', {
+                method: 'GET',
+                headers: { 'X-User-Email': email },
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return Array.isArray(data.profiles) ? data.profiles : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function hydrateProfilesFromCloud() {
+        const remote = await cloudLoadProfiles();
+        if (!remote || !remote.length) return;
+        profiles = remote;
+        saveProfiles(profiles);
+        if (!profiles.some((p) => p.id === activeId)) {
+            activeId = profiles[0].id;
+            setActiveId(activeId);
+        }
+        refresh();
+    }
+
     function getActiveId(list) {
         const id = localStorage.getItem(ACTIVE_KEY);
         if (id && list.some((p) => p.id === id)) return id;
@@ -3416,6 +3469,7 @@
         localStorage.setItem(AUTH_KEY, '1');
         localStorage.setItem(AUTH_EMAIL_KEY, email || '');
         updateAuthUI();
+        hydrateProfilesFromCloud();
     }
 
     function clearLoggedIn() {
@@ -3434,6 +3488,7 @@
     }
 
     updateAuthUI();
+    if (localStorage.getItem(AUTH_KEY) === '1') hydrateProfilesFromCloud();
 
     // 登入／註冊共用同一個彈窗，靠 authMode 切換標題、按鈕文案跟底部提示（前端模擬，暫無後端）
     const subscribeRow = document.getElementById('subscribeRow');
@@ -3696,7 +3751,7 @@
 
         // 真實八字四柱與大運由 computeBaziForProfile() 現場排盤
         const profile = {
-            id: 'p-' + Date.now(),
+            id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-' + Date.now()),
             nickname,
             gender,
             birthDate,
@@ -3708,9 +3763,12 @@
             useDST
         };
 
-        profiles.push(profile);
+        const saved = await cloudUpsertProfile(profile);
+        // 用云端返回的 id（uuid）替换本地临时 id
+        const finalProfile = saved && saved.id ? { ...profile, ...saved } : profile;
+        profiles.push(finalProfile);
         saveProfiles(profiles);
-        activeId = profile.id;
+        activeId = finalProfile.id;
         setActiveId(activeId);
         refresh();
         addModal.classList.remove('open');

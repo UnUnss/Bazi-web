@@ -82,7 +82,10 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
 .el-火 { background: #fee2e2; color: #b91c1c; }
 .el-土 { background: #fef9c3; color: #854d0e; }
 .el-金 { background: #f3f4f6; color: #374151; }
-.el-tag { background: #f0f0ee; color: #555; }
+.wp-card .card-actions { display: flex; gap: 8px; margin-top: 8px; }
+.btn-del { padding: 4px 10px; font-size: 11px; background: #fff; border: 1px solid #f0c0c0; color: #c33; border-radius: 4px; cursor: pointer; }
+.btn-del:hover { background: #fff5f5; }
+.btn-del:disabled { opacity: .45; cursor: default; }
 </style>
 </head>
 <body>
@@ -726,7 +729,7 @@ function renderManaged() {
   empty.style.display = 'none';
   grid.innerHTML = list.map(w => {
     const tags = Array.isArray(w.tags) ? w.tags : [];
-    return `<div class="wp-card">
+    return `<div class="wp-card" data-id="${esc(w.id || '')}">
       <img class="thumb" src="${esc(w.preview_url || w.r2_url || '')}" alt="${esc(w.filename || '')}" loading="lazy" onerror="this.style.display='none'" />
       <div class="card-info">
         <div class="card-name" title="${esc(w.filename || '')}">${esc(w.filename || '')}</div>
@@ -735,10 +738,45 @@ function renderManaged() {
           ${tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
         </div>
         ${w.uploaded_at ? `<div style="font-size:11px;color:#bbb;margin-top:4px;">${esc(w.uploaded_at)}</div>` : ''}
+        ${w.id ? `<div class="card-actions"><button type="button" class="btn-del" data-id="${esc(w.id)}">删除</button></div>` : ''}
       </div>
     </div>`;
   }).join('');
 }
+
+document.getElementById('managedGrid').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.btn-del');
+  if (!btn) return;
+  const id = btn.getAttribute('data-id');
+  if (!id) return;
+  if (!confirm('确定删除这张壁纸？将同时删除 R2 原图和预览图。')) return;
+
+  const adminEmail = localStorage.getItem(ADMIN_AUTH_KEY);
+  if (!adminEmail) { alert('请先登录'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '删除中…';
+  try {
+    const res = await fetch('/api/wallpaper-delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Email': adminEmail,
+      },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `删除失败: ${res.status}`);
+    }
+    await loadUploaded();
+  } catch (err) {
+    console.error(err);
+    alert(err.message || '删除失败');
+    btn.disabled = false;
+    btn.textContent = '删除';
+  }
+});
 
 document.getElementById('filterBar').addEventListener('click', e => {
   const btn = e.target.closest('.filter-btn');
