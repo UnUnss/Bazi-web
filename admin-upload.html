@@ -173,6 +173,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
 // ════════════════════════════════════════════
 const SUPABASE_URL  = 'https://yyiecrsibflscgjxmvbn.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A';
+const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
 
 // 文件夹编号 → 五行 + 运势标签映射表（共 140 个）
 const FOLDER_MAP = {
@@ -330,18 +331,30 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ════════════════════════════════════════════
-// 登录
+// 登录（模拟）：验证码固定 123456，只校验邮箱是否为管理员
 // ════════════════════════════════════════════
-async function checkSession() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
-  const isAdmin = await checkAdmin(session.user.id);
-  if (isAdmin) enterMain(session.user.email);
+const ADMIN_AUTH_KEY = 'admin_mock_email';
+const MOCK_CODE = '123456';
+let _mockCodeSent = false;
+
+async function checkAdminByEmail(email) {
+  // 走 security definer 函数，不依赖真实登录 session
+  const { data, error } = await sb.rpc('is_admin_email', { check_email: email });
+  if (error) {
+    console.error('is_admin_email error:', error);
+    return { ok: false, reason: '管理员校验失败：' + error.message + '（请确认已执行 is_admin_email SQL）' };
+  }
+  return data === true
+    ? { ok: true }
+    : { ok: false, reason: '该邮箱不是管理员' };
 }
 
-async function checkAdmin(uid) {
-  const { data } = await sb.from('profiles').select('is_admin').eq('id', uid).single();
-  return data?.is_admin === true;
+async function checkSession() {
+  const email = localStorage.getItem(ADMIN_AUTH_KEY);
+  if (!email) return;
+  const result = await checkAdminByEmail(email);
+  if (result.ok) enterMain(email);
+  else localStorage.removeItem(ADMIN_AUTH_KEY);
 }
 
 function enterMain(email) {
@@ -357,34 +370,37 @@ function setMsg(text, ok = false) {
   el.className = 'login-msg' + (ok ? ' login-ok' : '');
 }
 
-document.getElementById('btnSendCode').addEventListener('click', async () => {
+document.getElementById('btnSendCode').addEventListener('click', () => {
   const email = document.getElementById('emailInput').value.trim();
   if (!email) return setMsg('请输入邮箱');
-  document.getElementById('btnSendCode').disabled = true;
-  setMsg('发送中…');
-  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-  document.getElementById('btnSendCode').disabled = false;
-  if (error) return setMsg('发送失败：' + error.message);
+  _mockCodeSent = true;
   document.getElementById('stepOtp').style.display = '';
-  setMsg('验证码已发送，请查收邮件', true);
+  setMsg('测试验证码：' + MOCK_CODE + '（模拟登录，不发真实邮件）', true);
 });
 
 document.getElementById('btnVerify').addEventListener('click', async () => {
   const email = document.getElementById('emailInput').value.trim();
   const token = document.getElementById('otpInput').value.trim();
+  if (!email) return setMsg('请输入邮箱');
+  if (!_mockCodeSent) return setMsg('请先获取验证码');
   if (!token) return setMsg('请输入验证码');
+  if (token !== MOCK_CODE) return setMsg('验证码错误');
+
   document.getElementById('btnVerify').disabled = true;
-  setMsg('验证中…');
-  const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  setMsg('校验管理员权限中…');
+  const result = await checkAdminByEmail(email);
   document.getElementById('btnVerify').disabled = false;
-  if (error) return setMsg('验证码错误或已过期');
-  const isAdmin = await checkAdmin(data.user.id);
-  if (!isAdmin) { await sb.auth.signOut(); return setMsg('该账号无管理员权限'); }
-  enterMain(data.user.email);
+  if (!result.ok) return setMsg(result.reason);
+
+  localStorage.setItem(ADMIN_AUTH_KEY, email);
+  enterMain(email);
 });
 
 document.getElementById('btnResend').addEventListener('click', () => document.getElementById('btnSendCode').click());
-document.getElementById('btnLogout').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+document.getElementById('btnLogout').addEventListener('click', () => {
+  localStorage.removeItem(ADMIN_AUTH_KEY);
+  location.reload();
+});
 
 // ════════════════════════════════════════════
 // 标签页切换
@@ -518,17 +534,18 @@ function esc(s) {
 }
 
 // ════════════════════════════════════════════
-// 上传
+// 上传（真实 R2）：用模拟登录邮箱做管理员鉴权
 // ════════════════════════════════════════════
 document.getElementById('btnUpload').addEventListener('click', async () => {
   const btn = document.getElementById('btnUpload');
   btn.disabled = true;
 
-  const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-
-  if (!isDev) {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { alert('登录已过期，请重新登录'); location.reload(); return; }
+  const adminEmail = localStorage.getItem(ADMIN_AUTH_KEY);
+  if (!adminEmail) {
+    alert('请先登录');
+    btn.disabled = false;
+    location.reload();
+    return;
   }
 
   for (let i = 0; i < pendingFiles.length; i++) {
@@ -537,46 +554,67 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
     item.status = 'uploading';
     updateQCard(i);
     try {
-      if (isDev) {
-        // 本地测试：模拟上传延迟
-        await new Promise(r => setTimeout(r, 80));
-        item.status = 'done';
-      } else {
-        const { data: { session } } = await sb.auth.getSession();
-        const presignRes = await fetch('/api/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-          body: JSON.stringify({ filename: item.file.name, folder: item.folderNum, contentType: item.file.type || 'image/jpeg', element: item.element, tags: item.tags }),
-        });
-        if (!presignRes.ok) throw new Error('presign failed');
-        const { url, key } = await presignRes.json();
-        const uploadRes = await fetch(url, { method: 'PUT', headers: { 'Content-Type': item.file.type || 'image/jpeg' }, body: item.file });
-        if (!uploadRes.ok) throw new Error(`R2 upload failed: ${uploadRes.status}`);
-        // 上传成功后保存元数据到 Supabase
-        await fetch('/api/wallpaper-meta', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-          body: JSON.stringify({
-            folder_number: item.folderNum,
-            element:       item.element,
-            tags:          item.tags,
-            r2_key:        key,
-            filename:      item.file.name,
-          }),
-        });
-        item.status = 'done';
+      const presignRes = await fetch('/api/presign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Email': adminEmail,
+        },
+        body: JSON.stringify({
+          filename: item.file.name,
+          folder: item.folderNum,
+          contentType: item.file.type || 'image/jpeg',
+          element: item.element,
+          tags: item.tags,
+        }),
+      });
+      if (!presignRes.ok) {
+        const err = await presignRes.json().catch(() => ({}));
+        throw new Error(err.error || `presign failed: ${presignRes.status}`);
       }
+      const { url, key } = await presignRes.json();
+      const uploadRes = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': item.file.type || 'image/jpeg' },
+        body: item.file,
+      });
+      if (!uploadRes.ok) throw new Error(`R2 upload failed: ${uploadRes.status}`);
+
+      const metaRes = await fetch('/api/wallpaper-meta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Email': adminEmail,
+        },
+        body: JSON.stringify({
+          folder_number: item.folderNum,
+          element:       item.element,
+          tags:          item.tags,
+          r2_key:        key,
+          filename:      item.file.name,
+        }),
+      });
+      if (!metaRes.ok) {
+        const err = await metaRes.json().catch(() => ({}));
+        throw new Error(err.error || `meta save failed: ${metaRes.status}`);
+      }
+      item.status = 'done';
+      item.r2_key = key;
     } catch (err) {
       console.error(err);
       item.status = 'error';
+      item.errorMsg = err.message || String(err);
     }
     updateQCard(i);
   }
   btn.disabled = false;
   const done  = pendingFiles.filter(f => f.status === 'done').length;
   const error = pendingFiles.filter(f => f.status === 'error').length;
-  document.getElementById('fileCount').textContent = `完成 ${done} 张${error ? `，失败 ${error} 张` : ''}`;
-  loadUploaded(); // 刷新管理面板
+  const firstErr = pendingFiles.find(f => f.status === 'error');
+  document.getElementById('fileCount').textContent =
+    `完成 ${done} 张${error ? `，失败 ${error} 张` : ''}` +
+    (firstErr?.errorMsg ? `（${firstErr.errorMsg}）` : '');
+  loadUploaded();
 });
 
 // ════════════════════════════════════════════
@@ -586,9 +624,10 @@ let allUploaded = [];
 let activeFilter = '全部';
 
 async function loadUploaded() {
-  const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  if (isDev) {
-    // 本地测试：直接用已完成的上传队列模拟
+  const { data, error } = await sb.from('wallpapers').select('*').order('uploaded_at', { ascending: false });
+  if (error || !data) {
+    console.error('loadUploaded', error);
+    // 回退：展示本轮已成功上传的队列
     const now = new Date().toLocaleString('zh-CN', { hour12: false });
     allUploaded = pendingFiles
       .filter(f => f.status === 'done')
@@ -597,16 +636,15 @@ async function loadUploaded() {
         element:     f.element,
         tags:        f.tags,
         preview_url: f.previewUrl,
-        r2_url:      f.previewUrl,
+        r2_key:      f.r2_key || '',
         uploaded_at: now,
       }));
-    renderManaged();
-    return;
+  } else {
+    allUploaded = data.map(w => ({
+      ...w,
+      preview_url: w.r2_key ? `${R2_PUBLIC_URL}/${w.r2_key}` : '',
+    }));
   }
-  // 生产：从 Supabase wallpapers 表加载
-  const { data, error } = await sb.from('wallpapers').select('*').order('uploaded_at', { ascending: false });
-  if (error || !data) return;
-  allUploaded = data;
   renderManaged();
 }
 
@@ -645,13 +683,9 @@ document.getElementById('filterBar').addEventListener('click', e => {
 });
 
 // ════════════════════════════════════════════
-// 初始化
+// 初始化：恢复本地模拟登录状态（并再次校验仍是管理员）
 // ════════════════════════════════════════════
-if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-  enterMain('dev@localhost');
-} else {
-  checkSession();
-}
+checkSession();
 </script>
 </body>
 </html>

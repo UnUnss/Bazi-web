@@ -37,3 +37,43 @@ create policy "Users can update own profiles"
 create policy "Users can delete own profiles"
   on public.bazi_profiles for delete
   using (auth.uid() = user_id);
+
+-- ════════════════════════════════════════════
+-- 管理员表 profiles（若已建可跳过 create）
+-- ════════════════════════════════════════════
+create table if not exists public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  email text,
+  is_admin boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles
+  add column if not exists email text;
+
+alter table public.profiles enable row level security;
+
+-- 模拟登录用：按邮箱判断是否管理员（不暴露整张表）
+create or replace function public.is_admin_email(check_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where lower(email) = lower(check_email)
+      and is_admin = true
+  );
+$$;
+
+grant execute on function public.is_admin_email(text) to anon, authenticated;
+
+-- 把你的管理员邮箱写进已有管理员行（把邮箱改成你的再执行）：
+-- update public.profiles
+-- set email = '你的管理员邮箱@qq.com', is_admin = true
+-- where is_admin = true;
+--
+-- 若还没有任何管理员行：先在 Authentication → Users 找到用户 UUID，再执行：
+-- insert into public.profiles (id, email, is_admin)
+-- values ('这里填用户UUID', '你的管理员邮箱@qq.com', true);

@@ -2523,7 +2523,7 @@
         if (dbWallpapers && dbWallpapers.length > 0) {
             // ── 使用 R2 壁纸 ──
             const now = new Date();
-            const userId = (_currentSession && _currentSession.user && _currentSession.user.id) || 'guest';
+            const userId = getLoggedEmail() || 'guest';
             const seedStr = `${userId}|${profile.id}|${now.getFullYear()}-${now.getMonth()}|${favorEl}`;
             const picked = pickStable(dbWallpapers, seedStr, 4);
 
@@ -2681,32 +2681,7 @@
     btnPayConfirm.addEventListener('click', async () => {
         if (!requireLogin()) { payModal.classList.remove('open'); return; }
         payModal.classList.remove('open');
-
-        // 如果有 r2_key，向后端请求原图下载链接
-        if (pendingDownloadR2Key) {
-            try {
-                const res = await fetch('/api/download', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${_currentSession.access_token}`,
-                    },
-                    body: JSON.stringify({ r2_key: pendingDownloadR2Key }),
-                });
-                if (res.ok) {
-                    const { url } = await res.json();
-                    // 用隐藏 <a> 触发下载
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = pendingDownloadName || 'wallpaper';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    return;
-                }
-            } catch (_) { /* 降级到提示 */ }
-        }
-        // 暂无 r2_key（本地占位图）或请求失败 → 原模拟提示
+        // 模拟登录阶段：不调用真实 /api/download（需要 Supabase token）
         const t = window.I18N ? window.I18N.t : (k) => k;
         alert(t('mock_feature_notice'));
     });
@@ -3396,7 +3371,7 @@
     });
 
     // 登入狀態（前端模擬，暫無後端）：登入後將登入按鈕替換為用戶頭像 + 下拉選單
-    // ── Supabase 初始化 ────────────────────────────────────
+    // Supabase 僅用於查詢 wallpapers 表（壁紙預覽），登入本身走本地模擬
     const _sb = supabase.createClient(
         'https://yyiecrsibflscgjxmvbn.supabase.co',
         'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A'
@@ -3404,6 +3379,10 @@
 
     // R2 公共预览地址（测试期直接使用 public dev URL，生产替换为自定义域名）
     const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
+
+    const AUTH_KEY = 'bazi_logged_in';
+    const AUTH_EMAIL_KEY = 'bazi_logged_email';
+    const MOCK_CODE = '123456'; // 模拟验证码，任意 6 位也可
 
     const btnLogin = document.getElementById('btnLogin');
     const userMenuWrap = document.getElementById('userMenuWrap');
@@ -3421,36 +3400,38 @@
     const authToggleToSignup = document.getElementById('authToggleToSignup');
     const authToggleToLogin = document.getElementById('authToggleToLogin');
     let authMode = 'login';
-    let _currentSession = null;
+    let _mockCodeSent = '';
 
     function isLoggedIn() {
-        return !!_currentSession;
+        return localStorage.getItem(AUTH_KEY) === '1';
+    }
+
+    function getLoggedEmail() {
+        return localStorage.getItem(AUTH_EMAIL_KEY) || '';
+    }
+
+    function setLoggedIn(email) {
+        localStorage.setItem(AUTH_KEY, '1');
+        localStorage.setItem(AUTH_EMAIL_KEY, email || '');
+        updateAuthUI();
+    }
+
+    function clearLoggedIn() {
+        localStorage.removeItem(AUTH_KEY);
+        localStorage.removeItem(AUTH_EMAIL_KEY);
+        updateAuthUI();
     }
 
     function updateAuthUI() {
         const logged = isLoggedIn();
         btnLogin.style.display = logged ? 'none' : '';
         userMenuWrap.style.display = logged ? '' : 'none';
-        userMenuEmail.textContent = logged ? (_currentSession.user.email || '') : '';
+        userMenuEmail.textContent = logged ? getLoggedEmail() : '';
         const navCartWrap = document.getElementById('navCartWrap');
         if (navCartWrap) navCartWrap.style.display = logged ? '' : 'none';
     }
 
-    // 监听登录状态变化
-    _sb.auth.onAuthStateChange((event, session) => {
-        _currentSession = session;
-        updateAuthUI();
-        if (event === 'SIGNED_IN') {
-            loginModal.classList.remove('open');
-            resetCodeState();
-        }
-    });
-
-    // 初始化：检查已有 session
-    _sb.auth.getSession().then(({ data: { session } }) => {
-        _currentSession = session;
-        updateAuthUI();
-    });
+    updateAuthUI();
 
     // 登入／註冊共用同一個彈窗，靠 authMode 切換標題、按鈕文案跟底部提示（前端模擬，暫無後端）
     const subscribeRow = document.getElementById('subscribeRow');
@@ -3511,6 +3492,7 @@
 
     function resetCodeState() {
         loginCodeInput.value = '';
+        _mockCodeSent = '';
         if (codeCountdownTimer) {
             clearInterval(codeCountdownTimer);
             codeCountdownTimer = null;
@@ -3519,17 +3501,14 @@
         btnGetCode.textContent = window.I18N ? window.I18N.t('btn_get_code') : '獲取驗證碼';
     }
 
-    btnGetCode.addEventListener('click', async () => {
+    // 模拟发验证码：不发真实邮件，弹窗提示固定码
+    btnGetCode.addEventListener('click', () => {
         const email = loginEmailInput.value.trim();
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!email) { loginEmailInput.focus(); return; }
+        _mockCodeSent = MOCK_CODE;
+        alert('測試驗證碼：' + MOCK_CODE + '\n（模擬登入，不會發真實郵件）');
         btnGetCode.disabled = true;
-        const { error } = await _sb.auth.signInWithOtp({ email });
-        if (error) {
-            alert(error.message);
-            btnGetCode.disabled = false;
-            return;
-        }
         let remaining = 60;
         btnGetCode.textContent = remaining + 's';
         codeCountdownTimer = setInterval(() => {
@@ -3545,30 +3524,33 @@
         }, 1000);
     });
 
-    loginForm.addEventListener('submit', async (e) => {
+    loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const t = window.I18N ? window.I18N.t : (k) => k;
         const email = loginEmailInput.value.trim();
         const token = loginCodeInput.value.trim();
-        if (!token) return;
-        loginSubmitBtn.disabled = true;
-        const { error } = await _sb.auth.verifyOtp({ email, token, type: 'email' });
-        loginSubmitBtn.disabled = false;
-        if (error) { alert(t('code_invalid_notice')); return; }
+        if (!email) { loginEmailInput.focus(); return; }
+        if (!token) { loginCodeInput.focus(); return; }
+        // 模拟校验：必须先点「获取验证码」，且验证码为 123456
+        if (!_mockCodeSent || token !== MOCK_CODE) {
+            alert(t('code_invalid_notice'));
+            return;
+        }
         if (authMode === 'signup') {
             const subscribed = document.getElementById('subscribeEmail').checked;
             localStorage.setItem('ew_email_subscribe', subscribed ? '1' : '0');
         }
+        setLoggedIn(email);
         loginForm.reset();
         resetCodeState();
+        loginModal.classList.remove('open');
     });
 
-    // Google 登录
-    document.getElementById('btnGoogleLogin').addEventListener('click', async () => {
-        await _sb.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: window.location.href },
-        });
+    // Google 登录（模拟）
+    document.getElementById('btnGoogleLogin').addEventListener('click', () => {
+        setLoggedIn('google-user@example.com');
+        loginModal.classList.remove('open');
+        resetCodeState();
     });
 
     applyAuthMode();
@@ -3585,8 +3567,8 @@
         e.stopPropagation();
     });
 
-    document.getElementById('btnLogout').addEventListener('click', async () => {
-        await _sb.auth.signOut();
+    document.getElementById('btnLogout').addEventListener('click', () => {
+        clearLoggedIn();
         userMenu.classList.remove('open');
     });
 
