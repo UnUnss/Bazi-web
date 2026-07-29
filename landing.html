@@ -534,7 +534,8 @@
             z-index: 1;
         }
 
-        .wallpaper-preview .phone-overlay-logo {
+        .wallpaper-preview .phone-overlay-logo,
+        .pay-wallpaper-preview .phone-overlay-logo {
             position: absolute;
             width: 200cqw;
             height: auto;
@@ -568,11 +569,14 @@
         }
 
         .phone-clock-date {
-            font-size: 3.6cqw;
-            color: rgba(255,255,255,0.82);
+            font-size: 4.8cqw;
+            font-weight: 300;
+            color: rgba(255,255,255,0.88);
             text-shadow: 0 1px 6px rgba(0,0,0,0.3);
-            margin-top: 5%;
-            letter-spacing: 0.06em;
+            margin-top: 2cqw;
+            letter-spacing: 0.08em;
+            position: relative;
+            top: -6cqw;
         }
 
         .phone-overlay-bottom {
@@ -696,6 +700,8 @@
             border-radius: 3px;
             overflow: hidden;
             box-shadow: 0 4px 16px rgba(42, 30, 10, 0.14);
+            position: relative;
+            container-type: inline-size;
         }
 
         .pay-wallpaper-preview img {
@@ -1826,6 +1832,29 @@
         <button type="button" class="modal-close" id="payModalClose" aria-label="關閉">×</button>
         <div class="pay-wallpaper-preview">
             <img id="payPreviewImg" src="" alt="" draggable="false">
+            <div class="phone-overlay">
+                <div class="phone-overlay-top">
+                    <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" />
+                </div>
+                <div class="phone-overlay-clock">
+                    <div class="phone-clock-time">09:00</div>
+                    <div class="phone-clock-date">2026/08/09</div>
+                </div>
+                <div class="phone-overlay-bottom">
+                    <div class="phone-icon-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 2h8l1 6-3 2v2l1 10H9L10 12 7 10z"/>
+                            <line x1="12" y1="8" x2="12" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="phone-icon-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
         </div>
         <p class="pay-wallpaper-name" id="payWallpaperName"></p>
         <div class="pay-price-row">
@@ -1993,22 +2022,23 @@
     const defaultProfiles = [
         {
             id: 'demo-1',
-            nickname: '本人',
-            gender: 1,
-            birthDate: '1984/01/15',
-            birthTime: '12:00',
-            birthplace: '北京',
-            useTrueSolarTime: false,
+            nickname: '示例',
+            gender: 0,
+            birthDate: '2026/08/09',
+            birthTime: '10:00',
+            birthplace: '深圳',
+            birthplaceLon: 114.06,
+            useTrueSolarTime: true,
             useDST: false
         }
     ];
 
     const FALLBACK_BAZI = {
         pillars: [
-            { gan: '甲', zhi: '子' },
             { gan: '丙', zhi: '午' },
-            { gan: '戊', zhi: '申' },
-            { gan: '庚', zhi: '辰' }
+            { gan: '丙', zhi: '申' },
+            { gan: '乙', zhi: '卯' },
+            { gan: '辛', zhi: '巳' }
         ],
         period: { dayun: '——', year: '——', month: '——' }
     };
@@ -2325,7 +2355,21 @@
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
                 const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed) && parsed.length) return parsed;
+                if (Array.isArray(parsed) && parsed.length) {
+                    // 舊版 demo-1（1984 北京）替換為新預設，避免本地緩存一直顯示舊盤
+                    let migrated = false;
+                    const next = parsed.map((p) => {
+                        if (!p || p.id !== 'demo-1') return p;
+                        // 舊版 demo（1984 北京 / 暱稱「本人」）替換為新預設
+                        if (p.birthDate === '1984/01/15' || p.nickname === '本人') {
+                            migrated = true;
+                            return Object.assign({}, defaultProfiles[0]);
+                        }
+                        return p;
+                    });
+                    if (migrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+                    return next;
+                }
             }
         } catch (_) {}
         return defaultProfiles.slice();
@@ -2479,15 +2523,36 @@
         return map[lang] || map['zh-TW'] || name;
     }
 
-    // 从 insight 取出最终 A/B 两个运名（已在 logic 里截断到最多 2 个）
+    // 从 insight 取出最终 A/B 两个运名（简体 key 用于匹配 tags；display 用于 UI）
     function getBoostYunPair(insight, lang) {
         const labels = insight && insight.weak_domain_labels;
-        if (labels && labels.length >= 1) {
-            const a = yunLabel((labels[0] && labels[0][0]) || '人缘运', lang);
-            const b = yunLabel((labels[1] && labels[1][0]) || a, lang);
-            return [a, b];
-        }
-        return [lang === 'en' ? 'Luck' : '运', lang === 'en' ? 'Luck' : '运'];
+        const aCN = (labels && labels[0] && labels[0][0]) || '人缘运';
+        const bCN = (labels && labels[1] && labels[1][0]) || aCN;
+        return {
+            aCN, bCN,
+            a: yunLabel(aCN, lang),
+            b: yunLabel(bCN, lang),
+        };
+    }
+
+    // 壁纸 tags 规范化（简体运名，排序后比较，忽略顺序）
+    function normalizeYunTags(tags) {
+        const arr = Array.isArray(tags) ? tags : (tags ? [tags] : []);
+        return arr.map((t) => String(t).trim()).filter(Boolean).slice().sort();
+    }
+    function tagsMatchWanted(tags, wanted) {
+        const a = normalizeYunTags(tags);
+        const b = normalizeYunTags(wanted);
+        return a.length === b.length && a.every((t, i) => t === b[i]);
+    }
+    // 从池中按 tags 精确匹配；seed 稳定挑一张；excludeIds 避免图2/3重复
+    function pickByTags(pool, wantedTags, seedStr, excludeIds) {
+        const excl = excludeIds || [];
+        const matched = (pool || []).filter((w) =>
+            !excl.includes(w.id) && tagsMatchWanted(w.tags, wantedTags)
+        );
+        if (matched.length === 0) return null;
+        return pickStable(matched, seedStr, 1)[0] || matched[0];
     }
 
     const WX_NAME = {
@@ -2508,11 +2573,19 @@
         if (!insight) { el.style.display = 'none'; return; }
 
         const favorEl = insight.favorable_element || '';
+        const secondaryEl = insight.secondary_element || favorEl;
         const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
         const favorElName = wxNameMap[favorEl] || favorEl;
-        favorLine.innerHTML = `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>&ensp;${favorElName}`;
+        const secondaryElName = wxNameMap[secondaryEl] || secondaryEl;
+        const favorText = favorEl === secondaryEl
+            ? favorElName
+            : (favorElName + (lang === 'en' ? ' / ' : '、') + secondaryElName);
+        favorLine.innerHTML = `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>&ensp;${favorText}`;
 
-        const [yunA, yunB] = getBoostYunPair(insight, lang);
+        const [yunA, yunB] = (() => {
+            const p = getBoostYunPair(insight, lang);
+            return [p.a, p.b];
+        })();
         const sep = lang === 'en' ? ' & ' : '、';
         boostLine.innerHTML = `<span class="insight-label">${t('wallpaper_boost_group_title')}</span>&ensp;${yunA}${sep}${yunB}`;
 
@@ -2559,49 +2632,82 @@
         const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
         const t = window.I18N ? window.I18N.t : (k) => k;
 
-        // 喜用五行
-        const favorEl = (insight && insight.favorable_element) || '水';
+        // 主喜用 / 副喜用
+        const primaryEl   = (insight && insight.favorable_element) || '水';
+        const secondaryEl = (insight && insight.secondary_element) || primaryEl;
+        const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
+        const primaryName   = wxNameMap[primaryEl] || primaryEl;
+        const secondaryName = wxNameMap[secondaryEl] || secondaryEl;
 
-        // 补运标签
-        const [labelA, labelB] = getBoostYunPair(insight, lang);
+        // 补运 A/B
+        // 图1：主喜用 + A
+        // 图2：主喜用 + A、B
+        // 图3：副喜用 + A、B
+        // 图4：主喜用 + B
+        const yunPair = getBoostYunPair(insight, lang);
+        const labelA = yunPair.a;
+        const labelB = yunPair.b;
         const sep = lang === 'en' ? ' & ' : '、';
         const labelAB = labelA === labelB ? labelA : (labelA + sep + labelB);
-        const assistPrefix = lang === 'en' ? 'Boost ' : '助力';
-        const descMap = [labelA, labelAB, labelAB, labelB];
+        const tagsA  = [yunPair.aCN];
+        const tagsB  = [yunPair.bCN];
+        const tagsAB = yunPair.aCN === yunPair.bCN
+            ? [yunPair.aCN]
+            : [yunPair.aCN, yunPair.bCN];
 
-        // 尝试从 Supabase 获取壁纸（R2）；失败则降级到本地占位图
-        const dbWallpapers = await fetchWallpapers(favorEl);
+        const cardSpecs = [
+            { el: primaryEl,   elName: primaryName,   tags: tagsA,  desc: labelA  },
+            { el: primaryEl,   elName: primaryName,   tags: tagsAB, desc: labelAB },
+            { el: secondaryEl, elName: secondaryName, tags: tagsAB, desc: labelAB },
+            { el: primaryEl,   elName: primaryName,   tags: tagsB,  desc: labelB  },
+        ];
+
+        // 拉取主/副喜用各自的壁纸池
+        const poolPrimary = await fetchWallpapers(primaryEl);
+        const poolSecondary = secondaryEl === primaryEl
+            ? poolPrimary
+            : await fetchWallpapers(secondaryEl);
+        const hasDb = (poolPrimary && poolPrimary.length > 0)
+            || (poolSecondary && poolSecondary.length > 0);
 
         let cards;
-        if (dbWallpapers && dbWallpapers.length > 0) {
-            // ── 使用 R2 壁纸 ──
+        if (hasDb) {
             const now = new Date();
             const userId = getLoggedEmail() || 'guest';
-            const seedStr = `${userId}|${profile.id}|${now.getFullYear()}-${now.getMonth()}|${favorEl}`;
-            const picked = pickStable(dbWallpapers, seedStr, 4);
+            const baseSeed = `${userId}|${profile.id}|${now.getFullYear()}-${now.getMonth()}|${primaryEl}|${secondaryEl}|${yunPair.aCN}|${yunPair.bCN}`;
+            const usedIds = [];
 
-            cards = picked.map((w, i) => {
-                const tagStr = Array.isArray(w.tags) ? w.tags.join('、') : (w.tags || '');
-                const nameDisp = lang === 'en'
-                    ? `${favorEl} · ${tagStr}`
-                    : `${favorEl} · ${tagStr}`;
-                // 页面只展示预览图；下载用原图 r2_key
+            cards = cardSpecs.map((spec, i) => {
+                const pool = (spec.el === primaryEl ? poolPrimary : poolSecondary) || [];
+                const w = pickByTags(pool, spec.tags, `${baseSeed}|card${i}`, usedIds);
+                if (!w) return null;
+                if (w.id != null) usedIds.push(w.id);
                 const previewKey = w.preview_key || w.r2_key;
                 return {
                     img:   `${R2_PUBLIC_URL}/${previewKey}`,
                     r2key: w.r2_key,
-                    name:  nameDisp,
-                    desc:  assistPrefix + descMap[i],
+                    name:  spec.elName,
+                    desc:  spec.desc,
+                    tags:  normalizeYunTags(w.tags),
                 };
             });
+
+            // 缺匹配图的槽位用对应五行的本地占位补齐
+            cards = cards.map((c, i) => {
+                if (c) return c;
+                const spec = cardSpecs[i];
+                const variants = WUXING_WALLPAPER[spec.el] || WUXING_WALLPAPER['水'];
+                const v = variants[i % variants.length];
+                return v
+                    ? { img: v.img, r2key: null, name: spec.elName, desc: spec.desc, tags: spec.tags }
+                    : null;
+            }).filter(Boolean);
         } else {
-            // ── 降级：使用本地占位图（WUXING_WALLPAPER）──
-            const favorVariants = WUXING_WALLPAPER[favorEl] || WUXING_WALLPAPER['水'];
-            cards = [0, 1, 2, 3].map((vi) => {
-                const v = favorVariants[vi % favorVariants.length];
+            cards = cardSpecs.map((spec, i) => {
+                const variants = WUXING_WALLPAPER[spec.el] || WUXING_WALLPAPER['水'];
+                const v = variants[i % variants.length];
                 if (!v) return null;
-                const text = v[lang] || v['zh-TW'];
-                return { img: v.img, r2key: null, name: text.name, desc: assistPrefix + descMap[vi] };
+                return { img: v.img, r2key: null, name: spec.elName, desc: spec.desc };
             }).filter(Boolean);
         }
 
@@ -2655,7 +2761,10 @@
         `;
         // 固定顯示示例時間，不顯示日期
         wallpaperGrid.querySelectorAll('.phone-clock-time').forEach((el) => { el.textContent = '09:00'; });
-        wallpaperGrid.querySelectorAll('.phone-clock-date').forEach((el) => { el.style.display = 'none'; });
+        wallpaperGrid.querySelectorAll('.phone-clock-date').forEach((el) => {
+            el.style.display = '';
+            el.textContent = '2026/08/09';
+        });
     }
 
 

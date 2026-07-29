@@ -712,10 +712,23 @@ function run_conflict_detector(final_scores, dyn, coeffs, liuyue_zhi, bazi, peri
         adjusted[wx] = (final_scores[wx] || 0) + (boosts[wx] || 0);
     }
 
+    // 副喜用：优先取候选池优先级第二（不同五行）；否则取 adjusted 分第二高
+    let secondary = null;
+    for (let i = 1; i < pool.length; i++) {
+        if (pool[i].wx !== winner.wx) { secondary = pool[i].wx; break; }
+    }
+    if (!secondary) {
+        const ranked = WUXING_LIST.slice().sort(
+            (a, b) => (adjusted[b] || 0) - (adjusted[a] || 0)
+        );
+        secondary = ranked.find(wx => wx !== winner.wx) || ranked[0];
+    }
+
     return {
         adjusted_scores: adjusted,
         conflict_type,
-        favorable_element: winner.wx,
+        favorable_element: winner.wx,   // 主喜用
+        secondary_element: secondary,   // 副喜用
         candidate_pool: pool.map(n => ({ wx: n.wx, score: n.score, reason: n.reason, prior_count: countOf(n.wx) }))
     };
 }
@@ -803,11 +816,14 @@ function get_monthly_favorable_element(bazi, liuyue_raw, gender, period, prev_fa
     }
 
     // ── Layer 5：多候选 + 本年频次破平 ───────────────────────
-    const { adjusted_scores, conflict_type, favorable_element, candidate_pool } = run_conflict_detector(
+    const {
+        adjusted_scores, conflict_type, favorable_element, secondary_element, candidate_pool
+    } = run_conflict_detector(
         final_scores, dyn, coeffs, liuyue_zhi, bazi, period || null, bazi_raw, prev_favors || []
     );
 
     const score = Math.round(adjusted_scores[favorable_element] || 0);
+    const secondary_score = Math.round(adjusted_scores[secondary_element] || 0);
 
     // 弱势域：先取最弱两个十神领域，再展开为运名；作图最多 2 个名字
     // weak_domains：十神领域 key；weak_domain_labels：最终展示的 A/B（各 1 个运名）
@@ -819,9 +835,11 @@ function get_monthly_favorable_element(bazi, liuyue_raw, gender, period, prev_fa
     const weak_domain_labels = [[yunPair[0]], [yunPair[1]]];
 
     return {
-        // 核心输出（与旧接口保持兼容）
-        favorable_element,
+        // 核心输出（与旧接口保持兼容：favorable_element = 主喜用）
+        favorable_element,              // 主喜用
+        secondary_element,              // 副喜用
         score,
+        secondary_score,
         shen_qiang_ruo: status,
         weak_domains,
         weak_domain_labels,
