@@ -13,7 +13,7 @@
         :root {
             --ink: #2a1e0a;
             --line: rgba(42, 30, 10, 0.28);
-            --font-kai: "CooperZhengKai", serif;
+            --font-kai: "CooperZhengKai", "Kaiti SC", "Kaiti TC", "STKaiti", "KaiTi", "楷体", "Songti SC", "SimSun", serif;
         }
 
         html, body {
@@ -459,7 +459,7 @@
     let height = 0;
     let dpr = 1;
     let fontReady = false;
-    let fontCss = '27px CooperZhengKai, "KaiTi", "楷体", serif';
+    let fontCss = '27px CooperZhengKai, "Kaiti SC", "Kaiti TC", "STKaiti", "KaiTi", "楷体", "Songti SC", "SimSun", serif';
     let fontPx = 27;
 
     function parseGlyphs(text) {
@@ -669,7 +669,7 @@
             }
         }
 
-        fontCss = `${fontPx}px CooperZhengKai, "KaiTi", "楷体", serif`;
+        fontCss = `${fontPx}px CooperZhengKai, "Kaiti SC", "Kaiti TC", "STKaiti", "KaiTi", "楷体", "Songti SC", "SimSun", serif`;
         ctx.font = fontCss;
 
         const roofH = width * (IMG_H / IMG_W);

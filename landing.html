@@ -11,7 +11,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=8"></script>
+    <script src="i18n.js?v=9"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -31,13 +31,13 @@
             --jin: #b89028;
             --shui: #1e4070;
             /*
-             * 字体策略：统一使用自托管的「CooperZhengKai」（汇迹正楷）网络字体，
-             * 不再依赖/优先使用系统自带楷体——不同系统/设备的楷体字形差异较大，
-             * 统一用同一套自托管字形，保证所有用户看到的视觉效果一致。
-             * serif 是网络字体文件本身也拿不到时的最终兜底。
+             * 字体策略：优先自托管 CooperZhengKai UI 子集（体积小、字形统一）。
+             * 子集缺字时按字形回退到系统楷体/宋体，避免只剩西文 serif 显得怪异；
+             * 完整字库 *.full.woff2 仅本地保留（不入库、不线上加载）。
              */
             --font-kai: "CooperZhengKai",
-                        serif;
+                        "Kaiti SC", "Kaiti TC", "STKaiti", "KaiTi", "楷体",
+                        "Songti SC", "SimSun", serif;
         }
 
         html {
@@ -2390,6 +2390,7 @@
         'zh-CN': { '木': '木', '水': '水', '金': '金', '火': '火', '土': '土' },
         'en':    { '木': 'Wood', '水': 'Water', '金': 'Metal', '火': 'Fire', '土': 'Earth' },
     };
+    const WX_CLASS = { '木': 'mu', '火': 'huo', '土': 'tu', '金': 'jin', '水': 'shui' };
 
     function renderInsight(insight) {
         const el = document.getElementById('monthlyInsight');
@@ -2407,9 +2408,16 @@
         const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
         const favorElName = wxNameMap[favorEl] || favorEl;
         const secondaryElName = wxNameMap[secondaryEl] || secondaryEl;
+        const favorCls = WX_CLASS[favorEl] || '';
+        const secondaryCls = WX_CLASS[secondaryEl] || '';
+        const mark = (key) => {
+            const label = t(key);
+            return lang === 'en' ? `(${label})` : `（${label}）`;
+        };
         favorLine.innerHTML =
-            `<span class="insight-label">${t('wallpaper_primary_favor_title')}</span>&ensp;${favorElName}` +
-            `&ensp;<span class="insight-label">${t('wallpaper_secondary_favor_title')}</span>&ensp;${secondaryElName}`;
+            `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>&ensp;` +
+            `<span class="${favorCls}">${escapeHtml(favorElName)}</span>${mark('wallpaper_primary_mark')}` +
+            `&ensp;<span class="${secondaryCls}">${escapeHtml(secondaryElName)}</span>${mark('wallpaper_secondary_mark')}`;
 
         const [yunA, yunB] = (() => {
             const p = getBoostYunPair(insight, lang);
