@@ -1,4 +1,4 @@
-/* 汇迹正楷 CooperZhengKai 1.4（自托管全字重字体，作为系统楷体缺失时的网络字体兜底） */
+/* 汇迹正楷 CooperZhengKai 1.4（站点 UI 子集，约 800+ 字；完整字库见 *.full.woff2，本地不入库） */
 @font-face {
   font-family: 'CooperZhengKai';
   font-style: normal;

@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title data-i18n="meta_title">八字定製每月運勢壁紙</title>
     <!--
-        汇迹正楷 CooperZhengKai 楷體字型：字型檔案自行打包在 assets/fonts/cooper-zhengkai/，
-        不依赖任何外部 CDN、也不依赖系统是否安装楷体 —— 无论设备/网络环境如何，
-        都会从本站同源加载并渲染同一套楷体字形。
+        汇迹正楷 CooperZhengKai：自托管 UI 子集字型（非全字库），
+        城市名等地点文案走系统字体，不依赖外部 CDN。
     -->
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
     <script src="i18n.js?v=8"></script>
@@ -1262,7 +1262,8 @@
 
         .loc-select {
             width: 100%;
-            font-family: inherit;
+            /* 地点名不在楷体子集内，改用系统字体避免缺字 */
+            font-family: "PingFang TC", "PingFang SC", "Noto Sans TC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
             font-size: 14px;
             padding: 11px 28px 11px 14px;
             border: 1px solid var(--line);
@@ -2043,198 +2044,37 @@
         period: { dayun: '——', year: '——', month: '——' }
     };
 
-    // 「本月喜用」壁紙文案：key 為 bazi_logic.js get_monthly_favorable_element() 算出的單一五行。
-    // UI 固定顯示 2 張「本月喜用」卡片，所以每個五行準備 2 個文案變體（畫風/色調略有不同），
-    // 而不是拿 2 個不同五行硬湊——實際喜用五行永遠只有一個，2 張卡片呈現的是同一個計算結果。
-    // 4 款壁紙素材：1=暖金葫蘆，2=藍蝶，3=青藤葫蘆，4=水墨蘭花
-    // 每個五行元素準備 4 個變體，對應本月 4 張卡片，保證每張圖都不同。
+    // 本地壁紙占位圖：DB 無圖時按五行回退。卡片標題/說明由喜用五行與補運標籤動態生成。
     const WUXING_WALLPAPER = {
         '水': [
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '水 · 深藍', desc: '滋養日主，平穩情緒，助你沉靜思考' },
-              'zh-CN': { name: '水 · 深蓝', desc: '滋养日主，平稳情绪，助你沉静思考' },
-              'en': { name: 'Water · Deep Blue', desc: 'Nourishes your Day Master and calms emotions, helping you think clearly.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '水 · 湖藍', desc: '增強直覺與應變力，助你隨機而動、化解阻力' },
-              'zh-CN': { name: '水 · 湖蓝', desc: '增强直觉与应变力，助你随机而动、化解阻力' },
-              'en': { name: 'Water · Lake Blue', desc: 'Sharpens intuition and adaptability, helping you navigate change with ease.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '水 · 靈動', desc: '滋潤心靈，助你以柔克剛、靜中求變' },
-              'zh-CN': { name: '水 · 灵动', desc: '滋润心灵，助你以柔克刚、静中求变' },
-              'en': { name: 'Water · Flow', desc: 'Refreshes the mind, helping you adapt with grace and find change in stillness.' } },
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '水 · 沉靜', desc: '深化洞察，助你看清方向、穩步前行' },
-              'zh-CN': { name: '水 · 沉静', desc: '深化洞察，助你看清方向、稳步前行' },
-              'en': { name: 'Water · Still', desc: 'Deepens insight, helping you see clearly and move forward with purpose.' } }
+            { img: 'assets/wallpapers/wallpaper-2.png' },
+            { img: 'assets/wallpapers/wallpaper-4.png' },
+            { img: 'assets/wallpapers/wallpaper-1.png' },
+            { img: 'assets/wallpapers/wallpaper-3.png' }
         ],
         '木': [
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '木 · 青竹', desc: '生扶日主，舒展心緒，助你穩健前行' },
-              'zh-CN': { name: '木 · 青竹', desc: '生扶日主，舒展心绪，助你稳健前行' },
-              'en': { name: 'Wood · Bamboo Green', desc: 'Supports your Day Master and eases the mind, helping you move forward steadily.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '木 · 嫩芽綠', desc: '帶來成長動能，助你開展新計畫、穩步擴張' },
-              'zh-CN': { name: '木 · 嫩芽绿', desc: '带来成长动能，助你开展新计划、稳步扩张' },
-              'en': { name: 'Wood · Sprout Green', desc: 'Brings growth momentum, helping you launch new plans and expand steadily.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '木 · 蓬勃', desc: '催旺生機與創意，助你迸發靈感、大展身手' },
-              'zh-CN': { name: '木 · 蓬勃', desc: '催旺生机与创意，助你迸发灵感、大展身手' },
-              'en': { name: 'Wood · Vitality', desc: 'Boosts vitality and creativity, sparking new ideas and bold action.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '木 · 舒展', desc: '舒緩壓力，助你保持彈性、從容應對挑戰' },
-              'zh-CN': { name: '木 · 舒展', desc: '舒缓压力，助你保持弹性、从容应对挑战' },
-              'en': { name: 'Wood · Ease', desc: 'Relieves stress and keeps you flexible, helping you meet challenges with ease.' } }
+            { img: 'assets/wallpapers/wallpaper-3.png' },
+            { img: 'assets/wallpapers/wallpaper-4.png' },
+            { img: 'assets/wallpapers/wallpaper-1.png' },
+            { img: 'assets/wallpapers/wallpaper-2.png' }
         ],
         '火': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '火 · 緋紅', desc: '生旺表達與人氣，助你展現自信與熱情' },
-              'zh-CN': { name: '火 · 绯红', desc: '生旺表达与人气，助你展现自信与热情' },
-              'en': { name: 'Fire · Crimson', desc: 'Energizes charisma and self-expression, helping you shine with confidence.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '火 · 珊瑚橘', desc: '提升行動力與熱度，助你主動出擊、把握時機' },
-              'zh-CN': { name: '火 · 珊瑚橘', desc: '提升行动力与热度，助你主动出击、把握时机' },
-              'en': { name: 'Fire · Coral Orange', desc: 'Boosts drive and energy, helping you seize the moment and take action.' } },
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '火 · 耀光', desc: '強化魄力與領導力，助你在關鍵時刻脫穎而出' },
-              'zh-CN': { name: '火 · 耀光', desc: '强化魄力与领导力，助你在关键时刻脱颖而出' },
-              'en': { name: 'Fire · Radiance', desc: 'Strengthens boldness and leadership, helping you stand out at the key moment.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '火 · 赤焰', desc: '激活熱情與表現欲，適合社交、展示與舞台' },
-              'zh-CN': { name: '火 · 赤焰', desc: '激活热情与表现欲，适合社交、展示与舞台' },
-              'en': { name: 'Fire · Blaze', desc: 'Ignites passion and presence — great for social events, showcases, and the spotlight.' } }
+            { img: 'assets/wallpapers/wallpaper-1.png' },
+            { img: 'assets/wallpapers/wallpaper-2.png' },
+            { img: 'assets/wallpapers/wallpaper-3.png' },
+            { img: 'assets/wallpapers/wallpaper-4.png' }
         ],
         '土': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '土 · 赭黃', desc: '穩固根基，助你踏實積累、抗壓性更強' },
-              'zh-CN': { name: '土 · 赭黄', desc: '稳固根基，助你踏实积累、抗压性更强' },
-              'en': { name: 'Earth · Ochre', desc: 'Strengthens your foundation, helping you build steadily and stay resilient.' } },
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '土 · 焦糖棕', desc: '增強穩定感，助你沉穩應對變化、少走彎路' },
-              'zh-CN': { name: '土 · 焦糖棕', desc: '增强稳定感，助你沉稳应对变化、少走弯路' },
-              'en': { name: 'Earth · Caramel Brown', desc: 'Adds a sense of stability, helping you handle change calmly and steadily.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '土 · 厚土', desc: '凝聚安定之氣，助你建立秩序、把握節奏' },
-              'zh-CN': { name: '土 · 厚土', desc: '凝聚安定之气，助你建立秩序、把握节奏' },
-              'en': { name: 'Earth · Grounded', desc: 'Gathers calm energy, helping you establish order and find your rhythm.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '土 · 豐收', desc: '催旺積累與收穫運，助你看到努力的成果' },
-              'zh-CN': { name: '土 · 丰收', desc: '催旺积累与收获运，助你看到努力的成果' },
-              'en': { name: 'Earth · Harvest', desc: 'Boosts accumulation and reward, helping you reap the fruits of your effort.' } }
+            { img: 'assets/wallpapers/wallpaper-1.png' },
+            { img: 'assets/wallpapers/wallpaper-3.png' },
+            { img: 'assets/wallpapers/wallpaper-2.png' },
+            { img: 'assets/wallpapers/wallpaper-4.png' }
         ],
         '金': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '金 · 暖金', desc: '生旺財氣與貴人運，助你把握機會、行動果斷' },
-              'zh-CN': { name: '金 · 暖金', desc: '生旺财气与贵人运，助你把握机会、行动果断' },
-              'en': { name: 'Metal · Warm Gold', desc: 'Boosts wealth and helpful connections, sharpening your decisiveness.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '金 · 銀白', desc: '提升決策力與條理，助你理清思路、精準出手' },
-              'zh-CN': { name: '金 · 银白', desc: '提升决策力与条理，助你理清思路、精准出手' },
-              'en': { name: 'Metal · Silver White', desc: 'Sharpens judgment and clarity, helping you plan precisely and act on point.' } },
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '金 · 清剛', desc: '強化執行力，助你排除干擾、聚焦目標' },
-              'zh-CN': { name: '金 · 清刚', desc: '强化执行力，助你排除干扰、聚焦目标' },
-              'en': { name: 'Metal · Clarity', desc: 'Reinforces drive and focus, helping you cut through noise and hit your goals.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '金 · 精凝', desc: '凝聚精氣，助你磨練技藝、提升專業競爭力' },
-              'zh-CN': { name: '金 · 精凝', desc: '凝聚精气，助你磨练技艺、提升专业竞争力' },
-              'en': { name: 'Metal · Refined', desc: 'Concentrates energy, helping you hone your craft and sharpen your edge.' } }
-        ]
-    };
-
-    // 「本月補運」壁紙文案：key 對應 bazi_logic.js get_monthly_weak_domain() 回傳的生活領域字串
-    // （該函式內部固定用簡體字串當 key，跟 UI 語言無關，故此處以簡體原文比對）。
-    // 同樣每個領域準備 2 個文案變體：如果本月只算出 1 個弱勢領域，就用這個領域的 2 個變體湊成 2 張；
-    // 如果算出 2 個弱勢領域，則各取 1 個變體，一樣是 2 張——卡片張數固定不變。
-    const DOMAIN_WALLPAPER = {
-        '感情与桃花': [
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '桃花運 · 緋紅', desc: '催旺人緣與情感連結，宜多社交走動' },
-              'zh-CN': { name: '桃花运 · 绯红', desc: '催旺人缘与情感连结，宜多社交走动' },
-              'en': { name: 'Romance Luck · Crimson', desc: 'Boosts relationships and social connections — a great time to go out and mingle.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '桃花運 · 玫瑰粉', desc: '提升魅力與親和力，宜主動表達心意' },
-              'zh-CN': { name: '桃花运 · 玫瑰粉', desc: '提升魅力与亲和力，宜主动表达心意' },
-              'en': { name: 'Romance Luck · Rose Pink', desc: 'Enhances charm and warmth — a good time to express how you feel.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '桃花運 · 芳心', desc: '凝聚浪漫氣場，助你吸引有緣之人、深化情感' },
-              'zh-CN': { name: '桃花运 · 芳心', desc: '凝聚浪漫气场，助你吸引有缘之人、深化情感' },
-              'en': { name: 'Romance Luck · Blossom', desc: 'Draws a romantic aura, helping you attract kindred spirits and deepen bonds.' } },
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '桃花運 · 相遇', desc: '開啟緣分之門，助你在日常中邂逅美好' },
-              'zh-CN': { name: '桃花运 · 相遇', desc: '开启缘分之门，助你在日常中邂逅美好' },
-              'en': { name: 'Romance Luck · Encounter', desc: 'Opens the door to fate, helping you find beauty and connection in everyday moments.' } }
-        ],
-        '事业': [
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '事業運 · 金黃', desc: '催旺事業與貴人運，宜把握機會、大膽出手' },
-              'zh-CN': { name: '事业运 · 金黄', desc: '催旺事业与贵人运，宜把握机会、大胆出手' },
-              'en': { name: 'Career Luck · Golden', desc: 'Boosts career momentum and helpful connections — seize opportunities boldly.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '事業運 · 琥珀橘', desc: '提升執行力與魄力，宜主動爭取、勇於表現' },
-              'zh-CN': { name: '事业运 · 琥珀橘', desc: '提升执行力与魄力，宜主动争取、勇于表现' },
-              'en': { name: 'Career Luck · Amber Orange', desc: 'Boosts follow-through and drive — a good time to step up and speak up.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '事業運 · 躍升', desc: '助你突破瓶頸、開拓新局面，邁向更高的目標' },
-              'zh-CN': { name: '事业运 · 跃升', desc: '助你突破瓶颈、开拓新局面，迈向更高的目标' },
-              'en': { name: 'Career Luck · Rise', desc: 'Helps you break through bottlenecks and aim for higher goals.' } },
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '事業運 · 穩進', desc: '鞏固專業地位，助你穩步成長、贏得信任' },
-              'zh-CN': { name: '事业运 · 稳进', desc: '巩固专业地位，助你稳步成长、赢得信任' },
-              'en': { name: 'Career Luck · Steady', desc: 'Consolidates your standing, helping you grow steadily and earn trust.' } }
-        ],
-        '人际关系、合伙': [
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '人緣運 · 淺綠', desc: '催旺人際與合作運，宜多與人交流、廣結善緣' },
-              'zh-CN': { name: '人缘运 · 浅绿', desc: '催旺人际与合作运，宜多与人交流、广结善缘' },
-              'en': { name: 'Social Luck · Soft Green', desc: 'Boosts relationships and teamwork — a good time to connect with others.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '人緣運 · 薄荷綠', desc: '增強溝通與信任感，宜主動聯繫、修復關係' },
-              'zh-CN': { name: '人缘运 · 薄荷绿', desc: '增强沟通与信任感，宜主动联系、修复关系' },
-              'en': { name: 'Social Luck · Mint Green', desc: 'Improves communication and trust — a good time to reach out and reconnect.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '人緣運 · 和諧', desc: '化解誤解，助你修復關係、重建和諧局面' },
-              'zh-CN': { name: '人缘运 · 和谐', desc: '化解误解，助你修复关系、重建和谐局面' },
-              'en': { name: 'Social Luck · Harmony', desc: 'Clears misunderstandings, helping you repair bonds and restore balance.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '人緣運 · 相契', desc: '凝聚志同道合的夥伴，助你事半功倍' },
-              'zh-CN': { name: '人缘运 · 相契', desc: '凝聚志同道合的伙伴，助你事半功倍' },
-              'en': { name: 'Social Luck · Alliance', desc: 'Brings like-minded partners together, helping you achieve more with less effort.' } }
-        ],
-        '才华灵感': [
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '才華運 · 靈感綠', desc: '激發創意與表達欲，適合學習、創作與輸出想法' },
-              'zh-CN': { name: '才华运 · 灵感绿', desc: '激发创意与表达欲，适合学习、创作与输出想法' },
-              'en': { name: 'Creativity Luck · Inspired Green', desc: 'Sparks fresh ideas — a good time to learn, create, and share your thinking.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '才華運 · 天青藍', desc: '提升專注與思路清晰度，適合鑽研、深度思考' },
-              'zh-CN': { name: '才华运 · 天青蓝', desc: '提升专注与思路清晰度，适合钻研、深度思考' },
-              'en': { name: 'Creativity Luck · Sky Blue', desc: 'Sharpens focus and clarity — a good time for deep thinking and study.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '才華運 · 迸發', desc: '點燃表達欲，助你大膽呈現自己的獨特風采' },
-              'zh-CN': { name: '才华运 · 迸发', desc: '点燃表达欲，助你大胆呈现自己的独特风采' },
-              'en': { name: 'Creativity Luck · Spark', desc: 'Ignites your voice, helping you boldly show your unique brilliance.' } },
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '才華運 · 沉澱', desc: '深化內在積累，助你將靈感轉化為扎實成果' },
-              'zh-CN': { name: '才华运 · 沉淀', desc: '深化内在积累，助你将灵感转化为扎实成果' },
-              'en': { name: 'Creativity Luck · Depth', desc: 'Deepens your inner reservoir, helping you turn inspiration into solid results.' } }
-        ],
-        '健康与贵人运': [
-            { img: 'assets/wallpapers/wallpaper-3.png',
-              'zh-TW': { name: '健康運 · 靜心綠', desc: '提升氣色與貴人助力，宜多休息、放慢腳步調養' },
-              'zh-CN': { name: '健康运 · 静心绿', desc: '提升气色与贵人助力，宜多休息、放慢脚步调养' },
-              'en': { name: 'Wellness Luck · Calm Green', desc: 'Improves vitality and support from others — take time to rest and recharge.' } },
-            { img: 'assets/wallpapers/wallpaper-4.png',
-              'zh-TW': { name: '健康運 · 霧藍', desc: '增強身心平衡，宜規律作息、適度運動調理' },
-              'zh-CN': { name: '健康运 · 雾蓝', desc: '增强身心平衡，宜规律作息、适度运动调理' },
-              'en': { name: 'Wellness Luck · Misty Blue', desc: 'Improves balance and wellbeing — keep a steady routine and gentle exercise.' } },
-            { img: 'assets/wallpapers/wallpaper-1.png',
-              'zh-TW': { name: '健康運 · 滋養', desc: '補充能量，助你恢復活力、感受身體的自癒力' },
-              'zh-CN': { name: '健康运 · 滋养', desc: '补充能量，助你恢复活力、感受身体的自愈力' },
-              'en': { name: 'Wellness Luck · Nourish', desc: 'Replenishes energy, helping you restore vitality and feel your body\'s natural healing.' } },
-            { img: 'assets/wallpapers/wallpaper-2.png',
-              'zh-TW': { name: '健康運 · 貴人', desc: '廣引貴人護持，在關鍵時刻獲得善意與支援' },
-              'zh-CN': { name: '健康运 · 贵人', desc: '广引贵人护持，在关键时刻获得善意与支援' },
-              'en': { name: 'Wellness Luck · Benefactor', desc: 'Draws in helpful allies, bringing goodwill and support at the moments you need most.' } }
+            { img: 'assets/wallpapers/wallpaper-1.png' },
+            { img: 'assets/wallpapers/wallpaper-4.png' },
+            { img: 'assets/wallpapers/wallpaper-3.png' },
+            { img: 'assets/wallpapers/wallpaper-2.png' }
         ]
     };
 
@@ -2545,14 +2385,29 @@
         const b = normalizeYunTags(wanted);
         return a.length === b.length && a.every((t, i) => t === b[i]);
     }
-    // 从池中按 tags 精确匹配；seed 稳定挑一张；excludeIds 避免图2/3重复
+    // 软匹配：壁纸 tags 覆盖全部 wanted（可多不可少），或 wanted 覆盖壁纸全部 tags
+    function tagsSoftMatch(tags, wanted) {
+        const a = normalizeYunTags(tags);
+        const b = normalizeYunTags(wanted);
+        if (!b.length) return a.length === 0;
+        if (!a.length) return false;
+        const aSet = new Set(a);
+        const bSet = new Set(b);
+        const coversWanted = b.every((t) => aSet.has(t));
+        const coveredByWanted = a.every((t) => bSet.has(t));
+        return coversWanted || coveredByWanted;
+    }
+    // 从池中按 tags 匹配：精确 → 软匹配 → 同五行任意一张；excludeIds 避免重复
+    // 同五行池内降级，避免精确双标签缺失时落到本地占位图（各五行共用同一套素材，易被看成「火」）
     function pickByTags(pool, wantedTags, seedStr, excludeIds) {
         const excl = excludeIds || [];
-        const matched = (pool || []).filter((w) =>
-            !excl.includes(w.id) && tagsMatchWanted(w.tags, wantedTags)
-        );
-        if (matched.length === 0) return null;
-        return pickStable(matched, seedStr, 1)[0] || matched[0];
+        const available = (pool || []).filter((w) => !excl.includes(w.id));
+        if (available.length === 0) return null;
+        const exact = available.filter((w) => tagsMatchWanted(w.tags, wantedTags));
+        if (exact.length > 0) return pickStable(exact, seedStr, 1)[0] || exact[0];
+        const soft = available.filter((w) => tagsSoftMatch(w.tags, wantedTags));
+        if (soft.length > 0) return pickStable(soft, seedStr + '|soft', 1)[0] || soft[0];
+        return pickStable(available, seedStr + '|any', 1)[0] || available[0];
     }
 
     const WX_NAME = {

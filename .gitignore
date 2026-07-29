@@ -1,8 +1,12 @@
 node_modules/
 .DS_Store
 .fonttools-venv/
+.venv-font/
 .pil-venv/
 .tools/
+
+# 完整楷体字库仅本地保留，站点使用 UI 子集
+assets/fonts/cooper-zhengkai/files/*.full.woff2
 
 # temp_bazi 是本地参考用的独立仓库（自带 .git），不纳入本项目版本控制
 temp_bazi/
