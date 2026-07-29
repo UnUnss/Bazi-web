@@ -531,19 +531,21 @@
         .phone-overlay-top {
             height: 22%;
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }
 
+        /* 与原来相同的绝对定位；仅 top 下移到原日期附近（原为 7%） */
         .wallpaper-preview .phone-overlay-logo,
         .pay-wallpaper-preview .phone-overlay-logo {
             position: absolute;
             width: 200cqw;
             height: auto;
             left: 50%;
-            top: 7%;
+            top: 118%;
             transform: translateX(-50%);
             filter: brightness(0) invert(1);
             opacity: 0.88;
+            z-index: 2;
         }
 
         .phone-overlay-clock {
@@ -552,9 +554,20 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding-top: 6%;
+            padding-top: 0;
             position: relative;
             z-index: 1;
+        }
+
+        .phone-clock-date {
+            font-size: 4.8cqw;
+            font-weight: 300;
+            color: rgba(255,255,255,0.88);
+            text-shadow: 0 1px 6px rgba(0,0,0,0.3);
+            letter-spacing: 0.08em;
+            line-height: 1;
+            position: relative;
+            top: -24cqw;
         }
 
         .phone-clock-time {
@@ -565,18 +578,8 @@
             line-height: 1;
             letter-spacing: 0.02em;
             position: relative;
-            top: -8cqw;
-        }
-
-        .phone-clock-date {
-            font-size: 4.8cqw;
-            font-weight: 300;
-            color: rgba(255,255,255,0.88);
-            text-shadow: 0 1px 6px rgba(0,0,0,0.3);
-            margin-top: 2cqw;
-            letter-spacing: 0.08em;
-            position: relative;
-            top: -6cqw;
+            top: -26cqw;
+            margin-top: 1.6cqw;
         }
 
         .phone-overlay-bottom {
@@ -1838,8 +1841,8 @@
                     <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" />
                 </div>
                 <div class="phone-overlay-clock">
-                    <div class="phone-clock-time">09:00</div>
                     <div class="phone-clock-date">2026/08/09</div>
+                    <div class="phone-clock-time">09:00</div>
                 </div>
                 <div class="phone-overlay-bottom">
                     <div class="phone-icon-btn">
@@ -2456,6 +2459,14 @@
     }
     // 壁纸缓存，避免重复请求（key = element）
     const _wallpaperCache = {};
+    // 必须在首次 refresh()/renderWallpapers 之前创建：否则首屏会因 TDZ/_sb 未就绪查库失败，
+    // 表现为壁纸空或不匹配；切换档案再次 refresh 时客户端已就绪，看起来又正常了。
+    const _sb = supabase.createClient(
+        'https://yyiecrsibflscgjxmvbn.supabase.co',
+        'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A'
+    );
+    const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
+
     async function fetchWallpapers(element) {
         if (_wallpaperCache[element]) return _wallpaperCache[element];
         try {
@@ -2580,8 +2591,8 @@
                             <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" />
                         </div>
                         <div class="phone-overlay-clock">
-                            <div class="phone-clock-time">--:--</div>
                             <div class="phone-clock-date"></div>
+                            <div class="phone-clock-time">--:--</div>
                         </div>
                         <div class="phone-overlay-bottom">
                             <div class="phone-icon-btn">
@@ -2616,7 +2627,7 @@
                 <div class="wallpaper-row">${cardHtmls.slice(2, 4).join('')}</div>
             </div>
         `;
-        // 固定顯示示例時間，不顯示日期
+        // 固定顯示示例時間與日期
         wallpaperGrid.querySelectorAll('.phone-clock-time').forEach((el) => { el.textContent = '09:00'; });
         wallpaperGrid.querySelectorAll('.phone-clock-date').forEach((el) => {
             el.style.display = '';
@@ -3403,14 +3414,7 @@
     });
 
     // 登入狀態（前端模擬，暫無後端）：登入後將登入按鈕替換為用戶頭像 + 下拉選單
-    // Supabase 僅用於查詢 wallpapers 表（壁紙預覽），登入本身走本地模擬
-    const _sb = supabase.createClient(
-        'https://yyiecrsibflscgjxmvbn.supabase.co',
-        'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A'
-    );
-
-    // R2 公共预览地址（测试期直接使用 public dev URL，生产替换为自定义域名）
-    const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
+    // Supabase 客戶端與 R2_PUBLIC_URL 已在上方 fetchWallpapers 前初始化
 
     const AUTH_KEY = 'bazi_logged_in';
     const AUTH_EMAIL_KEY = 'bazi_logged_email';
