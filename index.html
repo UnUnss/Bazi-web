@@ -8,8 +8,8 @@
     <link rel="preload" href="assets/disk.webp" as="image">
     <link rel="preload" href="assets/bg-paper-opt.jpg" as="image">
     <!-- 楷体字型：自托管 UI 子集，不依赖外部 CDN -->
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=2" />
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=4" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=4" />
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,7 +21,7 @@
 
         body {
             /* 优先 CooperZhengKai 子集；缺字回退系统楷体/宋体 */
-            font-family: "CooperZhengKai", "Kaiti SC", "Kaiti TC", "STKaiti", "KaiTi", "楷体", "Songti SC", "SimSun", serif;
+            font-family: "CooperZhengKai", "CooperZhengKaiFull", "Kaiti SC", "Kaiti TC", "STKaiti", "KaiTi", "楷体", "Songti SC", "SimSun", serif;
             cursor: pointer;
             user-select: none;
         }

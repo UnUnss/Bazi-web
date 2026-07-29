@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title data-i18n="meta_title">八字定製每月運勢壁紙</title>
     <!--
-        汇迹正楷 CooperZhengKai：自托管 UI 子集字型（非全字库），
-        城市名等地点文案走系统字体，不依赖外部 CDN。
+        汇迹正楷 CooperZhengKai：UI 子集优先；子集没有的字回退到完整 CooperZhengKai。
+        城市名等地点文案仍可走系统字体（见 .loc-select）。
     -->
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=2" />
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=4" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=4" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=9"></script>
+    <script src="i18n.js?v=13"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -31,11 +31,12 @@
             --jin: #b89028;
             --shui: #1e4070;
             /*
-             * 字体策略：优先自托管 CooperZhengKai UI 子集（体积小、字形统一）。
-             * 子集缺字时按字形回退到系统楷体/宋体，避免只剩西文 serif 显得怪异；
-             * 完整字库 *.full.woff2 仅本地保留（不入库、不线上加载）。
+             * 字体策略（见 cooper-zhengkai/style.css）：
+             * 1. CooperZhengKai     — UI 子集（有字用子集）
+             * 2. CooperZhengKaiFull — 完整字库（子集没有的字）
+             * 系统楷体/宋体仅在完整字库文件不可用时兜底。
              */
-            --font-kai: "CooperZhengKai",
+            --font-kai: "CooperZhengKai", "CooperZhengKaiFull",
                         "Kaiti SC", "Kaiti TC", "STKaiti", "KaiTi", "楷体",
                         "Songti SC", "SimSun", serif;
         }
@@ -409,28 +410,52 @@
             display: block;
         }
 
-        .bazi-menu button {
-            display: block;
-            width: 100%;
+        .bazi-menu-item {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+        }
+
+        .bazi-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .bazi-menu-item:hover,
+        .bazi-menu-item.active {
+            background: rgba(42, 30, 10, 0.05);
+        }
+
+        .bazi-menu-select {
+            flex: 1;
+            min-width: 0;
             font-family: inherit;
             font-size: 13px;
             letter-spacing: 0.04em;
-            padding: 12px 16px;
+            padding: 12px 8px 12px 16px;
             border: none;
             background: transparent;
             color: var(--ink);
             cursor: pointer;
             text-align: left;
-            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
         }
 
-        .bazi-menu button:last-child {
-            border-bottom: none;
+        .bazi-menu-edit {
+            flex-shrink: 0;
+            font-family: inherit;
+            font-size: 12px;
+            letter-spacing: 0.06em;
+            padding: 12px 14px;
+            border: none;
+            border-left: 1px solid rgba(42, 30, 10, 0.08);
+            background: transparent;
+            color: var(--ink-muted);
+            cursor: pointer;
+            white-space: nowrap;
         }
 
-        .bazi-menu button:hover,
-        .bazi-menu button.active {
-            background: rgba(42, 30, 10, 0.05);
+        .bazi-menu-edit:hover {
+            color: var(--ink);
+            background: rgba(42, 30, 10, 0.04);
         }
 
         .bazi-menu .tag {
@@ -819,6 +844,192 @@
             grid-column: 1 / -1;
         }
 
+        /* ─── 包年档案选择 ─────────────────────────────── */
+
+        #annualSelectModal {
+            z-index: 70;
+        }
+
+        .annual-select-modal {
+            max-width: 380px;
+            text-align: center;
+        }
+
+
+        .annual-select-lock-note {
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: #8b3a2a;
+            margin: -8px 0 16px;
+            letter-spacing: 0.04em;
+        }
+
+        /* 下载选包年：只显示说明 + 确认支付 */
+        #annualSelectModal.annual-pay-mode .annual-select-manage-only {
+            display: none;
+        }
+
+        #annualSelectModal.annual-pay-mode .annual-select-actions {
+            display: block;
+        }
+
+        #annualSelectModal.annual-pay-mode .btn-annual-confirm {
+            width: 100%;
+        }
+
+        #annualSelectModal.annual-manage-mode .annual-select-manage-only {
+            display: block;
+        }
+
+        /* 已绑定后只读展示：无勾选、无底部按钮 */
+        #annualSelectModal.annual-view-mode .annual-select-manage-only {
+            display: block;
+        }
+
+        #annualSelectModal.annual-view-mode .annual-select-actions {
+            display: none;
+        }
+
+        #annualSelectModal.annual-view-mode .annual-select-hint {
+            display: none;
+        }
+
+        #annualSelectModal.annual-view-mode .annual-select-lock-note {
+            display: none;
+        }
+
+        .annual-select-item.view-only {
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .annual-select-item.view-only:hover {
+            background: transparent;
+        }
+
+        .annual-select-item.view-only.selected {
+            background: rgba(42, 30, 10, 0.06);
+        }
+
+        .bazi-menu-edit.locked {
+            color: var(--ink-muted);
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .annual-select-modal .annual-select-desc {
+            font-size: 13.5px;
+            line-height: 1.7;
+            color: var(--ink-soft);
+            margin: 0 0 18px;
+            letter-spacing: 0.04em;
+        }
+
+        .annual-select-list {
+            text-align: left;
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid rgba(42, 30, 10, 0.1);
+            border-radius: 2px;
+            margin-bottom: 12px;
+            background: rgba(255, 252, 245, 0.55);
+        }
+
+        .annual-select-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            font-family: inherit;
+            font-size: 13.5px;
+            letter-spacing: 0.04em;
+            padding: 12px 14px;
+            border: none;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .annual-select-item:last-child {
+            border-bottom: none;
+        }
+
+        .annual-select-item:hover {
+            background: rgba(42, 30, 10, 0.04);
+        }
+
+        .annual-select-item.selected {
+            background: rgba(42, 30, 10, 0.08);
+        }
+
+        .annual-select-check {
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: transparent;
+            background: #fff;
+        }
+
+        .annual-select-item.selected .annual-select-check {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: #faf6ec;
+        }
+
+        .annual-select-item .tag {
+            color: var(--ink-muted);
+            margin-right: 6px;
+        }
+
+        .annual-select-hint {
+            font-size: 12.5px;
+            color: var(--ink-muted);
+            letter-spacing: 0.04em;
+            margin: 0 0 18px;
+            min-height: 1.4em;
+        }
+
+        .annual-select-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .annual-select-actions button {
+            flex: 1;
+            font-family: inherit;
+            font-size: 14px;
+            letter-spacing: 0.1em;
+            padding: 12px 10px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .annual-select-actions .btn-annual-later {
+            border: 1px solid var(--line);
+            background: transparent;
+            color: var(--ink);
+        }
+
+        .annual-select-actions .btn-annual-confirm {
+            border: 1px solid var(--ink);
+            background: var(--ink);
+            color: #faf6ec;
+        }
+
+        .annual-select-actions .btn-annual-confirm:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+
         .pay-tier-info-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1077,6 +1288,7 @@
             position: absolute;
             top: 14px;
             right: 16px;
+            z-index: 2;
             border: none;
             background: transparent;
             font-size: 22px;
@@ -1084,6 +1296,74 @@
             color: var(--ink-muted);
             cursor: pointer;
             font-family: inherit;
+        }
+
+        .modal-delete {
+            display: none;
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            z-index: 2;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            color: var(--ink-muted);
+            cursor: pointer;
+            padding: 4px 2px;
+        }
+
+        .modal-delete.visible {
+            display: block;
+        }
+
+        .modal-delete:hover {
+            color: #8b3a2a;
+        }
+
+        #deleteConfirmModal {
+            z-index: 60;
+        }
+
+        .confirm-modal {
+            max-width: 340px;
+            text-align: center;
+        }
+
+        .confirm-modal p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--ink-soft);
+            margin: 0 0 28px;
+            letter-spacing: 0.04em;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .confirm-actions button {
+            flex: 1;
+            font-family: inherit;
+            font-size: 14px;
+            letter-spacing: 0.1em;
+            padding: 12px 16px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .confirm-actions .btn-confirm-cancel {
+            border: 1px solid var(--line);
+            background: transparent;
+            color: var(--ink);
+        }
+
+        .confirm-actions .btn-confirm-delete {
+            border: 1px solid #8b3a2a;
+            background: #8b3a2a;
+            color: #fff;
         }
 
         .form-group {
@@ -1657,6 +1937,7 @@
                 <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
             </div>
         </div>
+        <button type="button" class="nav-link-item" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
         <div class="nav-cart-wrap" id="navCartWrap" style="display:none;">
             <div class="nav-user-icon" id="cartBtn" data-i18n-aria-label="nav_cart_aria" aria-label="下載列表">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
@@ -1752,9 +2033,10 @@
 </section>
 </div>
 
-<!-- 新增八字彈窗 -->
+<!-- 新增／编辑八字彈窗 -->
 <div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal">
+        <button type="button" class="modal-delete" id="modalDelete" data-i18n="btn_delete">删除</button>
         <button type="button" class="modal-close" id="modalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 id="modalTitle" data-i18n="modal_add_title">新增八字</h2>
         <form id="addBaziForm">
@@ -1830,6 +2112,18 @@
     </div>
 </div>
 
+<!-- 删除档案确认弹窗 -->
+<div class="modal-backdrop" id="deleteConfirmModal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+    <div class="modal confirm-modal">
+        <h2 id="deleteConfirmTitle" data-i18n="modal_delete_title">确认删除</h2>
+        <p data-i18n="modal_delete_msg">确定要删除此八字档案吗？此操作不可撤销。</p>
+        <div class="confirm-actions">
+            <button type="button" class="btn-confirm-cancel" id="btnDeleteCancel" data-i18n="btn_cancel">取消</button>
+            <button type="button" class="btn-confirm-delete" id="btnDeleteConfirm" data-i18n="btn_delete_confirm">删除</button>
+        </div>
+    </div>
+</div>
+
 <!-- 支付彈窗 -->
 <div class="modal-backdrop" id="payModal" role="dialog" aria-modal="true">
     <div class="modal pay-modal">
@@ -1890,6 +2184,25 @@
         <div class="pay-actions">
             <button type="button" class="btn-add-cart" id="btnAddCart" data-i18n="pay_add_cart">加入購物車</button>
             <button type="button" class="btn-pay-confirm" id="btnPayConfirm" data-i18n="pay_confirm">確認支付</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- 包年提示／档案选择弹窗（下载选包年：仅提示+确认支付；导航管理：选档案） -->
+<div class="modal-backdrop" id="annualSelectModal" role="dialog" aria-modal="true" aria-labelledby="annualSelectTitle">
+    <div class="modal annual-select-modal">
+        <button type="button" class="modal-close" id="annualSelectClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
+        <h2 id="annualSelectTitle" data-i18n="annual_select_title">选择包年档案</h2>
+        <p class="annual-select-desc" id="annualSelectDesc" data-i18n="annual_select_pay_desc">包年服务可指定两个八字档案使用。支付后在导航菜单栏可选择指定八字档案。绑定包年后，所选档案将不可修改、不可删除。</p>
+        <div class="annual-select-manage-only">
+            <p class="annual-select-lock-note" data-i18n="annual_select_lock_note">绑定包年后，所选档案将不可修改、不可删除。</p>
+            <div class="annual-select-list" id="annualSelectList"></div>
+            <p class="annual-select-hint" id="annualSelectHint"></p>
+        </div>
+        <div class="annual-select-actions">
+            <button type="button" class="btn-annual-later annual-select-manage-only" id="btnAnnualLater" data-i18n="annual_select_later">稍后再选</button>
+            <button type="button" class="btn-annual-confirm" id="btnAnnualConfirm" data-i18n="pay_confirm">确认支付</button>
         </div>
     </div>
 </div>
@@ -2222,6 +2535,29 @@
         }
     }
 
+    async function cloudDeleteProfile(id) {
+        // 尽力同步云端；本地档案可能尚未入库（仅 localStorage），接口失败不阻断本地删除
+        const email = localStorage.getItem('bazi_logged_email');
+        if (!email || !id || String(id).startsWith('demo-')) return true;
+        try {
+            const res = await fetch('/api/bazi-profiles', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Email': email,
+                },
+                body: JSON.stringify({ id }),
+            });
+            if (!res.ok) {
+                console.warn('cloudDeleteProfile failed (continue local delete)', await res.text());
+            }
+            return true;
+        } catch (err) {
+            console.warn('cloudDeleteProfile (continue local delete)', err);
+            return true;
+        }
+    }
+
     async function cloudLoadProfiles() {
         const email = localStorage.getItem('bazi_logged_email');
         if (!email) return null;
@@ -2316,11 +2652,23 @@
 
     function renderMenu(list, activeId) {
         const menu = document.getElementById('baziMenu');
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const editLabel = t('btn_edit_profile');
+        const lockedLabel = t('btn_edit_locked');
+        const lockedIds = getLockedAnnualProfileIds();
         menu.innerHTML = list.map((p) => {
             const short = computeBaziForProfile(p).pillars[0];
-            return `<button type="button" role="menuitem" data-id="${p.id}" class="${p.id === activeId ? 'active' : ''}">` +
-                `<span class="tag">${p.nickname}</span>${short.gan}${short.zhi} · ${p.birthDate}` +
-                `</button>`;
+            const activeCls = p.id === activeId ? ' active' : '';
+            const locked = lockedIds.includes(p.id);
+            const btnLabel = locked ? lockedLabel : editLabel;
+            const lockedCls = locked ? ' locked' : '';
+            const lockedAttr = locked ? ' data-locked="1"' : '';
+            return `<div class="bazi-menu-item${activeCls}" data-id="${escapeHtml(p.id)}">` +
+                `<button type="button" class="bazi-menu-select" role="menuitem">` +
+                `<span class="tag">${escapeHtml(p.nickname)}</span>${short.gan}${short.zhi} · ${escapeHtml(p.birthDate)}` +
+                `</button>` +
+                `<button type="button" class="bazi-menu-edit${lockedCls}" data-edit-id="${escapeHtml(p.id)}"${lockedAttr} aria-label="${escapeHtml(btnLabel)}">${escapeHtml(btnLabel)}</button>` +
+                `</div>`;
         }).join('');
     }
 
@@ -2679,12 +3027,261 @@
         payNotice.textContent = t(PAY_TIER_NOTICE_KEY[tier] || 'pay_notice');
     }
 
+    const ANNUAL_PROFILES_KEY = 'bazi_annual_profile_ids';
+    const ANNUAL_ACTIVE_KEY = 'bazi_annual_active';
+    const annualSelectModal = document.getElementById('annualSelectModal');
+    const annualSelectList = document.getElementById('annualSelectList');
+    const annualSelectHint = document.getElementById('annualSelectHint');
+    const annualSelectDesc = document.getElementById('annualSelectDesc');
+    const annualSelectTitle = document.getElementById('annualSelectTitle');
+    const btnAnnualLater = document.getElementById('btnAnnualLater');
+    const btnAnnualConfirm = document.getElementById('btnAnnualConfirm');
+    const btnAnnualService = document.getElementById('btnAnnualService');
+    let annualDraftIds = [];
+    let annualSelectPurpose = 'pay'; // 'pay' | 'manage' | 'view'
+
+    function loadAnnualProfileIds() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(ANNUAL_PROFILES_KEY) || '[]');
+            return Array.isArray(raw) ? raw.filter(Boolean).slice(0, 2) : [];
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function saveAnnualProfileIds(ids) {
+        try {
+            localStorage.setItem(ANNUAL_PROFILES_KEY, JSON.stringify((ids || []).slice(0, 2)));
+        } catch (_) {}
+    }
+
+    function isAnnualActive() {
+        return localStorage.getItem(ANNUAL_ACTIVE_KEY) === '1';
+    }
+
+    function setAnnualActive(on) {
+        try {
+            if (on) localStorage.setItem(ANNUAL_ACTIVE_KEY, '1');
+            else localStorage.removeItem(ANNUAL_ACTIVE_KEY);
+        } catch (_) {}
+        updateAnnualNavBtn();
+    }
+
+    function getLockedAnnualProfileIds() {
+        if (!isAnnualActive()) return [];
+        return loadAnnualProfileIds();
+    }
+
+    function isProfileAnnualLocked(id) {
+        return !!id && getLockedAnnualProfileIds().includes(id);
+    }
+
+    function updateAnnualNavBtn() {
+        if (!btnAnnualService) return;
+        btnAnnualService.style.display = isAnnualActive() ? '' : 'none';
+    }
+
+    function updateAnnualSelectUI() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const count = annualDraftIds.length;
+        annualSelectList.querySelectorAll('.annual-select-item').forEach((el) => {
+            const selected = annualDraftIds.includes(el.dataset.id);
+            el.classList.toggle('selected', selected);
+            const check = el.querySelector('.annual-select-check');
+            if (check) check.textContent = selected ? '✓' : '';
+        });
+        btnAnnualConfirm.disabled = false;
+        if (count === 0) {
+            annualSelectHint.textContent = t('annual_select_hint_zero');
+        } else if (count === 1) {
+            annualSelectHint.textContent = t('annual_select_hint_one');
+        } else {
+            annualSelectHint.textContent = t('annual_select_hint_done');
+        }
+    }
+
+    function renderAnnualSelectList() {
+        const list = (typeof profiles !== 'undefined' && Array.isArray(profiles)) ? profiles : [];
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        if (!list.length) {
+            annualSelectList.innerHTML = `<p class="annual-select-hint" style="padding:16px;margin:0;">${t('annual_select_empty')}</p>`;
+            btnAnnualConfirm.disabled = false;
+            annualSelectHint.textContent = '';
+            return;
+        }
+        annualSelectList.innerHTML = list.map((p) => {
+            const short = computeBaziForProfile(p).pillars[0];
+            const selected = annualDraftIds.includes(p.id);
+            return `<button type="button" class="annual-select-item${selected ? ' selected' : ''}" data-id="${escapeHtml(p.id)}">` +
+                `<span class="annual-select-check">${selected ? '✓' : ''}</span>` +
+                `<span><span class="tag">${escapeHtml(p.nickname)}</span>${short.gan}${short.zhi} · ${escapeHtml(p.birthDate)}</span>` +
+                `</button>`;
+        }).join('');
+        updateAnnualSelectUI();
+    }
+
+    function renderAnnualViewList() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const bound = (profiles || []).filter((p) => annualDraftIds.includes(p.id));
+        if (!bound.length) {
+            annualSelectList.innerHTML = `<p class="annual-select-hint" style="padding:16px;margin:0;">${t('annual_view_empty')}</p>`;
+            annualSelectHint.textContent = '';
+            return;
+        }
+        annualSelectList.innerHTML = bound.map((p) => {
+            const short = computeBaziForProfile(p).pillars[0];
+            return `<div class="annual-select-item selected view-only" data-id="${escapeHtml(p.id)}">` +
+                `<span><span class="tag">${escapeHtml(p.nickname)}</span>${short.gan}${short.zhi} · ${escapeHtml(p.birthDate)}</span>` +
+                `</div>`;
+        }).join('');
+        annualSelectHint.textContent = '';
+    }
+
+    function applyAnnualModalMode() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const isPay = annualSelectPurpose === 'pay';
+        const isView = annualSelectPurpose === 'view';
+        const isManage = annualSelectPurpose === 'manage';
+        annualSelectModal.classList.toggle('annual-pay-mode', isPay);
+        annualSelectModal.classList.toggle('annual-manage-mode', isManage);
+        annualSelectModal.classList.toggle('annual-view-mode', isView);
+
+        let titleKey = 'annual_select_title';
+        let descKey = 'annual_select_desc';
+        let btnKey = 'annual_select_confirm';
+        if (isPay) {
+            descKey = 'annual_select_pay_desc';
+            btnKey = 'pay_confirm';
+        } else if (isView) {
+            titleKey = 'annual_view_title';
+            descKey = 'annual_view_desc';
+        }
+
+        if (annualSelectTitle) {
+            annualSelectTitle.setAttribute('data-i18n', titleKey);
+            annualSelectTitle.textContent = t(titleKey);
+        }
+        if (annualSelectDesc) {
+            annualSelectDesc.setAttribute('data-i18n', descKey);
+            annualSelectDesc.textContent = t(descKey);
+        }
+        if (btnAnnualConfirm) {
+            btnAnnualConfirm.setAttribute('data-i18n', btnKey);
+            btnAnnualConfirm.textContent = t(btnKey);
+            btnAnnualConfirm.disabled = false;
+        }
+    }
+
+    function openAnnualSelectModal(purpose) {
+        annualDraftIds = loadAnnualProfileIds().filter((id) =>
+            (profiles || []).some((p) => p.id === id)
+        );
+        if (purpose === 'manage') {
+            // 已选满 2 个：只读展示；未满 2 个：可继续勾选补齐
+            annualSelectPurpose = annualDraftIds.length >= 2 ? 'view' : 'manage';
+        } else {
+            annualSelectPurpose = 'pay';
+        }
+        applyAnnualModalMode();
+        if (annualSelectPurpose === 'manage') {
+            renderAnnualSelectList();
+        } else if (annualSelectPurpose === 'view') {
+            renderAnnualViewList();
+        }
+        annualSelectModal.classList.add('open');
+    }
+
+    function closeAnnualSelectModal() {
+        annualSelectModal.classList.remove('open');
+    }
+
+    function completeAnnualPurchaseMock() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        applyTierUI('year');
+        setAnnualActive(true);
+        closeAnnualSelectModal();
+        payModal.classList.remove('open');
+        refresh();
+        alert(t('annual_pay_success_mock'));
+    }
+
+    function finishAnnualSelect(ids) {
+        if (annualSelectPurpose === 'manage') {
+            saveAnnualProfileIds(ids || []);
+            closeAnnualSelectModal();
+            refresh();
+            return;
+        }
+        if (annualSelectPurpose === 'view') {
+            closeAnnualSelectModal();
+            return;
+        }
+        // 下载选包年：确认支付（支付未接入，先走演示成功）
+        completeAnnualPurchaseMock();
+    }
+
     payTierRow.addEventListener('click', (e) => {
         const btn = e.target.closest('.pay-tier-btn');
         if (!btn || btn.disabled) return;
         if (!requireLogin()) { payModal.classList.remove('open'); return; }
-        applyTierUI(btn.getAttribute('data-tier'));
+        const tier = btn.getAttribute('data-tier');
+        if (tier === 'year') {
+            openAnnualSelectModal('pay');
+            return;
+        }
+        applyTierUI(tier);
     });
+
+    annualSelectList.addEventListener('click', (e) => {
+        if (annualSelectPurpose !== 'manage') return;
+        const item = e.target.closest('.annual-select-item');
+        if (!item || item.classList.contains('view-only')) return;
+        const id = item.dataset.id;
+        if (!id) return;
+        const idx = annualDraftIds.indexOf(id);
+        if (idx >= 0) {
+            annualDraftIds.splice(idx, 1);
+        } else if (annualDraftIds.length < 2) {
+            annualDraftIds.push(id);
+        } else {
+            annualDraftIds.shift();
+            annualDraftIds.push(id);
+        }
+        updateAnnualSelectUI();
+    });
+
+    btnAnnualLater.addEventListener('click', () => {
+        closeAnnualSelectModal();
+    });
+
+    btnAnnualConfirm.addEventListener('click', () => {
+        if (annualSelectPurpose === 'manage') {
+            finishAnnualSelect(annualDraftIds.slice());
+            return;
+        }
+        if (annualSelectPurpose === 'view') {
+            closeAnnualSelectModal();
+            return;
+        }
+        finishAnnualSelect([]);
+    });
+
+    document.getElementById('annualSelectClose').addEventListener('click', () => {
+        closeAnnualSelectModal();
+    });
+
+    annualSelectModal.addEventListener('click', (e) => {
+        if (e.target === annualSelectModal) closeAnnualSelectModal();
+    });
+
+    if (btnAnnualService) {
+        btnAnnualService.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openAnnualSelectModal('manage');
+        });
+    }
+    updateAnnualNavBtn();
+
 
     wallpaperGrid.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-download');
@@ -2713,8 +3310,15 @@
     btnPayConfirm.addEventListener('click', async () => {
         if (!requireLogin()) { payModal.classList.remove('open'); return; }
         payModal.classList.remove('open');
-        // 模拟登录阶段：不调用真实 /api/download（需要 Supabase token）
         const t = window.I18N ? window.I18N.t : (k) => k;
+        if (selectedTier === 'year') {
+            // 支付未接入：先模拟包年支付成功，显示导航「包年服务」并锁定已选档案
+            setAnnualActive(true);
+            refresh();
+            alert(t('annual_pay_success_mock'));
+            return;
+        }
+        // 模拟登录阶段：不调用真实 /api/download（需要 Supabase token）
         alert(t('mock_feature_notice'));
     });
 
@@ -2874,6 +3478,7 @@
 
     let profiles = loadProfiles();
     let activeId = getActiveId(profiles);
+    let editingId = null;
 
     function refresh() {
         const active = profiles.find((p) => p.id === activeId) || profiles[0];
@@ -3363,6 +3968,78 @@
 
     const addModal = document.getElementById('addModal');
     const baziMenu = document.getElementById('baziMenu');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDelete = document.getElementById('modalDelete');
+    const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+
+    function resetBaziForm() {
+        const form = document.getElementById('addBaziForm');
+        form.reset();
+        document.getElementById('gender').value = '1';
+        document.querySelectorAll('.gender-row button').forEach((b, i) => {
+            b.classList.toggle('active', i === 0);
+        });
+        const now = new Date();
+        setBirthDateSelects(
+            `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
+        );
+        setBirthTimeSelects('12:00');
+        locCountrySel.value = '';
+        resetSelect(locStateSel, 'loc_placeholder_state');
+        resetSelect(locCitySel, 'loc_placeholder_city');
+        clearBirthplace();
+        document.getElementById('useTrueSolarTime').checked = false;
+        document.getElementById('useDST').checked = false;
+    }
+
+    function setModalMode(mode) {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const isEdit = mode === 'edit';
+        const titleKey = isEdit ? 'modal_edit_title' : 'modal_add_title';
+        modalTitle.setAttribute('data-i18n', titleKey);
+        modalTitle.textContent = t(titleKey);
+        modalDelete.classList.toggle('visible', isEdit);
+    }
+
+    function closeAddModal() {
+        addModal.classList.remove('open');
+        editingId = null;
+        setModalMode('add');
+        resetBaziForm();
+    }
+
+    function openAddModal() {
+        editingId = null;
+        setModalMode('add');
+        resetBaziForm();
+        addModal.classList.add('open');
+    }
+
+    function openEditModal(profile) {
+        if (!profile) return;
+        if (isProfileAnnualLocked(profile.id)) {
+            alert(window.I18N ? window.I18N.t('alert_annual_locked') : '包年绑定档案不可修改');
+            return;
+        }
+        editingId = profile.id;
+        setModalMode('edit');
+        document.getElementById('nickname').value = profile.nickname || '';
+        const gender = String(profile.gender === 0 ? 0 : 1);
+        document.getElementById('gender').value = gender;
+        document.querySelectorAll('.gender-row button').forEach((b) => {
+            b.classList.toggle('active', b.dataset.gender === gender);
+        });
+        setBirthDateSelects(profile.birthDate);
+        setBirthTimeSelects(profile.birthTime || '12:00');
+        locCountrySel.value = '';
+        resetSelect(locStateSel, 'loc_placeholder_state');
+        resetSelect(locCitySel, 'loc_placeholder_city');
+        birthplaceHidden.value = profile.birthplace || '';
+        _stateLatLon = null;
+        document.getElementById('useTrueSolarTime').checked = !!profile.useTrueSolarTime;
+        document.getElementById('useDST').checked = !!profile.useDST;
+        addModal.classList.add('open');
+    }
 
     // 語言切換按鈕：單一按鈕 + 下拉選單，選中的語言用短標籤顯示在按鈕上
     const langMenu = document.getElementById('langMenu');
@@ -3626,15 +4303,63 @@
         baziMenu.classList.remove('open');
         langMenu.classList.remove('open');
         aboutMenu.classList.remove('open');
-        addModal.classList.add('open');
+        openAddModal();
     });
 
     document.getElementById('modalClose').addEventListener('click', () => {
-        addModal.classList.remove('open');
+        closeAddModal();
     });
 
     addModal.addEventListener('click', (e) => {
-        if (e.target === addModal) addModal.classList.remove('open');
+        if (e.target === addModal) closeAddModal();
+    });
+
+    modalDelete.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!editingId) return;
+        if (isProfileAnnualLocked(editingId)) {
+            alert(window.I18N ? window.I18N.t('alert_annual_locked') : '包年绑定档案不可删除');
+            return;
+        }
+        deleteConfirmModal.classList.add('open');
+    });
+
+    document.getElementById('btnDeleteCancel').addEventListener('click', () => {
+        deleteConfirmModal.classList.remove('open');
+    });
+
+    deleteConfirmModal.addEventListener('click', (e) => {
+        if (e.target === deleteConfirmModal) deleteConfirmModal.classList.remove('open');
+    });
+
+    document.getElementById('btnDeleteConfirm').addEventListener('click', async () => {
+        if (!editingId) {
+            deleteConfirmModal.classList.remove('open');
+            return;
+        }
+        const idToDelete = editingId;
+        if (isProfileAnnualLocked(idToDelete)) {
+            deleteConfirmModal.classList.remove('open');
+            alert(window.I18N ? window.I18N.t('alert_annual_locked') : '包年绑定档案不可删除');
+            return;
+        }
+        await cloudDeleteProfile(idToDelete);
+        profiles = profiles.filter((p) => p.id !== idToDelete);
+        // 包年绑定若包含该档案，一并移除（壁纸 seed 由 profile.id 即时计算，无独立持久化记录）
+        const annualIds = loadAnnualProfileIds().filter((id) => id !== idToDelete);
+        saveAnnualProfileIds(annualIds);
+        if (!profiles.length) {
+            profiles = defaultProfiles.map((p) => ({ ...p }));
+        }
+        saveProfiles(profiles);
+        if (activeId === idToDelete || !profiles.some((p) => p.id === activeId)) {
+            activeId = profiles[0].id;
+            setActiveId(activeId);
+        }
+        deleteConfirmModal.classList.remove('open');
+        closeAddModal();
+        refresh();
     });
 
     document.getElementById('btnSwitchBazi').addEventListener('click', (e) => {
@@ -3652,10 +4377,25 @@
     });
 
     baziMenu.addEventListener('click', (e) => {
-        const btn = e.target.closest('button[data-id]');
-        if (!btn) return;
+        const editBtn = e.target.closest('button[data-edit-id]');
+        if (editBtn) {
+            e.stopPropagation();
+            if (editBtn.dataset.locked === '1') {
+                baziMenu.classList.remove('open');
+                alert(window.I18N ? window.I18N.t('alert_annual_locked') : '包年绑定档案不可修改');
+                return;
+            }
+            const profile = profiles.find((p) => p.id === editBtn.dataset.editId);
+            baziMenu.classList.remove('open');
+            openEditModal(profile);
+            return;
+        }
+        const selectBtn = e.target.closest('.bazi-menu-select');
+        if (!selectBtn) return;
+        const item = selectBtn.closest('.bazi-menu-item');
+        if (!item) return;
         e.stopPropagation();
-        activeId = btn.dataset.id;
+        activeId = item.dataset.id;
         setActiveId(activeId);
         refresh();
         baziMenu.classList.remove('open');
@@ -3676,15 +4416,29 @@
         const gender    = parseInt(document.getElementById('gender').value, 10);
         const birthDate = `${birthYearSelect.value}/${birthMonthSelect.value}/${birthDaySelect.value}`;
         const birthTime = `${birthHourSelect.value}:${birthMinuteSelect.value}`;
-        const birthplace = document.getElementById('birthplace').value.trim();
+        let birthplace = document.getElementById('birthplace').value.trim();
         const useTrueSolarTime = document.getElementById('useTrueSolarTime').checked;
         const useDST = document.getElementById('useDST').checked;
+        const existing = editingId ? profiles.find((p) => p.id === editingId) : null;
+        const locationChanged = !!locCountrySel.value;
 
-        if (!nickname || !birthDate || !birthTime || !birthplace) {
+        if (!nickname || !birthDate || !birthTime) {
             alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
             return;
         }
-        if (useTrueSolarTime && !locStateSel.value) {
+        if (!birthplace && !(existing && existing.birthplace)) {
+            alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
+            return;
+        }
+        if (useTrueSolarTime && locationChanged && !locStateSel.value) {
+            alert(window.I18N ? window.I18N.t('alert_need_birthplace') : '請先搜尋並選擇出生地點');
+            return;
+        }
+        if (useTrueSolarTime && !locationChanged && existing && existing.birthplaceLon == null) {
+            alert(window.I18N ? window.I18N.t('alert_need_birthplace') : '請先搜尋並選擇出生地點');
+            return;
+        }
+        if (useTrueSolarTime && !editingId && !locStateSel.value) {
             alert(window.I18N ? window.I18N.t('alert_need_birthplace') : '請先搜尋並選擇出生地點');
             return;
         }
@@ -3694,45 +4448,54 @@
         if (submitBtn) submitBtn.disabled = true;
         locationSearchingEl.style.display = '';
 
-        let finalLon       = null;
-        let finalUtcOffset = undefined;
+        let finalLon       = existing ? existing.birthplaceLon ?? null : null;
+        let finalUtcOffset = existing ? existing.utcOffset : undefined;
 
         try {
-            const iso2      = locCountrySel.value;
-            const city      = locCitySel.value;
-            const stateCode = locStateSel.value;
-            const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
+            if (locationChanged) {
+                const iso2      = locCountrySel.value;
+                const city      = locCitySel.value;
+                const stateCode = locStateSel.value;
+                const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
 
-            if (iso2 && (city || stateCode)) {
-                // 只用城市+省名（不拼 countryName，避免自定义名称如"中国大陆"导致 Nominatim 无结果）
-                // countrycodes 参数已限定国家，不需要在 q 里再写国家名
-                const q = city ? `${city}, ${stateName}` : stateName;
-                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=${iso2.toLowerCase()}`;
-                try {
-                    const res  = await fetch(url, { headers: { 'Accept-Language': 'zh,en' }, signal: AbortSignal.timeout(8000) });
-                    const data = await res.json();
-                    if (data && data.length > 0) {
-                        finalLon = parseFloat(data[0].lon);
+                if (iso2 && (city || stateCode)) {
+                    // 只用城市+省名（不拼 countryName，避免自定义名称如"中国大陆"导致 Nominatim 无结果）
+                    // countrycodes 参数已限定国家，不需要在 q 里再写国家名
+                    const q = city ? `${city}, ${stateName}` : stateName;
+                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=${iso2.toLowerCase()}`;
+                    try {
+                        const res  = await fetch(url, { headers: { 'Accept-Language': 'zh,en' }, signal: AbortSignal.timeout(8000) });
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                            finalLon = parseFloat(data[0].lon);
+                        }
+                    } catch (_) { /* 网络失败，使用省级坐标 */ }
+
+                    // Nominatim 失败时回退到省级坐标
+                    if (finalLon === null && _stateLatLon) {
+                        finalLon = _stateLatLon.lon;
                     }
-                } catch (_) { /* 网络失败，使用省级坐标 */ }
 
-                // Nominatim 失败时回退到省级坐标
-                if (finalLon === null && _stateLatLon) {
-                    finalLon = _stateLatLon.lon;
+                    if (finalLon !== null) {
+                        finalUtcOffset = getUtcOffsetForLon(finalLon);
+                    }
                 }
-
-                if (finalLon !== null) {
-                    finalUtcOffset = getUtcOffsetForLon(finalLon);
-                }
+            } else if (existing) {
+                birthplace = existing.birthplace || birthplace;
             }
         } finally {
             locationSearchingEl.style.display = 'none';
             if (submitBtn) submitBtn.disabled = false;
         }
 
+        if (!birthplace) {
+            alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
+            return;
+        }
+
         // 真實八字四柱與大運由 computeBaziForProfile() 現場排盤
         const profile = {
-            id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-' + Date.now()),
+            id: editingId || ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-' + Date.now())),
             nickname,
             gender,
             birthDate,
@@ -3747,28 +4510,18 @@
         const saved = await cloudUpsertProfile(profile);
         // 用云端返回的 id（uuid）替换本地临时 id
         const finalProfile = saved && saved.id ? { ...profile, ...saved } : profile;
-        profiles.push(finalProfile);
+        if (editingId) {
+            const idx = profiles.findIndex((p) => p.id === editingId);
+            if (idx >= 0) profiles[idx] = finalProfile;
+            else profiles.push(finalProfile);
+        } else {
+            profiles.push(finalProfile);
+        }
         saveProfiles(profiles);
         activeId = finalProfile.id;
         setActiveId(activeId);
         refresh();
-        addModal.classList.remove('open');
-        e.target.reset();
-        document.getElementById('gender').value = '1';
-        document.querySelectorAll('.gender-row button').forEach((b, i) => {
-            b.classList.toggle('active', i === 0);
-        });
-        const now = new Date();
-        setBirthDateSelects(
-            `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
-        );
-        setBirthTimeSelects('12:00');
-        // 重置地點三級選單
-        locCountrySel.value = '';
-        resetSelect(locStateSel, 'loc_placeholder_state');
-        resetSelect(locCitySel,  'loc_placeholder_city');
-        clearBirthplace();
-        document.getElementById('useTrueSolarTime').checked = false;
+        closeAddModal();
     });
 })();
 </script>
