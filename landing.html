@@ -2044,38 +2044,13 @@
         period: { dayun: '——', year: '——', month: '——' }
     };
 
-    // 本地壁紙占位圖：DB 無圖時按五行回退。卡片標題/說明由喜用五行與補運標籤動態生成。
+    // 本地壁紙占位（已改走圖庫）；DB 無圖時按五行回退為空。
     const WUXING_WALLPAPER = {
-        '水': [
-            { img: 'assets/wallpapers/wallpaper-2.png' },
-            { img: 'assets/wallpapers/wallpaper-4.png' },
-            { img: 'assets/wallpapers/wallpaper-1.png' },
-            { img: 'assets/wallpapers/wallpaper-3.png' }
-        ],
-        '木': [
-            { img: 'assets/wallpapers/wallpaper-3.png' },
-            { img: 'assets/wallpapers/wallpaper-4.png' },
-            { img: 'assets/wallpapers/wallpaper-1.png' },
-            { img: 'assets/wallpapers/wallpaper-2.png' }
-        ],
-        '火': [
-            { img: 'assets/wallpapers/wallpaper-1.png' },
-            { img: 'assets/wallpapers/wallpaper-2.png' },
-            { img: 'assets/wallpapers/wallpaper-3.png' },
-            { img: 'assets/wallpapers/wallpaper-4.png' }
-        ],
-        '土': [
-            { img: 'assets/wallpapers/wallpaper-1.png' },
-            { img: 'assets/wallpapers/wallpaper-3.png' },
-            { img: 'assets/wallpapers/wallpaper-2.png' },
-            { img: 'assets/wallpapers/wallpaper-4.png' }
-        ],
-        '金': [
-            { img: 'assets/wallpapers/wallpaper-1.png' },
-            { img: 'assets/wallpapers/wallpaper-4.png' },
-            { img: 'assets/wallpapers/wallpaper-3.png' },
-            { img: 'assets/wallpapers/wallpaper-2.png' }
-        ]
+        '水': [],
+        '木': [],
+        '火': [],
+        '土': [],
+        '金': []
     };
 
     function escapeHtml(str) {
@@ -2432,10 +2407,9 @@
         const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
         const favorElName = wxNameMap[favorEl] || favorEl;
         const secondaryElName = wxNameMap[secondaryEl] || secondaryEl;
-        const favorText = favorEl === secondaryEl
-            ? favorElName
-            : (favorElName + (lang === 'en' ? ' / ' : '、') + secondaryElName);
-        favorLine.innerHTML = `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>&ensp;${favorText}`;
+        favorLine.innerHTML =
+            `<span class="insight-label">${t('wallpaper_primary_favor_title')}</span>&ensp;${favorElName}` +
+            `&ensp;<span class="insight-label">${t('wallpaper_secondary_favor_title')}</span>&ensp;${secondaryElName}`;
 
         const [yunA, yunB] = (() => {
             const p = getBoostYunPair(insight, lang);
@@ -2496,9 +2470,9 @@
 
         // 补运 A/B
         // 图1：主喜用 + A
-        // 图2：主喜用 + A、B
-        // 图3：副喜用 + A、B
-        // 图4：主喜用 + B
+        // 图2：主喜用 + B
+        // 图3：主喜用 + A、B
+        // 图4：副喜用 + A、B
         const yunPair = getBoostYunPair(insight, lang);
         const labelA = yunPair.a;
         const labelB = yunPair.b;
@@ -2512,9 +2486,9 @@
 
         const cardSpecs = [
             { el: primaryEl,   elName: primaryName,   tags: tagsA,  desc: labelA  },
+            { el: primaryEl,   elName: primaryName,   tags: tagsB,  desc: labelB  },
             { el: primaryEl,   elName: primaryName,   tags: tagsAB, desc: labelAB },
             { el: secondaryEl, elName: secondaryName, tags: tagsAB, desc: labelAB },
-            { el: primaryEl,   elName: primaryName,   tags: tagsB,  desc: labelB  },
         ];
 
         // 拉取主/副喜用各自的壁纸池
