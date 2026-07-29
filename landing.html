@@ -8,8 +8,8 @@
         汇迹正楷 CooperZhengKai：自托管 UI 子集字型（非全字库），
         城市名等地点文案走系统字体，不依赖外部 CDN。
     -->
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css" />
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=2" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
     <script src="i18n.js?v=9"></script>
     <style>
@@ -2515,10 +2515,16 @@
             const usedIds = [];
 
             cards = cardSpecs.map((spec, i) => {
-                const pool = (spec.el === primaryEl ? poolPrimary : poolSecondary) || [];
-                const w = pickByTags(pool, spec.tags, `${baseSeed}|card${i}`, usedIds);
+                const preferred = (spec.el === primaryEl ? poolPrimary : poolSecondary) || [];
+                const other = (spec.el === primaryEl ? poolSecondary : poolPrimary) || [];
+                const seed = `${baseSeed}|card${i}`;
+                // 优先同五行未用过的图；池耗尽或该五行无图时允许复用 / 跨五行补齐，保证 4 张
+                const w = pickByTags(preferred, spec.tags, seed, usedIds)
+                    || pickByTags(preferred, spec.tags, seed + '|reuse', [])
+                    || pickByTags(other, spec.tags, seed + '|other', usedIds)
+                    || pickByTags(other, spec.tags, seed + '|otherReuse', []);
                 if (!w) return null;
-                if (w.id != null) usedIds.push(w.id);
+                if (w.id != null && !usedIds.includes(w.id)) usedIds.push(w.id);
                 const previewKey = w.preview_key || w.r2_key;
                 return {
                     img:   `${R2_PUBLIC_URL}/${previewKey}`,
@@ -2527,18 +2533,24 @@
                     desc:  spec.desc,
                     tags:  normalizeYunTags(w.tags),
                 };
-            });
-
-            // 缺匹配图的槽位用对应五行的本地占位补齐
-            cards = cards.map((c, i) => {
-                if (c) return c;
-                const spec = cardSpecs[i];
-                const variants = WUXING_WALLPAPER[spec.el] || WUXING_WALLPAPER['水'];
-                const v = variants[i % variants.length];
-                return v
-                    ? { img: v.img, r2key: null, name: spec.elName, desc: spec.desc, tags: spec.tags }
-                    : null;
             }).filter(Boolean);
+
+            // 若图库仍不足 4 张，用已选出的卡片循环补齐槽位（保留主/副文案）
+            if (cards.length > 0 && cards.length < cardSpecs.length) {
+                const filled = [];
+                for (let i = 0; i < cardSpecs.length; i++) {
+                    const spec = cardSpecs[i];
+                    const src = cards[i] || cards[i % cards.length];
+                    filled.push({
+                        img: src.img,
+                        r2key: src.r2key,
+                        name: spec.elName,
+                        desc: spec.desc,
+                        tags: src.tags,
+                    });
+                }
+                cards = filled;
+            }
         } else {
             cards = cardSpecs.map((spec, i) => {
                 const variants = WUXING_WALLPAPER[spec.el] || WUXING_WALLPAPER['水'];
