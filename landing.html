@@ -2372,16 +2372,33 @@
         const coveredByWanted = a.every((t) => bSet.has(t));
         return coversWanted || coveredByWanted;
     }
-    // 从池中按 tags 匹配：精确 → 软匹配 → 同五行任意一张；excludeIds 避免重复
-    // 同五行池内降级，避免精确双标签缺失时落到本地占位图（各五行共用同一套素材，易被看成「火」）
+    // 从池中按 tags 匹配：精确 → 软匹配(壁纸⊆需求) → 软匹配(壁纸⊇需求) → 同五行任意
+    // 单标签需求不会优先抢走双标签图（⊇ 放到后面），配合下方「先配双标再配单标」的选取顺序
     function pickByTags(pool, wantedTags, seedStr, excludeIds) {
         const excl = excludeIds || [];
         const available = (pool || []).filter((w) => !excl.includes(w.id));
         if (available.length === 0) return null;
-        const exact = available.filter((w) => tagsMatchWanted(w.tags, wantedTags));
+        const wanted = normalizeYunTags(wantedTags);
+        const exact = available.filter((w) => tagsMatchWanted(w.tags, wanted));
         if (exact.length > 0) return pickStable(exact, seedStr, 1)[0] || exact[0];
-        const soft = available.filter((w) => tagsSoftMatch(w.tags, wantedTags));
-        if (soft.length > 0) return pickStable(soft, seedStr + '|soft', 1)[0] || soft[0];
+
+        const softSubset = available.filter((w) => {
+            const a = normalizeYunTags(w.tags);
+            if (!wanted.length) return a.length === 0;
+            if (!a.length) return false;
+            const wantedSet = new Set(wanted);
+            return a.every((t) => wantedSet.has(t)); // 壁纸 tags ⊆ wanted
+        });
+        if (softSubset.length > 0) return pickStable(softSubset, seedStr + '|sub', 1)[0] || softSubset[0];
+
+        const softSuperset = available.filter((w) => {
+            const a = normalizeYunTags(w.tags);
+            if (!wanted.length || !a.length) return false;
+            const aSet = new Set(a);
+            return wanted.every((t) => aSet.has(t)) && a.length > wanted.length; // 壁纸多出来的标签
+        });
+        if (softSuperset.length > 0) return pickStable(softSuperset, seedStr + '|super', 1)[0] || softSuperset[0];
+
         return pickStable(available, seedStr + '|any', 1)[0] || available[0];
     }
 
@@ -2514,43 +2531,46 @@
             const baseSeed = `${userId}|${profile.id}|${now.getFullYear()}-${now.getMonth()}|${primaryEl}|${secondaryEl}|${yunPair.aCN}|${yunPair.bCN}`;
             const usedIds = [];
 
-            cards = cardSpecs.map((spec, i) => {
+            // 展示顺序：A → B → AB → 副AB
+            // 匹配顺序：先双标签再单标签，避免单标签槽位先把双标签图吃掉
+            const matchOrder = [2, 3, 0, 1];
+            const picked = new Array(cardSpecs.length).fill(null);
+
+            matchOrder.forEach((i) => {
+                const spec = cardSpecs[i];
                 const preferred = (spec.el === primaryEl ? poolPrimary : poolSecondary) || [];
                 const other = (spec.el === primaryEl ? poolSecondary : poolPrimary) || [];
                 const seed = `${baseSeed}|card${i}`;
-                // 优先同五行未用过的图；池耗尽或该五行无图时允许复用 / 跨五行补齐，保证 4 张
                 const w = pickByTags(preferred, spec.tags, seed, usedIds)
                     || pickByTags(preferred, spec.tags, seed + '|reuse', [])
                     || pickByTags(other, spec.tags, seed + '|other', usedIds)
                     || pickByTags(other, spec.tags, seed + '|otherReuse', []);
-                if (!w) return null;
+                if (!w) return;
                 if (w.id != null && !usedIds.includes(w.id)) usedIds.push(w.id);
                 const previewKey = w.preview_key || w.r2_key;
-                return {
+                picked[i] = {
                     img:   `${R2_PUBLIC_URL}/${previewKey}`,
                     r2key: w.r2_key,
                     name:  spec.elName,
                     desc:  spec.desc,
                     tags:  normalizeYunTags(w.tags),
                 };
-            }).filter(Boolean);
+            });
 
-            // 若图库仍不足 4 张，用已选出的卡片循环补齐槽位（保留主/副文案）
-            if (cards.length > 0 && cards.length < cardSpecs.length) {
-                const filled = [];
-                for (let i = 0; i < cardSpecs.length; i++) {
-                    const spec = cardSpecs[i];
-                    const src = cards[i] || cards[i % cards.length];
-                    filled.push({
-                        img: src.img,
-                        r2key: src.r2key,
-                        name: spec.elName,
-                        desc: spec.desc,
-                        tags: src.tags,
-                    });
-                }
-                cards = filled;
-            }
+            // 按展示顺序取出；空槽用已选图循环补齐，保证 4 张
+            const availableCards = picked.filter(Boolean);
+            cards = cardSpecs.map((spec, i) => {
+                if (picked[i]) return picked[i];
+                if (!availableCards.length) return null;
+                const src = availableCards[i % availableCards.length];
+                return {
+                    img: src.img,
+                    r2key: src.r2key,
+                    name: spec.elName,
+                    desc: spec.desc,
+                    tags: src.tags,
+                };
+            }).filter(Boolean);
         } else {
             cards = cardSpecs.map((spec, i) => {
                 const variants = WUXING_WALLPAPER[spec.el] || WUXING_WALLPAPER['水'];
