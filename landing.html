@@ -2360,18 +2360,6 @@
         const b = normalizeYunTags(wanted);
         return a.length === b.length && a.every((t, i) => t === b[i]);
     }
-    // 软匹配：壁纸 tags 覆盖全部 wanted（可多不可少），或 wanted 覆盖壁纸全部 tags
-    function tagsSoftMatch(tags, wanted) {
-        const a = normalizeYunTags(tags);
-        const b = normalizeYunTags(wanted);
-        if (!b.length) return a.length === 0;
-        if (!a.length) return false;
-        const aSet = new Set(a);
-        const bSet = new Set(b);
-        const coversWanted = b.every((t) => aSet.has(t));
-        const coveredByWanted = a.every((t) => bSet.has(t));
-        return coversWanted || coveredByWanted;
-    }
     // 从池中按 tags 匹配：精确 → 软匹配(壁纸⊆需求) → 软匹配(壁纸⊇需求) → 同五行任意
     // 单标签需求不会优先抢走双标签图（⊇ 放到后面），配合下方「先配双标再配单标」的选取顺序
     function pickByTags(pool, wantedTags, seedStr, excludeIds) {
