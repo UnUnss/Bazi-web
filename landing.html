@@ -3186,7 +3186,18 @@
         if (!iso2 || !_cscStates) return;
         let states = _cscStates.filter(s => s.countryCode === iso2);
         if (iso2 === 'CN') states = states.filter(s => !CN_EXCLUDE_STATES.has(s.isoCode));
-        if (!states.length) return;
+        // CSC 對部分地區（如澳門 MO）不提供省/州分區；合成一筆「全境」供聯動與提交使用
+        if (!states.length) {
+            const country = _cscCountries && _cscCountries.find(c => c.isoCode === iso2);
+            if (!country) return;
+            states = [{
+                isoCode: iso2,
+                countryCode: iso2,
+                name: country.name,
+                latitude: country.latitude,
+                longitude: country.longitude,
+            }];
+        }
         states.forEach(s => {
             const opt = document.createElement('option');
             opt.value = s.isoCode;
