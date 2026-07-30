@@ -1,4 +1,7 @@
 // 已登录用户获取原图临时下载链接
+// 鉴权：
+// 1) Authorization: Bearer <supabase access_token>
+// 2) X-User-Email（模拟登录阶段）
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl }               from '@aws-sdk/s3-request-presigner';
 import { createClient }               from '@supabase/supabase-js';
@@ -18,16 +21,29 @@ const sb = createClient(
   { auth: { persistSession: false } }
 );
 
+async function assertUser(req) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
+  if (token) {
+    const { data: { user }, error } = await sb.auth.getUser(token);
+    if (error || !user) return { ok: false, status: 401, error: 'Login required' };
+    return { ok: true, userId: user.id, email: user.email || '' };
+  }
+
+  const email = (req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (email && email.includes('@')) {
+    return { ok: true, userId: null, email };
+  }
+
+  return { ok: false, status: 401, error: 'Login required' };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
-  if (!token) return res.status(401).json({ error: 'Login required' });
+  const auth = await assertUser(req);
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
-  const { data: { user }, error } = await sb.auth.getUser(token);
-  if (error || !user) return res.status(401).json({ error: 'Login required' });
-
-  const { r2_key } = req.body;
+  const { r2_key } = req.body || {};
   if (!r2_key) return res.status(400).json({ error: 'Missing r2_key' });
 
   try {

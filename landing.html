@@ -11,7 +11,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=14"></script>
+    <script src="i18n.js?v=17"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -111,8 +111,8 @@
         }
 
         .nav-user-icon {
-            width: 34px;
-            height: 34px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             border: 1px solid var(--line);
             background: rgba(255, 252, 245, 0.6);
@@ -134,7 +134,7 @@
             align-items: center;
         }
 
-        /* 關於我們／定價／語言切換／登入 統一按鈕樣式 */
+        /* 關於我們／定價／語言切換／登入：宽度随文字，高度统一 */
         .nav-link-item,
         .lang-switch-btn,
         .btn-login {
@@ -143,16 +143,18 @@
             justify-content: center;
             gap: 5px;
             text-decoration: none;
-            font-family: var(--font-kai);
+            font-family: inherit;
             font-size: 13px;
             letter-spacing: 0.06em;
-            padding: 6px 16px;
+            height: 30px;
+            padding: 0 16px;
             border: 1px solid var(--line);
             border-radius: 2px;
             background: rgba(255, 252, 245, 0.6);
             color: var(--ink);
             cursor: pointer;
             white-space: nowrap;
+            line-height: 1;
             -webkit-appearance: none;
             appearance: none;
             box-sizing: border-box;
@@ -331,21 +333,10 @@
 
         .action-row {
             display: flex;
+            align-items: center;
             gap: 16px;
             position: relative;
             margin-bottom: 40px;
-        }
-
-        .action-row > .btn-outline,
-        .action-row > .switch-wrap {
-            flex: 1 1 0;
-            min-width: 0;
-        }
-
-        .action-row > .btn-outline,
-        .action-row > .switch-wrap > .btn-outline {
-            width: 100%;
-            min-width: 0;
         }
 
         .bazi-section-label {
@@ -375,16 +366,22 @@
         }
 
         .btn-outline {
-            font-family: var(--font-kai);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: inherit;
             font-size: 15px;
             letter-spacing: 0.08em;
-            padding: 12px 28px;
+            height: 30px;
+            padding: 0 28px;
             min-width: 148px;
             background: rgba(255, 252, 245, 0.72);
             color: var(--ink);
             border: 1px solid var(--line);
             border-radius: 2px;
             cursor: pointer;
+            white-space: nowrap;
+            line-height: 1;
             transition: background 0.2s, border-color 0.2s;
             -webkit-appearance: none;
             appearance: none;
@@ -447,7 +444,7 @@
         .bazi-menu-select {
             flex: 1;
             min-width: 0;
-            font-family: var(--font-kai);
+            font-family: inherit;
             font-size: 13px;
             letter-spacing: 0.04em;
             padding: 12px 8px 12px 16px;
@@ -462,7 +459,7 @@
 
         .bazi-menu-edit {
             flex-shrink: 0;
-            font-family: var(--font-kai);
+            font-family: inherit;
             font-size: 12px;
             letter-spacing: 0.06em;
             padding: 12px 14px;
@@ -884,6 +881,39 @@
             line-height: 1.6;
             color: #8b3a2a;
             margin: -8px 0 16px;
+            letter-spacing: 0.04em;
+        }
+
+        .annual-plans-container {
+            text-align: left;
+            max-height: 420px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+        }
+
+        .annual-plan-block {
+            margin-bottom: 18px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+        }
+
+        .annual-plan-block:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .annual-plan-validity {
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            color: var(--ink);
+            margin: 0 0 10px;
+            line-height: 1.5;
+        }
+
+        .annual-plan-pending {
+            font-size: 12.5px;
+            color: var(--ink-muted);
+            margin: 0 0 10px;
             letter-spacing: 0.04em;
         }
 
@@ -1836,36 +1866,15 @@
             }
 
             .nav-user {
-                width: 100%;
-                gap: 6px;
-                justify-content: stretch;
-            }
-
-            .nav-user > .nav-link-item,
-            .nav-user > .about-switch-wrap,
-            .nav-user > .lang-switch-wrap,
-            .nav-user > .auth-area,
-            .nav-user > #btnAnnualService {
-                flex: 1 1 0;
-                min-width: 0;
-            }
-
-            .nav-user > .about-switch-wrap > .nav-link-item,
-            .nav-user > .lang-switch-wrap > .lang-switch-btn,
-            .nav-user > .auth-area > .btn-login,
-            .nav-user > #btnAnnualService {
-                width: 100%;
-                justify-content: center;
-                font-size: 12px;
-                padding: 6px 4px;
-                letter-spacing: 0.02em;
+                gap: 8px;
             }
 
             .nav-link-item,
             .lang-switch-btn,
             .btn-login {
-                font-size: 12px;
-                padding: 6px 4px;
+                font-size: 13px;
+                height: 30px;
+                padding: 0 10px;
             }
 
             .content-wrap {
@@ -1890,38 +1899,29 @@
 
             .action-row {
                 flex-direction: row;
+                align-items: center;
                 gap: 8px;
             }
 
             .action-row > .btn-outline,
             .action-row > .switch-wrap {
-                flex: 1 1 0;
-                min-width: 0;
-            }
-
-            .action-row > .btn-outline,
-            .action-row > .switch-wrap > .btn-outline {
-                width: 100%;
-                min-width: 0;
+                flex: 0 0 auto;
             }
 
             .btn-outline {
                 font-size: 13px;
-                padding: 9px 10px;
+                height: 30px;
+                padding: 0 16px;
                 white-space: nowrap;
             }
 
-            /* 下拉盖住整行操作区，避免半宽菜单把「编辑」挤出屏幕 */
+            /* 下拉加宽，避免「编辑」被挤出屏幕 */
             .bazi-menu {
                 left: auto;
                 right: 0;
                 width: calc(100vw - 48px);
                 min-width: 0;
                 max-width: none;
-            }
-
-            .bazi-menu-edit {
-                padding: 12px 12px;
             }
 
             .wallpaper-grid {
@@ -1998,7 +1998,6 @@
                 <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
             </div>
         </div>
-        <button type="button" class="nav-link-item" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
         <div class="nav-cart-wrap" id="navCartWrap" style="display:none;">
             <div class="nav-user-icon" id="cartBtn" data-i18n-aria-label="nav_cart_aria" aria-label="下載列表">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
@@ -2024,6 +2023,7 @@
                 </div>
                 <div class="user-menu" id="userMenu" role="menu">
                     <div class="user-menu-email" id="userMenuEmail"></div>
+                    <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
                     <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
@@ -2227,7 +2227,7 @@
             <div class="pay-tier-info-row">
                 <div class="pay-tier-info">
                     <span class="tier-qty" data-i18n="pay_tier_2_qty">2 張</span>
-                    <span class="tier-price">US$9.99</span>
+                    <span class="tier-price">US$10.99</span>
                 </div>
                 <div class="pay-tier-info">
                     <span class="tier-qty" data-i18n="pay_tier_4_qty">4 張</span>
@@ -2255,11 +2255,10 @@
     <div class="modal annual-select-modal">
         <button type="button" class="modal-close" id="annualSelectClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 id="annualSelectTitle" data-i18n="annual_select_title">选择包年档案</h2>
-        <p class="annual-select-desc" id="annualSelectDesc" data-i18n="annual_select_pay_desc">包年服务可指定两个八字档案使用。支付后在导航菜单栏可选择指定八字档案。绑定包年后，所选档案将不可修改、不可删除。</p>
+        <p class="annual-select-desc" id="annualSelectDesc" data-i18n="annual_select_pay_desc">包年服务可指定两个八字档案使用。支付后可在右上角「我的」菜单中选择指定八字档案。绑定包年后，所选档案将不可修改、不可删除。</p>
         <div class="annual-select-manage-only">
             <p class="annual-select-lock-note" data-i18n="annual_select_lock_note">绑定包年后，所选档案将不可修改、不可删除。</p>
-            <div class="annual-select-list" id="annualSelectList"></div>
-            <p class="annual-select-hint" id="annualSelectHint"></p>
+            <div class="annual-plans-container" id="annualPlansContainer"></div>
         </div>
         <div class="annual-select-actions">
             <button type="button" class="btn-annual-later annual-select-manage-only" id="btnAnnualLater" data-i18n="annual_select_later">稍后再选</button>
@@ -2678,17 +2677,22 @@
         // 真太陽時 / 夏令時提示
         const tstHint = document.getElementById('tstHint');
         if (tstHint) {
+            const t = window.I18N ? window.I18N.t : (k) => k;
             if (bazi.tstCorrected || profile.useDST) {
                 let hintText = '';
                 if (bazi.tstCorrected) {
-                    const t = bazi.tstCorrected;
-                    const hh = String(t.hh).padStart(2, '0');
-                    const mm = String(t.mm).padStart(2, '0');
+                    const corrected = bazi.tstCorrected;
+                    const hh = String(corrected.hh).padStart(2, '0');
+                    const mm = String(corrected.mm).padStart(2, '0');
                     const origTime = profile.birthTime || '';
-                    hintText = `☀ 真太陽時 ${hh}:${mm}（時鐘時間 ${origTime}）`;
+                    const lang = (window.I18N && window.I18N.getLanguage) ? window.I18N.getLanguage() : 'zh-CN';
+                    if (lang === 'en') {
+                        hintText = `☀ ${t('form_true_solar_label')} ${hh}:${mm} (${t('tst_clock_label')} ${origTime})`;
+                    } else {
+                        hintText = `☀ ${t('form_true_solar_label')} ${hh}:${mm}（${t('tst_clock_label')} ${origTime}）`;
+                    }
                 }
                 if (profile.useDST) {
-                    const t = window.I18N ? window.I18N.t : (k) => k;
                     hintText += (hintText ? '｜' : '') + t('form_dst_label');
                 }
                 tstHint.textContent = hintText;
@@ -3072,7 +3076,7 @@
 
     // 套餐檔位：1 張 / 2 張 / 4 張 / 包年（包年解鎖全站付費功能，不限次數下載）。
     // 2 張、4 張目前僅作為「更划算」的展示（不可點擊），實際多張結算走下方購物車（下載列表）。
-    const PAY_TIER_PRICE = { '1': '5.99', '2': '9.99', '4': '19.99', 'year': '219.99' };
+    const PAY_TIER_PRICE = { '1': '5.99', '2': '10.99', '4': '19.99', 'year': '219.99' };
     const PAY_TIER_UNIT_KEY = { '1': 'pay_per_image', '2': 'pay_per_2_images', '4': 'pay_per_4_images', 'year': 'pay_per_year' };
     const PAY_TIER_NOTICE_KEY = { '1': 'pay_notice', '2': 'pay_notice', '4': 'pay_notice', 'year': 'pay_notice_year' };
 
@@ -3088,114 +3092,332 @@
         payNotice.textContent = t(PAY_TIER_NOTICE_KEY[tier] || 'pay_notice');
     }
 
-    const ANNUAL_PROFILES_KEY = 'bazi_annual_profile_ids';
-    const ANNUAL_ACTIVE_KEY = 'bazi_annual_active';
+    const ANNUAL_PLANS_KEY = 'bazi_annual_plans';
+    const ANNUAL_PROFILES_KEY = 'bazi_annual_profile_ids'; // legacy
+    const ANNUAL_ACTIVE_KEY = 'bazi_annual_active'; // legacy
     const annualSelectModal = document.getElementById('annualSelectModal');
-    const annualSelectList = document.getElementById('annualSelectList');
-    const annualSelectHint = document.getElementById('annualSelectHint');
+    const annualPlansContainer = document.getElementById('annualPlansContainer');
     const annualSelectDesc = document.getElementById('annualSelectDesc');
     const annualSelectTitle = document.getElementById('annualSelectTitle');
     const btnAnnualLater = document.getElementById('btnAnnualLater');
     const btnAnnualConfirm = document.getElementById('btnAnnualConfirm');
     const btnAnnualService = document.getElementById('btnAnnualService');
-    let annualDraftIds = [];
+    let annualDraftByPlan = {}; // { [planId]: string[] }
     let annualSelectPurpose = 'pay'; // 'pay' | 'manage' | 'view'
 
-    function loadAnnualProfileIds() {
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function todayYMD() {
+        const d = new Date();
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+
+    function addOneYearYMD(ymd) {
+        const parts = String(ymd || '').split('-').map(Number);
+        if (parts.length !== 3 || parts.some((n) => !n)) return todayYMD();
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        d.setFullYear(d.getFullYear() + 1);
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+
+    function formatAnnualDay(ymd) {
+        const parts = String(ymd || '').split('-').map(Number);
+        if (parts.length !== 3 || parts.some((n) => !n)) return ymd || '';
+        const lang = (window.I18N && window.I18N.getLanguage) ? window.I18N.getLanguage() : 'zh-CN';
+        if (lang === 'en') {
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            return `${months[parts[1] - 1]} ${parts[2]}, ${parts[0]}`;
+        }
+        return `${parts[0]}年${parts[1]}月${parts[2]}日`;
+    }
+
+    function formatAnnualValidity(start, end) {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        return `${t('annual_validity_prefix')}${formatAnnualDay(start)}-${formatAnnualDay(end)}`;
+    }
+
+    function normalizeAnnualPlan(plan) {
+        if (!plan || typeof plan !== 'object') return null;
+        const start = plan.start || todayYMD();
+        const end = plan.end || addOneYearYMD(start);
+        const profileIds = Array.isArray(plan.profileIds)
+            ? plan.profileIds.filter(Boolean).slice(0, 2)
+            : [];
+        return {
+            id: plan.id || (`ap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
+            start,
+            end,
+            profileIds,
+        };
+    }
+
+    function migrateLegacyAnnualPlans() {
+        if (localStorage.getItem(ANNUAL_ACTIVE_KEY) !== '1') return [];
+        let ids = [];
         try {
             const raw = JSON.parse(localStorage.getItem(ANNUAL_PROFILES_KEY) || '[]');
-            return Array.isArray(raw) ? raw.filter(Boolean).slice(0, 2) : [];
-        } catch (_) {
-            return [];
-        }
-    }
-
-    function saveAnnualProfileIds(ids) {
-        try {
-            localStorage.setItem(ANNUAL_PROFILES_KEY, JSON.stringify((ids || []).slice(0, 2)));
+            ids = Array.isArray(raw) ? raw.filter(Boolean).slice(0, 2) : [];
         } catch (_) {}
+        const start = todayYMD();
+        return [normalizeAnnualPlan({
+            id: 'ap_migrated',
+            start,
+            end: addOneYearYMD(start),
+            profileIds: ids,
+        })].filter(Boolean);
     }
 
-    function isAnnualActive() {
-        return localStorage.getItem(ANNUAL_ACTIVE_KEY) === '1';
-    }
-
-    function setAnnualActive(on) {
+    function loadAnnualPlans() {
         try {
-            if (on) localStorage.setItem(ANNUAL_ACTIVE_KEY, '1');
+            const raw = JSON.parse(localStorage.getItem(ANNUAL_PLANS_KEY) || 'null');
+            if (Array.isArray(raw)) {
+                return raw.map(normalizeAnnualPlan).filter(Boolean);
+            }
+        } catch (_) {}
+        const migrated = migrateLegacyAnnualPlans();
+        if (migrated.length) saveAnnualPlans(migrated);
+        return migrated;
+    }
+
+    function saveAnnualPlans(plans) {
+        try {
+            const list = (plans || []).map(normalizeAnnualPlan).filter(Boolean);
+            localStorage.setItem(ANNUAL_PLANS_KEY, JSON.stringify(list));
+            // 兼容旧字段：有任一包年即视为 active
+            if (list.length) localStorage.setItem(ANNUAL_ACTIVE_KEY, '1');
             else localStorage.removeItem(ANNUAL_ACTIVE_KEY);
+            const allIds = [];
+            list.forEach((p) => p.profileIds.forEach((id) => {
+                if (!allIds.includes(id)) allIds.push(id);
+            }));
+            localStorage.setItem(ANNUAL_PROFILES_KEY, JSON.stringify(allIds.slice(0, 2)));
         } catch (_) {}
         updateAnnualNavBtn();
     }
 
+    function isAnnualActive() {
+        return loadAnnualPlans().length > 0;
+    }
+
+    function updateAnnualNavBtn() {
+        if (!btnAnnualService) return;
+        // 直接读 localStorage，避免在 AUTH_KEY 声明前调用 isLoggedIn() 触发 TDZ 中断整页脚本
+        const logged = localStorage.getItem('bazi_logged_in') === '1';
+        btnAnnualService.style.display = (logged && isAnnualActive()) ? '' : 'none';
+    }
+
+    function purchaseAnnualPlan() {
+        const plans = loadAnnualPlans();
+        const start = todayYMD();
+        plans.push(normalizeAnnualPlan({
+            id: `ap_${Date.now()}`,
+            start,
+            end: addOneYearYMD(start),
+            profileIds: [],
+        }));
+        saveAnnualPlans(plans);
+        return plans[plans.length - 1];
+    }
+
     function getLockedAnnualProfileIds() {
-        if (!isAnnualActive()) return [];
-        return loadAnnualProfileIds();
+        const ids = [];
+        loadAnnualPlans().forEach((plan) => {
+            (plan.profileIds || []).forEach((id) => {
+                if (id && !ids.includes(id)) ids.push(id);
+            });
+        });
+        return ids;
     }
 
     function isProfileAnnualLocked(id) {
         return !!id && getLockedAnnualProfileIds().includes(id);
     }
 
-    function updateAnnualNavBtn() {
-        if (!btnAnnualService) return;
-        btnAnnualService.style.display = isAnnualActive() ? '' : 'none';
+    function isActiveProfileAnnualBound() {
+        return isProfileAnnualLocked(activeId);
     }
 
-    function updateAnnualSelectUI() {
+    function removeProfileFromAnnualPlans(profileId) {
+        const plans = loadAnnualPlans().map((plan) => ({
+            ...plan,
+            profileIds: (plan.profileIds || []).filter((id) => id !== profileId),
+        }));
+        saveAnnualPlans(plans);
+    }
+
+    function recordDownloadHistory(entry) {
+        try {
+            const raw = JSON.parse(localStorage.getItem('ew_download_history') || '[]');
+            const list = Array.isArray(raw) ? raw : [];
+            list.push({
+                img: entry.img || '',
+                name: entry.name || '',
+                date: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                r2key: entry.r2key || '',
+            });
+            localStorage.setItem('ew_download_history', JSON.stringify(list.slice(-200)));
+        } catch (_) {}
+    }
+
+    function guessExtFromUrl(url, contentType) {
+        if (contentType && contentType.includes('jpeg')) return '.jpg';
+        if (contentType && contentType.includes('png')) return '.png';
+        if (contentType && contentType.includes('webp')) return '.webp';
+        const m = String(url || '').match(/\.(jpe?g|png|webp)(?:\?|#|$)/i);
+        return m ? `.${m[1].toLowerCase().replace('jpeg', 'jpg')}` : '.jpg';
+    }
+
+    /** 发起原图下载任务：取签名链接 → blob 保存到本地（不打开预览图） */
+    async function startOriginalDownload({ r2key, name, previewImg }) {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        const count = annualDraftIds.length;
-        annualSelectList.querySelectorAll('.annual-select-item').forEach((el) => {
-            const selected = annualDraftIds.includes(el.dataset.id);
-            el.classList.toggle('selected', selected);
-            const check = el.querySelector('.annual-select-check');
-            if (check) check.textContent = selected ? '✓' : '';
+        if (!requireLogin()) return;
+        if (!r2key) {
+            alert(t('mock_feature_notice'));
+            return;
+        }
+
+        let fileUrl = '';
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            const email = typeof getLoggedEmail === 'function' ? getLoggedEmail() : '';
+            if (email) headers['X-User-Email'] = email;
+            const res = await fetch('/api/download', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ r2_key: r2key }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.url) fileUrl = data.url;
+            }
+        } catch (_) {}
+
+        // 本地无 API / 鉴权失败时：用公共桶原图 key 拉文件（仍走 blob，不会跳转打开）
+        if (!fileUrl) {
+            fileUrl = `${R2_PUBLIC_URL}/${r2key}`;
+        }
+
+        try {
+            const resp = await fetch(fileUrl);
+            if (!resp.ok) throw new Error('fetch failed');
+            const blob = await resp.blob();
+            const ext = guessExtFromUrl(fileUrl, blob.type);
+            const filename = ((name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_')) + ext;
+            const obj = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = obj;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(obj), 2000);
+            recordDownloadHistory({ img: previewImg || fileUrl, name, r2key });
+        } catch (_) {
+            alert(t('mock_feature_notice'));
+        }
+    }
+
+    function plansNeedSelection(plans) {
+        return (plans || []).some((p) => (p.profileIds || []).length < 2);
+    }
+
+    function profileLabelHtml(p) {
+        const short = computeBaziForProfile(p).pillars[0];
+        return `<span class="tag">${escapeHtml(p.nickname)}</span>${short.gan}${short.zhi} · ${escapeHtml(p.birthDate)}`;
+    }
+
+    function updateAnnualPlanHints() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        if (!annualPlansContainer) return;
+        annualPlansContainer.querySelectorAll('.annual-plan-block').forEach((block) => {
+            const planId = block.dataset.planId;
+            if (!planId || block.dataset.editable !== '1') return;
+            const draft = annualDraftByPlan[planId] || [];
+            const hint = block.querySelector('.annual-select-hint');
+            if (!hint) return;
+            if (draft.length === 0) hint.textContent = t('annual_select_hint_zero');
+            else if (draft.length === 1) hint.textContent = t('annual_select_hint_one');
+            else hint.textContent = t('annual_select_hint_done');
         });
-        btnAnnualConfirm.disabled = false;
-        if (count === 0) {
-            annualSelectHint.textContent = t('annual_select_hint_zero');
-        } else if (count === 1) {
-            annualSelectHint.textContent = t('annual_select_hint_one');
-        } else {
-            annualSelectHint.textContent = t('annual_select_hint_done');
-        }
+        if (btnAnnualConfirm) btnAnnualConfirm.disabled = false;
     }
 
-    function renderAnnualSelectList() {
+    function renderAnnualPlansUI() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const plans = loadAnnualPlans();
         const list = (typeof profiles !== 'undefined' && Array.isArray(profiles)) ? profiles : [];
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        if (!list.length) {
-            annualSelectList.innerHTML = `<p class="annual-select-hint" style="padding:16px;margin:0;">${t('annual_select_empty')}</p>`;
-            btnAnnualConfirm.disabled = false;
-            annualSelectHint.textContent = '';
-            return;
-        }
-        annualSelectList.innerHTML = list.map((p) => {
-            const short = computeBaziForProfile(p).pillars[0];
-            const selected = annualDraftIds.includes(p.id);
-            return `<button type="button" class="annual-select-item${selected ? ' selected' : ''}" data-id="${escapeHtml(p.id)}">` +
-                `<span class="annual-select-check">${selected ? '✓' : ''}</span>` +
-                `<span><span class="tag">${escapeHtml(p.nickname)}</span>${short.gan}${short.zhi} · ${escapeHtml(p.birthDate)}</span>` +
-                `</button>`;
-        }).join('');
-        updateAnnualSelectUI();
-    }
+        if (!annualPlansContainer) return;
 
-    function renderAnnualViewList() {
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        const bound = (profiles || []).filter((p) => annualDraftIds.includes(p.id));
-        if (!bound.length) {
-            annualSelectList.innerHTML = `<p class="annual-select-hint" style="padding:16px;margin:0;">${t('annual_view_empty')}</p>`;
-            annualSelectHint.textContent = '';
+        if (!plans.length) {
+            annualPlansContainer.innerHTML =
+                `<p class="annual-select-hint" style="padding:8px 0;margin:0;">${t('annual_view_empty')}</p>`;
             return;
         }
-        annualSelectList.innerHTML = bound.map((p) => {
-            const short = computeBaziForProfile(p).pillars[0];
-            return `<div class="annual-select-item selected view-only" data-id="${escapeHtml(p.id)}">` +
-                `<span><span class="tag">${escapeHtml(p.nickname)}</span>${short.gan}${short.zhi} · ${escapeHtml(p.birthDate)}</span>` +
-                `</div>`;
+
+        annualPlansContainer.innerHTML = plans.map((plan) => {
+            const savedIds = (plan.profileIds || []).filter((id) =>
+                list.some((p) => p.id === id)
+            );
+            // 已确认绑定的不可移出；草稿只能在 saved 基础上增补
+            let draft = (annualDraftByPlan[plan.id] || []).filter((id) =>
+                list.some((p) => p.id === id)
+            );
+            savedIds.forEach((id) => {
+                if (!draft.includes(id)) draft.push(id);
+            });
+            draft = draft.slice(0, 2);
+            annualDraftByPlan[plan.id] = draft;
+
+            const editable = annualSelectPurpose === 'manage' && savedIds.length < 2;
+            const lockedElsewhere = new Set();
+            plans.forEach((other) => {
+                if (other.id === plan.id) return;
+                (other.profileIds || []).forEach((id) => lockedElsewhere.add(id));
+                (annualDraftByPlan[other.id] || []).forEach((id) => lockedElsewhere.add(id));
+            });
+
+            const boundRows = savedIds.map((id) => {
+                const p = list.find((x) => x.id === id);
+                if (!p) return '';
+                return `<div class="annual-select-item selected view-only" data-id="${escapeHtml(p.id)}">` +
+                    `<span>${profileLabelHtml(p)}</span></div>`;
+            }).join('');
+
+            let selectRows = '';
+            if (editable) {
+                const candidates = list.filter((p) =>
+                    !savedIds.includes(p.id) && !lockedElsewhere.has(p.id)
+                );
+                if (!candidates.length && !savedIds.length) {
+                    selectRows = `<p class="annual-select-hint" style="padding:16px;margin:0;">${t('annual_select_empty')}</p>`;
+                } else {
+                    selectRows = candidates.map((p) => {
+                        const selected = draft.includes(p.id);
+                        return `<button type="button" class="annual-select-item${selected ? ' selected' : ''}" data-id="${escapeHtml(p.id)}" data-plan-id="${escapeHtml(plan.id)}">` +
+                            `<span class="annual-select-check">${selected ? '✓' : ''}</span>` +
+                            `<span>${profileLabelHtml(p)}</span></button>`;
+                    }).join('');
+                }
+            }
+
+            const listHtml = boundRows + selectRows;
+            const pendingNote = (!editable && savedIds.length < 2)
+                ? `<p class="annual-plan-pending">${t('annual_plan_pending')}</p>`
+                : '';
+            const hintHtml = editable ? `<p class="annual-select-hint"></p>` : '';
+            const listWrap = listHtml
+                ? `<div class="annual-select-list">${listHtml}</div>`
+                : '';
+
+            return `<section class="annual-plan-block" data-plan-id="${escapeHtml(plan.id)}" data-editable="${editable ? '1' : '0'}">` +
+                `<p class="annual-plan-validity">${escapeHtml(formatAnnualValidity(plan.start, plan.end))}</p>` +
+                pendingNote +
+                listWrap +
+                hintHtml +
+                `</section>`;
         }).join('');
-        annualSelectHint.textContent = '';
+
+        updateAnnualPlanHints();
     }
 
     function applyAnnualModalMode() {
@@ -3234,20 +3456,34 @@
     }
 
     function openAnnualSelectModal(purpose) {
-        annualDraftIds = loadAnnualProfileIds().filter((id) =>
-            (profiles || []).some((p) => p.id === id)
-        );
+        // 管理／查看：必须已登录且已购买包年
         if (purpose === 'manage') {
-            // 已选满 2 个：只读展示；未满 2 个：可继续勾选补齐
-            annualSelectPurpose = annualDraftIds.length >= 2 ? 'view' : 'manage';
+            if (typeof isLoggedIn === 'function' && !isLoggedIn()) {
+                requireLogin();
+                return;
+            }
+            if (!isAnnualActive()) return;
+        }
+
+        const plans = loadAnnualPlans();
+        annualDraftByPlan = {};
+        plans.forEach((plan) => {
+            annualDraftByPlan[plan.id] = (plan.profileIds || []).filter((id) =>
+                (profiles || []).some((p) => p.id === id)
+            );
+        });
+
+        if (purpose === 'manage') {
+            annualSelectPurpose = plansNeedSelection(plans.map((p) => ({
+                ...p,
+                profileIds: annualDraftByPlan[p.id] || [],
+            }))) ? 'manage' : 'view';
         } else {
             annualSelectPurpose = 'pay';
         }
         applyAnnualModalMode();
-        if (annualSelectPurpose === 'manage') {
-            renderAnnualSelectList();
-        } else if (annualSelectPurpose === 'view') {
-            renderAnnualViewList();
+        if (annualSelectPurpose === 'manage' || annualSelectPurpose === 'view') {
+            renderAnnualPlansUI();
         }
         annualSelectModal.classList.add('open');
     }
@@ -3259,16 +3495,21 @@
     function completeAnnualPurchaseMock() {
         const t = window.I18N ? window.I18N.t : (k) => k;
         applyTierUI('year');
-        setAnnualActive(true);
+        purchaseAnnualPlan();
         closeAnnualSelectModal();
         payModal.classList.remove('open');
         refresh();
         alert(t('annual_pay_success_mock'));
+        openAnnualSelectModal('manage');
     }
 
-    function finishAnnualSelect(ids) {
+    function finishAnnualSelect() {
         if (annualSelectPurpose === 'manage') {
-            saveAnnualProfileIds(ids || []);
+            const plans = loadAnnualPlans().map((plan) => ({
+                ...plan,
+                profileIds: (annualDraftByPlan[plan.id] || []).slice(0, 2),
+            }));
+            saveAnnualPlans(plans);
             closeAnnualSelectModal();
             refresh();
             return;
@@ -3277,7 +3518,6 @@
             closeAnnualSelectModal();
             return;
         }
-        // 下载选包年：确认支付（支付未接入，先走演示成功）
         completeAnnualPurchaseMock();
     }
 
@@ -3293,23 +3533,41 @@
         applyTierUI(tier);
     });
 
-    annualSelectList.addEventListener('click', (e) => {
-        if (annualSelectPurpose !== 'manage') return;
-        const item = e.target.closest('.annual-select-item');
-        if (!item || item.classList.contains('view-only')) return;
-        const id = item.dataset.id;
-        if (!id) return;
-        const idx = annualDraftIds.indexOf(id);
-        if (idx >= 0) {
-            annualDraftIds.splice(idx, 1);
-        } else if (annualDraftIds.length < 2) {
-            annualDraftIds.push(id);
-        } else {
-            annualDraftIds.shift();
-            annualDraftIds.push(id);
-        }
-        updateAnnualSelectUI();
-    });
+    if (annualPlansContainer) {
+        annualPlansContainer.addEventListener('click', (e) => {
+            if (annualSelectPurpose !== 'manage') return;
+            const item = e.target.closest('.annual-select-item');
+            if (!item || item.classList.contains('view-only')) return;
+            const planId = item.dataset.planId;
+            const id = item.dataset.id;
+            if (!planId || !id) return;
+            const plan = loadAnnualPlans().find((p) => p.id === planId);
+            const savedIds = (plan && plan.profileIds) ? plan.profileIds.slice() : [];
+            // 已确认绑定的不可取消
+            if (savedIds.includes(id)) return;
+
+            let draft = (annualDraftByPlan[planId] || []).slice();
+            savedIds.forEach((sid) => {
+                if (!draft.includes(sid)) draft.push(sid);
+            });
+            const idx = draft.indexOf(id);
+            if (idx >= 0) {
+                draft.splice(idx, 1);
+                // 确保 saved 仍在
+                savedIds.forEach((sid) => {
+                    if (!draft.includes(sid)) draft.unshift(sid);
+                });
+            } else if (draft.length < 2) {
+                draft.push(id);
+            } else {
+                // 已满：只替换尚未确认的那一个
+                const replaceIdx = draft.findIndex((x) => !savedIds.includes(x));
+                if (replaceIdx >= 0) draft[replaceIdx] = id;
+            }
+            annualDraftByPlan[planId] = draft.slice(0, 2);
+            renderAnnualPlansUI();
+        });
+    }
 
     btnAnnualLater.addEventListener('click', () => {
         closeAnnualSelectModal();
@@ -3317,14 +3575,14 @@
 
     btnAnnualConfirm.addEventListener('click', () => {
         if (annualSelectPurpose === 'manage') {
-            finishAnnualSelect(annualDraftIds.slice());
+            finishAnnualSelect();
             return;
         }
         if (annualSelectPurpose === 'view') {
             closeAnnualSelectModal();
             return;
         }
-        finishAnnualSelect([]);
+        finishAnnualSelect();
     });
 
     document.getElementById('annualSelectClose').addEventListener('click', () => {
@@ -3338,10 +3596,14 @@
     if (btnAnnualService) {
         btnAnnualService.addEventListener('click', (e) => {
             e.stopPropagation();
+            const userMenuEl = document.getElementById('userMenu');
+            if (userMenuEl) userMenuEl.classList.remove('open');
             openAnnualSelectModal('manage');
         });
     }
     updateAnnualNavBtn();
+
+    // hash 打开包年管理：放到登录状态初始化之后
 
 
     wallpaperGrid.addEventListener('click', (e) => {
@@ -3356,6 +3618,11 @@
         pendingDownloadName = name;
         pendingDownloadKey = key;
         pendingDownloadR2Key = r2key;
+        // 当前档案已绑定包年：跳过价格窗，直接发起原图下载任务
+        if (isActiveProfileAnnualBound()) {
+            startOriginalDownload({ r2key, name, previewImg: img });
+            return;
+        }
         payPreviewImg.src = img;
         payPreviewImg.alt = name;
         payWallpaperName.textContent = name;
@@ -3373,10 +3640,11 @@
         payModal.classList.remove('open');
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (selectedTier === 'year') {
-            // 支付未接入：先模拟包年支付成功，显示导航「包年服务」并锁定已选档案
-            setAnnualActive(true);
+            // 支付未接入：先模拟包年支付成功，写入新包年段并打开管理弹窗
+            purchaseAnnualPlan();
             refresh();
             alert(t('annual_pay_success_mock'));
+            openAnnualSelectModal('manage');
             return;
         }
         // 模拟登录阶段：不调用真实 /api/download（需要 Supabase token）
@@ -3415,12 +3683,12 @@
         cartBadge.classList.toggle('show', count > 0);
     }
 
-    // 依已勾選數量計算結算金額：以 4 張 $19.99、2 張 $9.99、1 張 $5.99 的檔位組合出最省價格
+    // 依已勾選數量計算結算金額：以 4 張 $19.99、2 張 $10.99、1 張 $5.99 的檔位組合出最省價格
     function computeCartTotal(count) {
         let n = count;
         let total = 0;
         total += Math.floor(n / 4) * 19.99; n %= 4;
-        total += Math.floor(n / 2) * 9.99; n %= 2;
+        total += Math.floor(n / 2) * 10.99; n %= 2;
         total += n * 5.99;
         return total;
     }
@@ -4181,12 +4449,15 @@
     }
 
     function getLoggedEmail() {
-        return localStorage.getItem(AUTH_EMAIL_KEY) || '';
+        return localStorage.getItem(AUTH_EMAIL_KEY)
+            || localStorage.getItem('bazi_logged_in_email')
+            || '';
     }
 
     function setLoggedIn(email) {
         localStorage.setItem(AUTH_KEY, '1');
         localStorage.setItem(AUTH_EMAIL_KEY, email || '');
+        localStorage.removeItem('bazi_logged_in_email');
         updateAuthUI();
         hydrateProfilesFromCloud();
     }
@@ -4194,6 +4465,7 @@
     function clearLoggedIn() {
         localStorage.removeItem(AUTH_KEY);
         localStorage.removeItem(AUTH_EMAIL_KEY);
+        localStorage.removeItem('bazi_logged_in_email');
         updateAuthUI();
     }
 
@@ -4204,10 +4476,19 @@
         userMenuEmail.textContent = logged ? getLoggedEmail() : '';
         const navCartWrap = document.getElementById('navCartWrap');
         if (navCartWrap) navCartWrap.style.display = logged ? '' : 'none';
+        updateAnnualNavBtn();
     }
 
     updateAuthUI();
     if (localStorage.getItem(AUTH_KEY) === '1') hydrateProfilesFromCloud();
+
+    // 其他页面「包年服务」跳转落地：landing.html#annual
+    if (location.hash === '#annual' && isLoggedIn() && isAnnualActive()) {
+        setTimeout(() => {
+            openAnnualSelectModal('manage');
+            try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+        }, 0);
+    }
 
     // 登入／註冊共用同一個彈窗，靠 authMode 切換標題、按鈕文案跟底部提示（前端模擬，暫無後端）
     const subscribeRow = document.getElementById('subscribeRow');
@@ -4408,8 +4689,7 @@
         await cloudDeleteProfile(idToDelete);
         profiles = profiles.filter((p) => p.id !== idToDelete);
         // 包年绑定若包含该档案，一并移除（壁纸 seed 由 profile.id 即时计算，无独立持久化记录）
-        const annualIds = loadAnnualProfileIds().filter((id) => id !== idToDelete);
-        saveAnnualProfileIds(annualIds);
+        removeProfileFromAnnualPlans(idToDelete);
         if (!profiles.length) {
             profiles = defaultProfiles.map((p) => ({ ...p }));
         }
