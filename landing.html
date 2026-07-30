@@ -8,10 +8,10 @@
         汇迹正楷 CooperZhengKai：UI 子集优先；子集没有的字回退到完整 CooperZhengKai。
         城市名等地点文案仍可走系统字体（见 .loc-select）。
     -->
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=4" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=4" />
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=13"></script>
+    <script src="i18n.js?v=14"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -140,9 +140,10 @@
         .btn-login {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 5px;
             text-decoration: none;
-            font-family: inherit;
+            font-family: var(--font-kai);
             font-size: 13px;
             letter-spacing: 0.06em;
             padding: 6px 16px;
@@ -152,6 +153,9 @@
             color: var(--ink);
             cursor: pointer;
             white-space: nowrap;
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
         }
 
         .nav-link-item:hover,
@@ -332,6 +336,18 @@
             margin-bottom: 40px;
         }
 
+        .action-row > .btn-outline,
+        .action-row > .switch-wrap {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .action-row > .btn-outline,
+        .action-row > .switch-wrap > .btn-outline {
+            width: 100%;
+            min-width: 0;
+        }
+
         .bazi-section-label {
             font-size: 16px;
             letter-spacing: 0.2em;
@@ -359,7 +375,7 @@
         }
 
         .btn-outline {
-            font-family: inherit;
+            font-family: var(--font-kai);
             font-size: 15px;
             letter-spacing: 0.08em;
             padding: 12px 28px;
@@ -370,6 +386,9 @@
             border-radius: 2px;
             cursor: pointer;
             transition: background 0.2s, border-color 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
         }
 
         .btn-outline:hover {
@@ -428,7 +447,7 @@
         .bazi-menu-select {
             flex: 1;
             min-width: 0;
-            font-family: inherit;
+            font-family: var(--font-kai);
             font-size: 13px;
             letter-spacing: 0.04em;
             padding: 12px 8px 12px 16px;
@@ -437,11 +456,13 @@
             color: var(--ink);
             cursor: pointer;
             text-align: left;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .bazi-menu-edit {
             flex-shrink: 0;
-            font-family: inherit;
+            font-family: var(--font-kai);
             font-size: 12px;
             letter-spacing: 0.06em;
             padding: 12px 14px;
@@ -451,6 +472,8 @@
             color: var(--ink-muted);
             cursor: pointer;
             white-space: nowrap;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .bazi-menu-edit:hover {
@@ -1813,14 +1836,36 @@
             }
 
             .nav-user {
-                gap: 8px;
+                width: 100%;
+                gap: 6px;
+                justify-content: stretch;
+            }
+
+            .nav-user > .nav-link-item,
+            .nav-user > .about-switch-wrap,
+            .nav-user > .lang-switch-wrap,
+            .nav-user > .auth-area,
+            .nav-user > #btnAnnualService {
+                flex: 1 1 0;
+                min-width: 0;
+            }
+
+            .nav-user > .about-switch-wrap > .nav-link-item,
+            .nav-user > .lang-switch-wrap > .lang-switch-btn,
+            .nav-user > .auth-area > .btn-login,
+            .nav-user > #btnAnnualService {
+                width: 100%;
+                justify-content: center;
+                font-size: 12px;
+                padding: 6px 4px;
+                letter-spacing: 0.02em;
             }
 
             .nav-link-item,
             .lang-switch-btn,
             .btn-login {
-                font-size: 13px;
-                padding: 5px 10px;
+                font-size: 12px;
+                padding: 6px 4px;
             }
 
             .content-wrap {
@@ -1850,17 +1895,33 @@
 
             .action-row > .btn-outline,
             .action-row > .switch-wrap {
-                flex: 0 0 auto;
+                flex: 1 1 0;
+                min-width: 0;
             }
 
+            .action-row > .btn-outline,
             .action-row > .switch-wrap > .btn-outline {
                 width: 100%;
+                min-width: 0;
             }
 
             .btn-outline {
                 font-size: 13px;
-                padding: 9px 16px;
+                padding: 9px 10px;
                 white-space: nowrap;
+            }
+
+            /* 下拉盖住整行操作区，避免半宽菜单把「编辑」挤出屏幕 */
+            .bazi-menu {
+                left: auto;
+                right: 0;
+                width: calc(100vw - 48px);
+                min-width: 0;
+                max-width: none;
+            }
+
+            .bazi-menu-edit {
+                padding: 12px 12px;
             }
 
             .wallpaper-grid {

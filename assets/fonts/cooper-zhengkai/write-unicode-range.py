@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从子集 woff2 的 cmap 生成 style.css 的 unicode-range（缺字才能按 font-family 回退到系统楷体）。"""
+"""从子集 woff2 的 cmap 更新 style.css 的 unicode-range（保留 CooperZhengKaiFull）。"""
 import re
 import sys
 from pathlib import Path
@@ -13,12 +13,10 @@ sp = next((REPO / '.venv-font/lib').glob('python*/site-packages'))
 sys.path.insert(0, str(sp))
 from fontTools.ttLib import TTFont
 
-ver = '3'
+ver = '6'
 m = re.search(r'woff2\?v=(\d+)', CSS.read_text(encoding='utf-8') if CSS.exists() else '')
 if m:
-    ver = str(int(m.group(1)) + 1) if False else m.group(1)  # keep caller-controlled; default read
-
-# allow override: python write-unicode-range.py 4
+    ver = m.group(1)
 if len(sys.argv) > 1:
     ver = sys.argv[1]
 
@@ -42,9 +40,14 @@ def fmt(a, b):
 
 ur = ', '.join(fmt(a, b) for a, b in ranges)
 CSS.write_text(
-    "/* 汇迹正楷 CooperZhengKai 1.4（站点 UI 子集；完整字库 *.full.woff2 仅本地保留、不入库不线上加载）。\n"
-    "   必须声明 unicode-range：仅覆盖子集实际含有的码位。\n"
-    "   否则缺字时 Chromium 会绕过 font-family 后续楷体，直接落到系统黑体。 */\n"
+    "/* 汇迹正楷 CooperZhengKai 1.4\n"
+    " *\n"
+    " * 优先级（见 landing.html --font-kai）：\n"
+    " *   1. CooperZhengKai      → UI 子集（仅 unicode-range 内码位，体积小，优先加载）\n"
+    " *   2. CooperZhengKaiFull  → 完整字库（子集没有的字走这里，仍是汇迹正楷）\n"
+    " *\n"
+    " * 完整字库随站点部署；仅在页面出现子集外汉字时按需下载。\n"
+    " */\n"
     "@font-face {\n"
     "  font-family: 'CooperZhengKai';\n"
     "  font-style: normal;\n"
@@ -52,6 +55,14 @@ CSS.write_text(
     "  font-display: swap;\n"
     f"  src: url('./files/CooperZhengKai-1.4.woff2?v={ver}') format('woff2');\n"
     f"  unicode-range: {ur};\n"
+    "}\n"
+    "\n"
+    "@font-face {\n"
+    "  font-family: 'CooperZhengKaiFull';\n"
+    "  font-style: normal;\n"
+    "  font-weight: 400;\n"
+    "  font-display: swap;\n"
+    f"  src: url('./files/CooperZhengKai-1.4.full.woff2?v={ver}') format('woff2');\n"
     "}\n",
     encoding='utf-8',
 )
