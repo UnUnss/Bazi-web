@@ -1,4 +1,4 @@
-// 模拟登录阶段：用 X-User-Email 标识用户，service_role 读写 bazi_profiles
+// 鉴权：Authorization Bearer（Supabase）或 X-User-Email（兼容）
 import { createClient } from '@supabase/supabase-js';
 
 const sb = createClient(
@@ -7,10 +7,17 @@ const sb = createClient(
   { auth: { persistSession: false } }
 );
 
-function requireEmail(req) {
+async function assertUser(req) {
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  if (token) {
+    const { data: { user }, error } = await sb.auth.getUser(token);
+    if (!error && user?.email) {
+      return { email: user.email.trim().toLowerCase(), userId: user.id };
+    }
+  }
   const email = (req.headers['x-user-email'] || '').trim().toLowerCase();
-  if (!email || !email.includes('@')) return null;
-  return email;
+  if (email && email.includes('@')) return { email, userId: null };
+  return null;
 }
 
 function toClient(row) {
@@ -28,7 +35,7 @@ function toClient(row) {
   };
 }
 
-function toRow(profile, email) {
+function toRow(profile, email, userId) {
   return {
     nickname: profile.nickname,
     gender: Number(profile.gender),
@@ -40,13 +47,14 @@ function toRow(profile, email) {
     use_true_solar_time: !!profile.useTrueSolarTime,
     use_dst: !!profile.useDST,
     owner_email: email,
-    user_id: null,
+    user_id: userId,
   };
 }
 
 export default async function handler(req, res) {
-  const email = requireEmail(req);
-  if (!email) return res.status(401).json({ error: 'Login required' });
+  const auth = await assertUser(req);
+  if (!auth) return res.status(401).json({ error: 'Login required' });
+  const { email, userId } = auth;
 
   try {
     if (req.method === 'GET') {
@@ -66,7 +74,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing profile fields' });
       }
 
-      const row = toRow(profile, email);
+      const row = toRow(profile, email, userId);
       const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
       if (profile.id && uuidRe.test(profile.id)) {

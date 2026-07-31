@@ -182,13 +182,27 @@
         }
 
         .lang-menu,
-        .user-menu,
+        .user-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 130px;
+            background: rgba(255, 252, 245, 0.96);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+            overflow: hidden;
+        }
+
         .about-menu {
             display: none;
             position: absolute;
             top: calc(100% + 6px);
             right: 0;
             min-width: 130px;
+            width: max-content;
             background: rgba(255, 252, 245, 0.96);
             border: 1px solid var(--line);
             border-radius: 2px;
@@ -238,6 +252,8 @@
             cursor: pointer;
             text-align: left;
             border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+            white-space: nowrap;
+            box-sizing: border-box;
         }
 
         .lang-menu button:last-child,
@@ -411,8 +427,10 @@
             position: absolute;
             top: calc(100% + 8px);
             left: 0;
-            right: 0;
+            right: auto;
+            width: max-content;
             min-width: 260px;
+            max-width: min(320px, calc(100vw - 48px));
             background: rgba(255, 252, 245, 0.96);
             border: 1px solid var(--line);
             border-radius: 2px;
@@ -429,6 +447,8 @@
         .bazi-menu-item {
             display: flex;
             align-items: stretch;
+            height: 30px;
+            box-sizing: border-box;
             border-bottom: 1px solid rgba(42, 30, 10, 0.08);
         }
 
@@ -444,33 +464,47 @@
         .bazi-menu-select {
             flex: 1;
             min-width: 0;
+            height: 30px;
+            display: flex;
+            align-items: center;
             font-family: inherit;
             font-size: 13px;
             letter-spacing: 0.04em;
-            padding: 12px 8px 12px 16px;
+            padding: 0 8px 0 16px;
             border: none;
             background: transparent;
             color: var(--ink);
             cursor: pointer;
             text-align: left;
+            line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             -webkit-appearance: none;
             appearance: none;
+            box-sizing: border-box;
         }
 
         .bazi-menu-edit {
             flex-shrink: 0;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             font-family: inherit;
             font-size: 12px;
             letter-spacing: 0.06em;
-            padding: 12px 14px;
+            padding: 0 14px;
             border: none;
             border-left: 1px solid rgba(42, 30, 10, 0.08);
             background: transparent;
             color: var(--ink-muted);
             cursor: pointer;
             white-space: nowrap;
+            line-height: 1;
             -webkit-appearance: none;
             appearance: none;
+            box-sizing: border-box;
         }
 
         .bazi-menu-edit:hover {
@@ -1784,6 +1818,26 @@
             transform: translateX(18px);
         }
 
+        .auth-forgot-row {
+            display: flex;
+            justify-content: flex-end;
+            margin: 8px 0 0;
+        }
+        .auth-forgot-btn {
+            font-family: inherit;
+            font-size: 12px;
+            border: none;
+            background: transparent;
+            color: var(--ink-soft);
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 0;
+            letter-spacing: 0.04em;
+        }
+        .auth-forgot-btn:hover {
+            color: var(--ink);
+        }
+
         .auth-divider {
             display: flex;
             align-items: center;
@@ -1816,6 +1870,45 @@
             transition: background 0.15s;
         }
         .btn-google:hover { background: #f9f9f7; }
+
+        .auth-method-tabs {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 18px;
+        }
+        .auth-method-tab {
+            flex: 1;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            padding: 9px 12px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: transparent;
+            color: var(--ink-soft);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .auth-method-or {
+            flex: 0 0 auto;
+            font-size: 13px;
+            color: var(--ink-soft);
+            line-height: 1;
+            user-select: none;
+            pointer-events: none;
+        }
+        .auth-method-tab.active {
+            background: #e8dcc8;
+            border-color: #d9cbb3;
+            color: var(--ink);
+        }
+        .auth-field-hint {
+            margin: 6px 0 0;
+            font-size: 12px;
+            color: var(--ink-soft);
+            line-height: 1.4;
+        }
 
         .auth-toggle {
             margin-top: 16px;
@@ -1915,13 +2008,13 @@
                 white-space: nowrap;
             }
 
-            /* 下拉加宽，避免「编辑」被挤出屏幕 */
+            /* 下拉略宽于按钮，保证「编辑」可见，但不拉满屏宽 */
             .bazi-menu {
                 left: auto;
                 right: 0;
-                width: calc(100vw - 48px);
-                min-width: 0;
-                max-width: none;
+                width: max-content;
+                min-width: 260px;
+                max-width: calc(100vw - 48px);
             }
 
             .wallpaper-grid {
@@ -2103,7 +2196,7 @@
         <form id="addBaziForm">
             <div class="form-group">
                 <label for="nickname" data-i18n="form_nickname_label">暱稱</label>
-                <input type="text" id="nickname" name="nickname" data-i18n-placeholder="form_nickname_placeholder" placeholder="如：本人、伴侶" required />
+                <input type="text" id="nickname" name="nickname" data-i18n-placeholder="form_nickname_placeholder" placeholder="如：本人、伴侶" maxlength="16" required />
             </div>
             <div class="form-group">
                 <label data-i18n="form_gender_label">性別</label>
@@ -2293,21 +2386,33 @@
 </div>
 
 <!-- 登入彈窗 -->
-<div class="modal-backdrop" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+<div class="modal-backdrop" id="loginModal" role="dialog" aria-modal="true">
     <div class="modal">
         <button type="button" class="modal-close" id="loginModalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
-        <h2 id="loginModalTitle">登入</h2>
+        <div class="auth-method-tabs" role="tablist" aria-label="auth method">
+            <button type="button" class="auth-method-tab active" id="authMethodOtp" data-method="otp">驗證碼登入</button>
+            <span class="auth-method-or" data-i18n="auth_method_or" aria-hidden="true">或</span>
+            <button type="button" class="auth-method-tab" id="authMethodPassword" data-method="password">密碼登入</button>
+        </div>
         <form id="loginForm">
             <div class="form-group">
                 <label for="loginEmail" data-i18n="login_email_label">郵箱</label>
-                <input type="email" id="loginEmail" name="loginEmail" required />
+                <input type="email" id="loginEmail" name="loginEmail" autocomplete="email" required />
             </div>
-            <div class="form-group">
+            <div class="form-group" id="loginCodeGroup">
                 <label for="loginCode" data-i18n="login_code_label">驗證碼</label>
                 <div class="code-row">
-                    <input type="text" id="loginCode" name="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required />
+                    <input type="text" id="loginCode" name="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" />
                     <button type="button" class="btn-get-code" id="btnGetCode" data-i18n="btn_get_code">獲取驗證碼</button>
                 </div>
+            </div>
+            <div class="form-group" id="loginPasswordGroup" style="display:none;">
+                <label for="loginPassword" data-i18n="login_password_label">密碼</label>
+                <input type="password" id="loginPassword" name="loginPassword" autocomplete="current-password" minlength="6" />
+            </div>
+            <div class="form-group" id="loginPasswordConfirmGroup" style="display:none;">
+                <label for="loginPasswordConfirm" data-i18n="login_password_confirm_label">確認密碼</label>
+                <input type="password" id="loginPasswordConfirm" name="loginPasswordConfirm" autocomplete="new-password" minlength="6" />
             </div>
             <div class="form-group subscribe-row" id="subscribeRow" style="display:none;">
                 <label class="subscribe-label">
@@ -2316,6 +2421,9 @@
                 </label>
             </div>
             <button type="submit" class="btn-save" id="loginSubmitBtn">登入</button>
+            <div class="auth-forgot-row" id="forgotPasswordRow" style="display:none;">
+                <button type="button" class="auth-forgot-btn" id="btnForgotPassword" data-i18n="forgot_password">忘記密碼</button>
+            </div>
         </form>
         <div class="auth-divider"><span>或</span></div>
         <button type="button" class="btn-google" id="btnGoogleLogin">
@@ -2570,17 +2678,32 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
-    // 模拟登录：用邮箱把档案同步到 Supabase（经 /api/bazi-profiles）
+    // 登录后把档案同步到 Supabase（经 /api/bazi-profiles）；优先 Bearer，兼容邮箱头
+    async function getAuthHeaders(extra) {
+        const headers = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+        try {
+            if (typeof _sb !== 'undefined' && _sb?.auth) {
+                const { data: { session } } = await _sb.auth.getSession();
+                if (session?.access_token) {
+                    headers['Authorization'] = `Bearer ${session.access_token}`;
+                }
+            }
+        } catch (_) {}
+        const email = localStorage.getItem('bazi_logged_email')
+            || localStorage.getItem('bazi_logged_in_email')
+            || '';
+        if (email) headers['X-User-Email'] = email;
+        return headers;
+    }
+
     async function cloudUpsertProfile(profile) {
-        const email = localStorage.getItem('bazi_logged_email');
+        const email = localStorage.getItem('bazi_logged_email')
+            || localStorage.getItem('bazi_logged_in_email');
         if (!email || !profile || String(profile.id || '').startsWith('demo-')) return profile;
         try {
             const res = await fetch('/api/bazi-profiles', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-User-Email': email,
-                },
+                headers: await getAuthHeaders(),
                 body: JSON.stringify({ profile }),
             });
             if (!res.ok) {
@@ -2597,15 +2720,13 @@
 
     async function cloudDeleteProfile(id) {
         // 尽力同步云端；本地档案可能尚未入库（仅 localStorage），接口失败不阻断本地删除
-        const email = localStorage.getItem('bazi_logged_email');
+        const email = localStorage.getItem('bazi_logged_email')
+            || localStorage.getItem('bazi_logged_in_email');
         if (!email || !id || String(id).startsWith('demo-')) return true;
         try {
             const res = await fetch('/api/bazi-profiles', {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-User-Email': email,
-                },
+                headers: await getAuthHeaders(),
                 body: JSON.stringify({ id }),
             });
             if (!res.ok) {
@@ -2619,12 +2740,15 @@
     }
 
     async function cloudLoadProfiles() {
-        const email = localStorage.getItem('bazi_logged_email');
+        const email = localStorage.getItem('bazi_logged_email')
+            || localStorage.getItem('bazi_logged_in_email');
         if (!email) return null;
         try {
+            const headers = await getAuthHeaders();
+            delete headers['Content-Type'];
             const res = await fetch('/api/bazi-profiles', {
                 method: 'GET',
-                headers: { 'X-User-Email': email },
+                headers,
             });
             if (!res.ok) return null;
             const data = await res.json();
@@ -2963,6 +3087,7 @@
                 picked[i] = {
                     img:   `${R2_PUBLIC_URL}/${previewKey}`,
                     r2key: w.r2_key,
+                    el:    spec.el,
                     name:  spec.elName,
                     desc:  spec.desc,
                     tags:  normalizeYunTags(w.tags),
@@ -2978,6 +3103,7 @@
                 return {
                     img: src.img,
                     r2key: src.r2key,
+                    el: spec.el,
                     name: spec.elName,
                     desc: spec.desc,
                     tags: src.tags,
@@ -2988,7 +3114,7 @@
                 const variants = WUXING_WALLPAPER[spec.el] || WUXING_WALLPAPER['水'];
                 const v = variants[i % variants.length];
                 if (!v) return null;
-                return { img: v.img, r2key: null, name: spec.elName, desc: spec.desc };
+                return { img: v.img, r2key: null, el: spec.el, name: spec.elName, desc: spec.desc };
             }).filter(Boolean);
         }
 
@@ -2996,6 +3122,10 @@
         // 所以下載/加購物車用「卡片位置」cardKey 區分，而不是單純用 img 判斷是否重複。
         function cardHtml(c, idx) {
             const cardKey = c.img + '#' + idx;
+            const wxCls = WX_CLASS[c.el] || WX_CLASS[c.name] || '';
+            const nameHtml = wxCls
+                ? `<span class="${wxCls}">${escapeHtml(c.name)}</span>`
+                : escapeHtml(c.name);
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" />
@@ -3024,7 +3154,7 @@
                     </div>
                 </div>
                 <div class="wallpaper-meta">
-                    <p class="name">${escapeHtml(c.name)}</p>
+                    <p class="name">${nameHtml}</p>
                     <p class="desc">${escapeHtml(c.desc)}</p>
                     <button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(c.img)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
                 </div>
@@ -3051,9 +3181,14 @@
 
     // 未登入時打開登入彈窗，返回 false；已登入返回 true
     function requireLogin() {
-        if (isLoggedIn()) return true;
+        if (typeof isLoggedIn === 'function' ? isLoggedIn() : localStorage.getItem('bazi_logged_in') === '1') return true;
         const loginModal = document.getElementById('loginModal');
-        if (loginModal) loginModal.classList.add('open');
+        if (loginModal) {
+            loginModal.classList.add('open');
+            const submit = document.getElementById('loginSubmitBtn');
+            const t = window.I18N ? window.I18N.t : (k) => k;
+            if (submit) submit.textContent = t('btn_login_submit');
+        }
         return false;
     }
 
@@ -3175,15 +3310,14 @@
             }
         } catch (_) {}
         const migrated = migrateLegacyAnnualPlans();
-        if (migrated.length) saveAnnualPlans(migrated);
+        if (migrated.length) saveAnnualPlansLocal(migrated);
         return migrated;
     }
 
-    function saveAnnualPlans(plans) {
+    function saveAnnualPlansLocal(plans) {
         try {
             const list = (plans || []).map(normalizeAnnualPlan).filter(Boolean);
             localStorage.setItem(ANNUAL_PLANS_KEY, JSON.stringify(list));
-            // 兼容旧字段：有任一包年即视为 active
             if (list.length) localStorage.setItem(ANNUAL_ACTIVE_KEY, '1');
             else localStorage.removeItem(ANNUAL_ACTIVE_KEY);
             const allIds = [];
@@ -3195,7 +3329,91 @@
         updateAnnualNavBtn();
     }
 
+    function clearLocalAnnualPlans() {
+        try {
+            localStorage.removeItem(ANNUAL_PLANS_KEY);
+            localStorage.removeItem(ANNUAL_PROFILES_KEY);
+            localStorage.removeItem(ANNUAL_ACTIVE_KEY);
+        } catch (_) {}
+        updateAnnualNavBtn();
+    }
+
+    async function cloudPutAnnualPlans(plans) {
+        const email = localStorage.getItem('bazi_logged_email')
+            || localStorage.getItem('bazi_logged_in_email');
+        if (!email) return null;
+        try {
+            const res = await fetch('/api/annual-plans', {
+                method: 'PUT',
+                headers: await getAuthHeaders(),
+                body: JSON.stringify({ plans: (plans || []).map(normalizeAnnualPlan).filter(Boolean) }),
+            });
+            if (!res.ok) {
+                console.error('cloudPutAnnualPlans failed', await res.text());
+                return null;
+            }
+            const data = await res.json();
+            return Array.isArray(data.plans) ? data.plans.map(normalizeAnnualPlan).filter(Boolean) : [];
+        } catch (err) {
+            console.error('cloudPutAnnualPlans', err);
+            return null;
+        }
+    }
+
+    async function cloudLoadAnnualPlans() {
+        const email = localStorage.getItem('bazi_logged_email')
+            || localStorage.getItem('bazi_logged_in_email');
+        if (!email) return null;
+        try {
+            const headers = await getAuthHeaders();
+            delete headers['Content-Type'];
+            const res = await fetch('/api/annual-plans', { method: 'GET', headers });
+            if (!res.ok) {
+                console.warn('cloudLoadAnnualPlans failed', await res.text());
+                return null;
+            }
+            const data = await res.json();
+            return Array.isArray(data.plans)
+                ? data.plans.map(normalizeAnnualPlan).filter(Boolean)
+                : [];
+        } catch (err) {
+            console.warn('cloudLoadAnnualPlans', err);
+            return null;
+        }
+    }
+
+    async function hydrateAnnualFromCloud() {
+        const remote = await cloudLoadAnnualPlans();
+        if (remote === null) return;
+        if (remote.length > 0) {
+            saveAnnualPlansLocal(remote);
+            if (typeof refresh === 'function') refresh();
+            return;
+        }
+        // 云端为空：若本地还有旧演示数据，推上去一次
+        const local = loadAnnualPlans();
+        if (local.length > 0) {
+            const pushed = await cloudPutAnnualPlans(local);
+            if (pushed) saveAnnualPlansLocal(pushed);
+        } else {
+            saveAnnualPlansLocal([]);
+        }
+    }
+
+    function saveAnnualPlans(plans) {
+        const list = (plans || []).map(normalizeAnnualPlan).filter(Boolean);
+        saveAnnualPlansLocal(list);
+        // 已登录则同步云端（不阻塞 UI）
+        if (localStorage.getItem('bazi_logged_in') === '1') {
+            cloudPutAnnualPlans(list).then((remote) => {
+                if (remote) saveAnnualPlansLocal(remote);
+            });
+        }
+    }
+
     function isAnnualActive() {
+        // 包年綁定屬帳號狀態：未登入不顯示鎖定／包年入口
+        if (localStorage.getItem('bazi_logged_in') !== '1') return false;
         return loadAnnualPlans().length > 0;
     }
 
@@ -3220,6 +3438,8 @@
     }
 
     function getLockedAnnualProfileIds() {
+        // 未登入不展示包年鎖定（包年資料仍保留在本地，登入後恢復）
+        if (localStorage.getItem('bazi_logged_in') !== '1') return [];
         const ids = [];
         loadAnnualPlans().forEach((plan) => {
             (plan.profileIds || []).forEach((id) => {
@@ -3278,9 +3498,7 @@
 
         let fileUrl = '';
         try {
-            const headers = { 'Content-Type': 'application/json' };
-            const email = typeof getLoggedEmail === 'function' ? getLoggedEmail() : '';
-            if (email) headers['X-User-Email'] = email;
+            const headers = await getAuthHeaders();
             const res = await fetch('/api/download', {
                 method: 'POST',
                 headers,
@@ -3806,8 +4024,23 @@
     updateCartBadge();
 
     let profiles = loadProfiles();
+    // 未登入只展示示例盤，并清掉本机包年缓存（云端仍保留，登入后拉回）
+    if (localStorage.getItem('bazi_logged_in') !== '1') {
+        profiles = defaultProfiles.map((p) => ({ ...p }));
+        saveProfiles(profiles);
+        clearLocalAnnualPlans();
+    }
     let activeId = getActiveId(profiles);
     let editingId = null;
+
+    function resetToGuestProfiles() {
+        profiles = defaultProfiles.map((p) => ({ ...p }));
+        saveProfiles(profiles);
+        activeId = profiles[0].id;
+        setActiveId(activeId);
+        clearLocalAnnualPlans();
+        refresh();
+    }
 
     function refresh() {
         const active = profiles.find((p) => p.id === activeId) || profiles[0];
@@ -4419,12 +4652,11 @@
         aboutMenu.classList.remove('open');
     });
 
-    // 登入狀態（前端模擬，暫無後端）：登入後將登入按鈕替換為用戶頭像 + 下拉選單
+    // 登入狀態：Supabase Auth（郵箱驗證碼 / 可選密碼）；本機標記用於 UI
     // Supabase 客戶端與 R2_PUBLIC_URL 已在上方 fetchWallpapers 前初始化
 
     const AUTH_KEY = 'bazi_logged_in';
     const AUTH_EMAIL_KEY = 'bazi_logged_email';
-    const MOCK_CODE = '123456'; // 模拟验证码，任意 6 位也可
 
     const btnLogin = document.getElementById('btnLogin');
     const userMenuWrap = document.getElementById('userMenuWrap');
@@ -4436,13 +4668,23 @@
     const loginForm = document.getElementById('loginForm');
     const loginEmailInput = document.getElementById('loginEmail');
     const loginCodeInput = document.getElementById('loginCode');
+    const loginPasswordInput = document.getElementById('loginPassword');
+    const loginPasswordConfirmInput = document.getElementById('loginPasswordConfirm');
+    const loginCodeGroup = document.getElementById('loginCodeGroup');
+    const loginPasswordGroup = document.getElementById('loginPasswordGroup');
+    const loginPasswordConfirmGroup = document.getElementById('loginPasswordConfirmGroup');
+    const authMethodOtp = document.getElementById('authMethodOtp');
+    const authMethodPassword = document.getElementById('authMethodPassword');
     const btnGetCode = document.getElementById('btnGetCode');
-    const loginModalTitle = document.getElementById('loginModalTitle');
     const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+    const forgotPasswordRow = document.getElementById('forgotPasswordRow');
+    const btnForgotPassword = document.getElementById('btnForgotPassword');
     const authToggleToSignup = document.getElementById('authToggleToSignup');
     const authToggleToLogin = document.getElementById('authToggleToLogin');
     let authMode = 'login';
-    let _mockCodeSent = '';
+    let authMethod = 'otp'; // otp | password
+    let codeCountdownTimer = null;
+    let authSubmitting = false;
 
     function isLoggedIn() {
         return localStorage.getItem(AUTH_KEY) === '1';
@@ -4460,13 +4702,16 @@
         localStorage.removeItem('bazi_logged_in_email');
         updateAuthUI();
         hydrateProfilesFromCloud();
+        hydrateAnnualFromCloud();
     }
 
     function clearLoggedIn() {
         localStorage.removeItem(AUTH_KEY);
         localStorage.removeItem(AUTH_EMAIL_KEY);
         localStorage.removeItem('bazi_logged_in_email');
+        clearLocalAnnualPlans();
         updateAuthUI();
+        resetToGuestProfiles();
     }
 
     function updateAuthUI() {
@@ -4479,8 +4724,49 @@
         updateAnnualNavBtn();
     }
 
-    updateAuthUI();
-    if (localStorage.getItem(AUTH_KEY) === '1') hydrateProfilesFromCloud();
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function mapAuthError(err, t) {
+        const msg = String(err?.message || err || '').toLowerCase();
+        if (msg.includes('email not confirmed')) return t('signup_check_email');
+        if (msg.includes('invalid login') || msg.includes('invalid credentials')) return t('auth_error_generic');
+        if (msg.includes('token has expired') || msg.includes('otp_expired') || msg.includes('invalid otp') || msg.includes('invalid token')) {
+            return t('code_invalid_notice');
+        }
+        if (msg.includes('password') && (msg.includes('6') || msg.includes('least'))) return t('password_min_notice');
+        return err?.message || t('auth_error_generic');
+    }
+
+    // 恢復 / 監聽 Supabase 會話
+    _sb.auth.getSession().then(({ data }) => {
+        const user = data?.session?.user;
+        if (user?.email) setLoggedIn(user.email);
+        else updateAuthUI();
+    }).catch(() => updateAuthUI());
+
+    _sb.auth.onAuthStateChange((event, session) => {
+        if (session?.user?.email) {
+            localStorage.setItem(AUTH_KEY, '1');
+            localStorage.setItem(AUTH_EMAIL_KEY, session.user.email);
+            localStorage.removeItem('bazi_logged_in_email');
+            updateAuthUI();
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                hydrateProfilesFromCloud();
+            }
+            if (event === 'SIGNED_IN') {
+                hydrateAnnualFromCloud();
+            }
+        } else if (event === 'SIGNED_OUT') {
+            clearLoggedIn();
+        }
+    });
+
+    if (localStorage.getItem(AUTH_KEY) === '1') {
+        hydrateProfilesFromCloud();
+        hydrateAnnualFromCloud();
+    }
 
     // 其他页面「包年服务」跳转落地：landing.html#annual
     if (location.hash === '#annual' && isLoggedIn() && isAnnualActive()) {
@@ -4490,37 +4776,66 @@
         }, 0);
     }
 
-    // 登入／註冊共用同一個彈窗，靠 authMode 切換標題、按鈕文案跟底部提示（前端模擬，暫無後端）
     const subscribeRow = document.getElementById('subscribeRow');
     const subscribeEmailCheckbox = document.getElementById('subscribeEmail');
+
+    function applyAuthMethod() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const isOtp = authMethod === 'otp';
+        const showConfirm = !isOtp && authMode === 'signup';
+        authMethodOtp.classList.toggle('active', isOtp);
+        authMethodPassword.classList.toggle('active', !isOtp);
+        authMethodOtp.textContent = t(authMode === 'signup' ? 'auth_method_otp_signup' : 'auth_method_otp_login');
+        authMethodPassword.textContent = t(authMode === 'signup' ? 'auth_method_password_signup' : 'auth_method_password_login');
+        loginCodeGroup.style.display = isOtp ? '' : 'none';
+        loginPasswordGroup.style.display = isOtp ? 'none' : '';
+        loginPasswordConfirmGroup.style.display = showConfirm ? '' : 'none';
+        loginCodeInput.required = isOtp;
+        loginPasswordInput.required = !isOtp;
+        loginPasswordConfirmInput.required = showConfirm;
+        loginPasswordInput.autocomplete = authMode === 'signup' ? 'new-password' : 'current-password';
+        if (forgotPasswordRow) {
+            forgotPasswordRow.style.display = (!isOtp && authMode === 'login') ? '' : 'none';
+        }
+    }
 
     function applyAuthMode() {
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (authMode === 'signup') {
-            loginModalTitle.textContent = t('signup_modal_title');
             loginSubmitBtn.textContent = t('btn_signup_submit');
             authToggleToSignup.style.display = 'none';
             authToggleToLogin.style.display = '';
             subscribeRow.style.display = '';
         } else {
-            loginModalTitle.textContent = t('login_modal_title');
             loginSubmitBtn.textContent = t('btn_login_submit');
             authToggleToSignup.style.display = '';
             authToggleToLogin.style.display = 'none';
             subscribeRow.style.display = 'none';
         }
+        applyAuthMethod();
     }
 
     document.addEventListener('i18n:change', applyAuthMode);
 
-    btnLogin.addEventListener('click', () => {
+    function openLoginModal(mode) {
         baziMenu.classList.remove('open');
         langMenu.classList.remove('open');
         aboutMenu.classList.remove('open');
-        authMode = 'login';
+        authMode = mode || 'login';
         applyAuthMode();
         resetCodeState();
         loginModal.classList.add('open');
+    }
+
+    btnLogin.addEventListener('click', () => openLoginModal('login'));
+
+    authMethodOtp.addEventListener('click', () => {
+        authMethod = 'otp';
+        applyAuthMethod();
+    });
+    authMethodPassword.addEventListener('click', () => {
+        authMethod = 'password';
+        applyAuthMethod();
     });
 
     document.getElementById('btnSwitchToSignup').addEventListener('click', () => {
@@ -4545,29 +4860,26 @@
         }
     });
 
-    let codeCountdownTimer = null;
-
     function resetCodeState() {
         loginCodeInput.value = '';
-        _mockCodeSent = '';
+        if (loginPasswordInput) loginPasswordInput.value = '';
+        if (loginPasswordConfirmInput) loginPasswordConfirmInput.value = '';
         if (codeCountdownTimer) {
             clearInterval(codeCountdownTimer);
             codeCountdownTimer = null;
         }
         btnGetCode.disabled = false;
         btnGetCode.textContent = window.I18N ? window.I18N.t('btn_get_code') : '獲取驗證碼';
+        loginSubmitBtn.disabled = false;
+        authSubmitting = false;
     }
 
-    // 模拟发验证码：不发真实邮件，弹窗提示固定码
-    btnGetCode.addEventListener('click', () => {
-        const email = loginEmailInput.value.trim();
+    function startCodeCooldown() {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        if (!email) { loginEmailInput.focus(); return; }
-        _mockCodeSent = MOCK_CODE;
-        alert('測試驗證碼：' + MOCK_CODE + '\n（模擬登入，不會發真實郵件）');
         btnGetCode.disabled = true;
         let remaining = 60;
         btnGetCode.textContent = remaining + 's';
+        if (codeCountdownTimer) clearInterval(codeCountdownTimer);
         codeCountdownTimer = setInterval(() => {
             remaining -= 1;
             if (remaining <= 0) {
@@ -4579,35 +4891,153 @@
                 btnGetCode.textContent = remaining + 's';
             }
         }, 1000);
-    });
+    }
 
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const t = window.I18N ? window.I18N.t : (k) => k;
+    // 發送郵箱 OTP（註冊 / 登入同一通道）
+    btnGetCode.addEventListener('click', async () => {
         const email = loginEmailInput.value.trim();
-        const token = loginCodeInput.value.trim();
+        const t = window.I18N ? window.I18N.t : (k) => k;
         if (!email) { loginEmailInput.focus(); return; }
-        if (!token) { loginCodeInput.focus(); return; }
-        // 模拟校验：必须先点「获取验证码」，且验证码为 123456
-        if (!_mockCodeSent || token !== MOCK_CODE) {
-            alert(t('code_invalid_notice'));
+        if (!isValidEmail(email)) {
+            alert(t('email_invalid_notice'));
+            loginEmailInput.focus();
             return;
         }
-        if (authMode === 'signup') {
-            const subscribed = document.getElementById('subscribeEmail').checked;
-            localStorage.setItem('ew_email_subscribe', subscribed ? '1' : '0');
+        btnGetCode.disabled = true;
+        try {
+            const { error } = await _sb.auth.signInWithOtp({
+                email,
+                options: { shouldCreateUser: true },
+            });
+            if (error) throw error;
+            alert(t('otp_sent_notice'));
+            startCodeCooldown();
+            loginCodeInput.focus();
+        } catch (err) {
+            btnGetCode.disabled = false;
+            btnGetCode.textContent = t('btn_get_code');
+            alert(mapAuthError(err, t));
         }
-        setLoggedIn(email);
-        loginForm.reset();
-        resetCodeState();
-        loginModal.classList.remove('open');
     });
 
-    // Google 登录（模拟）
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (authSubmitting) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const email = loginEmailInput.value.trim();
+        if (!email) { loginEmailInput.focus(); return; }
+        if (!isValidEmail(email)) {
+            alert(t('email_invalid_notice'));
+            loginEmailInput.focus();
+            return;
+        }
+
+        authSubmitting = true;
+        loginSubmitBtn.disabled = true;
+
+        try {
+            if (authMethod === 'otp') {
+                const token = loginCodeInput.value.trim();
+                if (!token) { loginCodeInput.focus(); throw new Error('otp'); }
+                const { data, error } = await _sb.auth.verifyOtp({
+                    email,
+                    token,
+                    type: 'email',
+                });
+                if (error) throw error;
+                if (authMode === 'signup') {
+                    const subscribed = subscribeEmailCheckbox?.checked;
+                    localStorage.setItem('ew_email_subscribe', subscribed ? '1' : '0');
+                }
+                const userEmail = data?.user?.email || data?.session?.user?.email || email;
+                setLoggedIn(userEmail);
+            } else {
+                const password = loginPasswordInput.value;
+                if (!password) {
+                    alert(t('password_required_notice'));
+                    loginPasswordInput.focus();
+                    throw new Error('password_required');
+                }
+                if (password.length < 6) {
+                    alert(t('password_min_notice'));
+                    loginPasswordInput.focus();
+                    throw new Error('password_min');
+                }
+                if (authMode === 'signup') {
+                    const confirmPw = loginPasswordConfirmInput.value;
+                    if (!confirmPw) {
+                        alert(t('password_required_notice'));
+                        loginPasswordConfirmInput.focus();
+                        throw new Error('password_required');
+                    }
+                    if (password !== confirmPw) {
+                        alert(t('password_mismatch_notice'));
+                        loginPasswordConfirmInput.focus();
+                        throw new Error('password_mismatch');
+                    }
+                    const { data, error } = await _sb.auth.signUp({ email, password });
+                    if (error) throw error;
+                    const subscribed = subscribeEmailCheckbox?.checked;
+                    localStorage.setItem('ew_email_subscribe', subscribed ? '1' : '0');
+                    if (data?.session?.user?.email) {
+                        setLoggedIn(data.session.user.email);
+                    } else {
+                        alert(t('signup_check_email'));
+                        authMode = 'login';
+                        applyAuthMode();
+                        return;
+                    }
+                } else {
+                    const { data, error } = await _sb.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    setLoggedIn(data?.user?.email || email);
+                }
+            }
+            loginForm.reset();
+            resetCodeState();
+            loginModal.classList.remove('open');
+        } catch (err) {
+            if (err?.message === 'otp') {
+                alert(t('code_invalid_notice'));
+            } else if (
+                err?.message !== 'password_required'
+                && err?.message !== 'password_min'
+                && err?.message !== 'password_mismatch'
+            ) {
+                alert(mapAuthError(err, t));
+            }
+        } finally {
+            authSubmitting = false;
+            loginSubmitBtn.disabled = false;
+        }
+    });
+
+    // Google 登录（暂仍模拟；后续可接 signInWithOAuth）
     document.getElementById('btnGoogleLogin').addEventListener('click', () => {
-        setLoggedIn('google-user@example.com');
-        loginModal.classList.remove('open');
-        resetCodeState();
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        alert(t('mock_feature_notice'));
+    });
+
+    btnForgotPassword.addEventListener('click', async () => {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const email = loginEmailInput.value.trim();
+        if (!email) { loginEmailInput.focus(); return; }
+        if (!isValidEmail(email)) {
+            alert(t('email_invalid_notice'));
+            loginEmailInput.focus();
+            return;
+        }
+        btnForgotPassword.disabled = true;
+        try {
+            const redirectTo = location.origin + location.pathname;
+            const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo });
+            if (error) throw error;
+            alert(t('reset_password_sent'));
+        } catch (err) {
+            alert(mapAuthError(err, t));
+        } finally {
+            btnForgotPassword.disabled = false;
+        }
     });
 
     applyAuthMode();
@@ -4624,7 +5054,8 @@
         e.stopPropagation();
     });
 
-    document.getElementById('btnLogout').addEventListener('click', () => {
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+        try { await _sb.auth.signOut(); } catch (_) {}
         clearLoggedIn();
         userMenu.classList.remove('open');
     });
@@ -4742,6 +5173,49 @@
         baziMenu.classList.remove('open');
     });
 
+    // 暱稱長度：中文 1 字=2 單位，英文 1 字=1 單位；上限 16（= 中文 8 / 英文 16）
+    const NICKNAME_MAX_UNITS = 16;
+
+    function nicknameCharWeight(ch) {
+        return /[\u3400-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]/.test(ch) ? 2 : 1;
+    }
+
+    function nicknameUnits(str) {
+        let n = 0;
+        for (const ch of String(str || '')) n += nicknameCharWeight(ch);
+        return n;
+    }
+
+    function truncateNickname(str) {
+        let out = '';
+        let n = 0;
+        for (const ch of String(str || '')) {
+            const w = nicknameCharWeight(ch);
+            if (n + w > NICKNAME_MAX_UNITS) break;
+            out += ch;
+            n += w;
+        }
+        return out;
+    }
+
+    const nicknameInput = document.getElementById('nickname');
+    if (nicknameInput) {
+        nicknameInput.addEventListener('input', () => {
+            const raw = nicknameInput.value;
+            const next = truncateNickname(raw);
+            if (next !== raw) {
+                nicknameInput.value = next;
+                const t = window.I18N ? window.I18N.t : (k) => k;
+                // 仅在超限被截断时提示一次（避免每个按键刷屏：用短时标记）
+                if (!nicknameInput._nickLimitAlerting) {
+                    nicknameInput._nickLimitAlerting = true;
+                    alert(t('nickname_too_long'));
+                    setTimeout(() => { nicknameInput._nickLimitAlerting = false; }, 400);
+                }
+            }
+        });
+    }
+
     // 性別切換
     document.querySelectorAll('.gender-row button').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -4753,7 +5227,11 @@
 
     document.getElementById('addBaziForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nickname  = document.getElementById('nickname').value.trim();
+        const nicknameRaw = document.getElementById('nickname').value.trim();
+        const nickname = truncateNickname(nicknameRaw);
+        if (nickname !== nicknameRaw) {
+            document.getElementById('nickname').value = nickname;
+        }
         const gender    = parseInt(document.getElementById('gender').value, 10);
         const birthDate = `${birthYearSelect.value}/${birthMonthSelect.value}/${birthDaySelect.value}`;
         const birthTime = `${birthHourSelect.value}:${birthMinuteSelect.value}`;
@@ -4765,6 +5243,10 @@
 
         if (!nickname || !birthDate || !birthTime) {
             alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
+            return;
+        }
+        if (nicknameUnits(nickname) > NICKNAME_MAX_UNITS) {
+            alert(window.I18N ? window.I18N.t('nickname_too_long') : '暱稱過長');
             return;
         }
         if (!birthplace && !(existing && existing.birthplace)) {

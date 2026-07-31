@@ -93,3 +93,33 @@ create index if not exists bazi_profiles_owner_email_idx
   on public.bazi_profiles (owner_email);
 
 grant select, insert, update, delete on public.bazi_profiles to service_role;
+
+-- ════════════════════════════════════════════
+-- 包年方案（绑定档案 ID、有效期）按账号云端保存
+-- ════════════════════════════════════════════
+create table if not exists public.annual_plans (
+  id text primary key,
+  owner_email text not null,
+  user_id uuid references auth.users (id) on delete set null,
+  start_date date not null,
+  end_date date not null,
+  profile_ids jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists annual_plans_owner_email_idx
+  on public.annual_plans (owner_email);
+
+alter table public.annual_plans enable row level security;
+
+-- 业务读写走 service_role API；RLS 仅作兜底
+create policy "Users can read own annual plans"
+  on public.annual_plans for select
+  using (
+    auth.uid() = user_id
+    or lower(owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+
+grant select, insert, update, delete on public.annual_plans to service_role;
+
