@@ -2675,6 +2675,50 @@
     // 串接 bazi_logic.js：算出這個八字在「當前流月」的喜用五行、以及需要補運的弱勢生活領域，
     // 用於下方壁紙區塊動態選圖選文案，而不是寫死固定內容。
     // v2：傳入完整流月干支（"壬申"2字）和大運/流年 period，啟用六層動態算法。
+    // 破平用的 prev_favors = 該檔案「今年流年內」首次使用以來各流月主喜用（不含本月）。
+    const FAVOR_HIST_KEY = 'ew_favor_history';
+
+    function loadFavorHistoryAll() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(FAVOR_HIST_KEY) || '{}');
+            return (raw && typeof raw === 'object') ? raw : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function saveFavorHistoryAll(all) {
+        localStorage.setItem(FAVOR_HIST_KEY, JSON.stringify(all));
+    }
+
+    // 只取今年流年內的歷史主喜用（排除當前流月，避免本月重算時把自己算進去）
+    function getPrevFavorsForProfile(profileId, currentYmKey, yearGanZhi) {
+        const all = loadFavorHistoryAll();
+        const map = all[profileId] || {};
+        const yearPrefix = `${yearGanZhi}|`;
+        return Object.keys(map)
+            .filter((k) => k !== currentYmKey && k.indexOf(yearPrefix) === 0)
+            .map((k) => map[k])
+            .filter(Boolean);
+    }
+
+    // 寫入／覆蓋本月主喜用；只保留今年流年記錄，其餘年份直接刪除
+    function recordFavorForProfile(profileId, ymKey, wx, yearGanZhi) {
+        if (!profileId || !ymKey || !wx) return;
+        const all = loadFavorHistoryAll();
+        const prev = all[profileId];
+        const next = {};
+        const yearPrefix = `${yearGanZhi}|`;
+        if (prev && typeof prev === 'object') {
+            for (const k of Object.keys(prev)) {
+                if (k.indexOf(yearPrefix) === 0) next[k] = prev[k];
+            }
+        }
+        next[ymKey] = wx;
+        all[profileId] = next;
+        saveFavorHistoryAll(all);
+    }
+
     function computeMonthlyInsight(profile) {
         try {
             const bazi = computeBaziForProfile(profile);
@@ -2683,7 +2727,17 @@
             // 傳完整干支字串（2字），新算法可利用月干；period 含大運/流年供環境乘數計算
             const liuyueGanZhi = nowYearMonth.month;
             const gender = profile.gender;
-            return get_monthly_favorable_element(logicBazi, liuyueGanZhi, gender, bazi.period);
+            // 流月鍵：流年干支 + 流月干支，跨年不撞；同一流月只記一次
+            const ymKey = `${nowYearMonth.year}|${liuyueGanZhi}`;
+            const profileId = profile.id || 'anonymous';
+            const prevFavors = getPrevFavorsForProfile(profileId, ymKey, nowYearMonth.year);
+            const result = get_monthly_favorable_element(
+                logicBazi, liuyueGanZhi, gender, bazi.period, prevFavors
+            );
+            if (result && result.favorable_element) {
+                recordFavorForProfile(profileId, ymKey, result.favorable_element, nowYearMonth.year);
+            }
+            return result;
         } catch (err) {
             console.error('本月喜用計算失敗：', err);
             return null;
@@ -2756,6 +2810,32 @@
         } catch (err) {
             console.error('cloudUpsertProfile', err);
             return profile;
+        }
+    }
+
+    async function cloudPatchWallpaperHistory(profileId, wallpaperHistory, yearGanZhi) {
+        const email = localStorage.getItem('bazi_logged_email')
+            || localStorage.getItem('bazi_logged_in_email');
+        if (!email || !profileId || String(profileId).startsWith('demo-')) return null;
+        try {
+            const res = await fetch('/api/bazi-profiles', {
+                method: 'PATCH',
+                headers: await getAuthHeaders(),
+                body: JSON.stringify({
+                    id: profileId,
+                    wallpaperHistory,
+                    yearGanZhi: yearGanZhi || null,
+                }),
+            });
+            if (!res.ok) {
+                console.warn('cloudPatchWallpaperHistory failed', await res.text());
+                return null;
+            }
+            const data = await res.json();
+            return data.profile || null;
+        } catch (err) {
+            console.warn('cloudPatchWallpaperHistory', err);
+            return null;
         }
     }
 
@@ -3035,6 +3115,108 @@
         const start = h % pool.length;
         return Array.from({ length: count }, (_, i) => pool[(start + i) % pool.length]);
     }
+
+    // ── 壁纸跨月去重：同用户同八字，今年内相邻流月不重复同一张图 ──
+    // 权威数据在 bazi_profiles.wallpaper_history（登录后经 PATCH 同步）；
+    // localStorage 仅作未登录 / 离线缓存。
+    const WP_HIST_KEY = 'ew_wallpaper_history';
+    const LIUYUE_ZHI_ORDER = ['寅','卯','辰','巳','午','未','申','酉','戌','亥','子','丑'];
+    const GAN_CYCLE = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+
+    function loadWallpaperHistoryAll() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(WP_HIST_KEY) || '{}');
+            return (raw && typeof raw === 'object') ? raw : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function saveWallpaperHistoryAll(all) {
+        localStorage.setItem(WP_HIST_KEY, JSON.stringify(all));
+    }
+
+    function normalizeLocalWallpaperHistory(raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+        const out = {};
+        for (const k of Object.keys(raw)) {
+            if (!Array.isArray(raw[k])) continue;
+            out[k] = raw[k].filter((id) => id != null && id !== '');
+        }
+        return out;
+    }
+
+    // 合并档案字段 + 本地缓存（档案字段优先；兼容旧 key: email|profileId）
+    function resolveWallpaperHistory(profile) {
+        const profileId = profile && profile.id;
+        if (!profileId) return {};
+        const fromProfile = normalizeLocalWallpaperHistory(profile.wallpaperHistory);
+        const all = loadWallpaperHistoryAll();
+        const email = getLoggedEmail() || '';
+        const fromLocal = normalizeLocalWallpaperHistory(
+            all[profileId] || all[`${email}|${profileId}`] || {}
+        );
+        return Object.assign({}, fromLocal, fromProfile);
+    }
+
+    // 同年上一流月干支；寅月为本年首月则返回 null
+    function getPrevLiuyueGanZhi(monthGanZhi) {
+        if (!monthGanZhi || monthGanZhi.length < 2) return null;
+        const zhi = monthGanZhi[1];
+        const idx = LIUYUE_ZHI_ORDER.indexOf(zhi);
+        if (idx <= 0) return null;
+        const gan = monthGanZhi[0];
+        const gi = GAN_CYCLE.indexOf(gan);
+        if (gi < 0) return null;
+        return GAN_CYCLE[(gi + 9) % 10] + LIUYUE_ZHI_ORDER[idx - 1];
+    }
+
+    // 取「上一流月」已展示壁纸 id（仅今年）；用于连续两个月不重复
+    function getPrevMonthWallpaperIds(profile, yearGanZhi, monthGanZhi) {
+        const prevMonth = getPrevLiuyueGanZhi(monthGanZhi);
+        if (!prevMonth) return [];
+        const map = resolveWallpaperHistory(profile);
+        const ids = map[`${yearGanZhi}|${prevMonth}`];
+        return Array.isArray(ids) ? ids.filter((id) => id != null) : [];
+    }
+
+    // 写入本月壁纸 id → 档案内存 + localStorage + 云端 PATCH
+    function recordMonthWallpaperIds(profile, ymKey, ids, yearGanZhi) {
+        if (!profile || !profile.id || !ymKey || !Array.isArray(ids) || !ids.length) return;
+        const yearPrefix = `${yearGanZhi}|`;
+        const prev = resolveWallpaperHistory(profile);
+        const next = {};
+        for (const k of Object.keys(prev)) {
+            if (k.indexOf(yearPrefix) === 0) next[k] = prev[k];
+        }
+        next[ymKey] = ids.filter((id) => id != null);
+
+        profile.wallpaperHistory = next;
+        // 同步进 profiles 列表，便于 saveProfiles / 下次选图
+        if (typeof profiles !== 'undefined' && Array.isArray(profiles)) {
+            const idx = profiles.findIndex((p) => p && p.id === profile.id);
+            if (idx >= 0) profiles[idx].wallpaperHistory = next;
+            try { saveProfiles(profiles); } catch (_) {}
+        }
+
+        const all = loadWallpaperHistoryAll();
+        all[profile.id] = next;
+        // 清掉旧版 email|id 键，避免双份
+        const email = getLoggedEmail() || '';
+        if (email) delete all[`${email}|${profile.id}`];
+        saveWallpaperHistoryAll(all);
+
+        // 登录用户异步落库（不阻塞渲染）
+        cloudPatchWallpaperHistory(profile.id, next, yearGanZhi).then((remote) => {
+            if (!remote || !remote.wallpaperHistory) return;
+            profile.wallpaperHistory = remote.wallpaperHistory;
+            if (typeof profiles !== 'undefined' && Array.isArray(profiles)) {
+                const i = profiles.findIndex((p) => p && p.id === profile.id);
+                if (i >= 0) profiles[i].wallpaperHistory = remote.wallpaperHistory;
+                try { saveProfiles(profiles); } catch (_) {}
+            }
+        });
+    }
     // 壁纸缓存：内存 + localStorage（跨刷新）+ Cache API（预览图）
     const _wallpaperCache = {};
     const _wallpaperInflight = {};
@@ -3201,9 +3383,13 @@
 
         let cards;
         if (hasDb) {
-            const now = new Date();
             const userId = getLoggedEmail() || 'guest';
-            const baseSeed = `${userId}|${profile.id}|${now.getFullYear()}-${now.getMonth()}|${primaryEl}|${secondaryEl}|${yunPair.aCN}|${yunPair.bCN}`;
+            const nowYearMonth = getCurrentYearMonthGanZhi();
+            const liuyueGanZhi = nowYearMonth.month;
+            const ymKey = `${nowYearMonth.year}|${liuyueGanZhi}`;
+            // 上一流月已展示的壁纸：本月优先避开（同五行同补运至少有 2 张候选）
+            const prevMonthIds = getPrevMonthWallpaperIds(profile, nowYearMonth.year, liuyueGanZhi);
+            const baseSeed = `${userId}|${profile.id}|${nowYearMonth.year}|${liuyueGanZhi}|${primaryEl}|${secondaryEl}|${yunPair.aCN}|${yunPair.bCN}`;
             const usedIds = [];
 
             // 展示顺序：A → B → AB → 副AB
@@ -3216,14 +3402,19 @@
                 const preferred = (spec.el === primaryEl ? poolPrimary : poolSecondary) || [];
                 const other = (spec.el === primaryEl ? poolSecondary : poolPrimary) || [];
                 const seed = `${baseSeed}|card${i}`;
-                const w = pickByTags(preferred, spec.tags, seed, usedIds)
+                // 先避开：本月已选 + 上月已展示；不够再放宽上月限制，最后才允许本月内复用
+                const exclStrict = usedIds.concat(prevMonthIds.filter((id) => usedIds.indexOf(id) < 0));
+                const w = pickByTags(preferred, spec.tags, seed, exclStrict)
+                    || pickByTags(preferred, spec.tags, seed + '|relaxPrev', usedIds)
+                    || pickByTags(other, spec.tags, seed + '|other', exclStrict)
+                    || pickByTags(other, spec.tags, seed + '|otherRelax', usedIds)
                     || pickByTags(preferred, spec.tags, seed + '|reuse', [])
-                    || pickByTags(other, spec.tags, seed + '|other', usedIds)
                     || pickByTags(other, spec.tags, seed + '|otherReuse', []);
                 if (!w) return;
                 if (w.id != null && !usedIds.includes(w.id)) usedIds.push(w.id);
                 const previewKey = w.preview_key || w.r2_key;
                 picked[i] = {
+                    id:    w.id,
                     img:   `${R2_PUBLIC_URL}/${previewKey}`,
                     r2key: w.r2_key,
                     el:    spec.el,
@@ -3235,6 +3426,14 @@
                 };
             });
 
+            // 记下本月实际展示的壁纸 id → 档案字段 + 本地缓存 + 云端
+            recordMonthWallpaperIds(
+                profile,
+                ymKey,
+                picked.filter(Boolean).map((c) => c.id),
+                nowYearMonth.year
+            );
+
             // 按展示顺序取出；空槽用已选图循环补齐，保证 4 张
             const availableCards = picked.filter(Boolean);
             cards = cardSpecs.map((spec, i) => {
@@ -3242,6 +3441,7 @@
                 if (!availableCards.length) return null;
                 const src = availableCards[i % availableCards.length];
                 return {
+                    id: src.id,
                     img: src.img,
                     r2key: src.r2key,
                     el: spec.el,

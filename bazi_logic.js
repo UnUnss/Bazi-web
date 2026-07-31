@@ -627,21 +627,22 @@ function compute_combination_scores(bazi, liuyue_gan, liuyue_zhi, coeffs, bazi_r
 // ──────────────────────────────────────────────────────────
 // 扶抑 / 通关 / 过旺泄秀 / 调候 各推一个候选，来源加权接近：
 //   提名分 = 该五行扶抑底分 + SOURCE_BONUS（各来源同一常量）
-// 取「最高提名分 − TIE_DELTA」以内的候选池；
-// 池内按「本年已算出月份中出现次数最少」破平，次数相同再比提名分。
+// 同五行被多来源提名：保留最高底分，并按「额外来源数」加共识分
+//   （共识说明该五行本月优先级更高，不应简单去重抹平）
+// ① 近并列（先）：取「最高提名分 − TIE_DELTA」以内进候选池
+// ② 破平（后）：池内按「今年流年内、首次使用以来出现次数最少」优先，再比提名分 / 来源数
 // ============================================================
-const LAYER5_SOURCE_BONUS = 6.0;   // 各来源加权对齐
-const LAYER5_TIE_DELTA    = 3.0;   // 近并列窗口
+const LAYER5_SOURCE_BONUS    = 6.0;   // 各来源加权对齐
+const LAYER5_CONSENSUS_BONUS = 3.0;   // 每多一个来源共识加分
+const LAYER5_TIE_DELTA       = 6.0;   // 近并列窗口
 
 function run_conflict_detector(final_scores, dyn, coeffs, liuyue_zhi, bazi, period, bazi_raw, prev_favors) {
     const nominations = [];  // { wx, score, reason }
-    const boosts = { 木:0, 火:0, 土:0, 金:0, 水:0 };
 
     const nominate = (wx, reason) => {
         if (!wx) return;
         const score = (final_scores[wx] || 0) + LAYER5_SOURCE_BONUS;
         nominations.push({ wx, score, reason });
-        boosts[wx] = Math.max(boosts[wx] || 0, LAYER5_SOURCE_BONUS);
     };
 
     // ── 扶抑：底分最高者 ────────────────────────────────────
@@ -681,32 +682,57 @@ function run_conflict_detector(final_scores, dyn, coeffs, liuyue_zhi, bazi, peri
         }
     }
 
-    // ── 同五行多来源：保留提名分最高的一条 ──────────────────
-    const bestByWx = {};
+    // ── 同五行合并：多来源共识加权（而非简单去重）──────────
+    // 例：火被「正格扶抑」+「调候」同时提名 → 底分取高者，再 +CONSENSUS_BONUS
+    const byWx = {};
     for (let n of nominations) {
-        if (!bestByWx[n.wx] || n.score > bestByWx[n.wx].score) bestByWx[n.wx] = n;
+        if (!byWx[n.wx]) byWx[n.wx] = [];
+        byWx[n.wx].push(n);
     }
-    const unique = Object.keys(bestByWx).map(wx => bestByWx[wx]);
+    const boosts = { 木:0, 火:0, 土:0, 金:0, 水:0 };
+    const unique = [];
+    for (let wx of Object.keys(byWx)) {
+        const list = byWx[wx];
+        let best = list[0];
+        for (let i = 1; i < list.length; i++) {
+            if (list[i].score > best.score) best = list[i];
+        }
+        const source_count = list.length;
+        const consensus = Math.max(0, source_count - 1) * LAYER5_CONSENSUS_BONUS;
+        const reasons = [];
+        for (let n of list) {
+            if (reasons.indexOf(n.reason) < 0) reasons.push(n.reason);
+        }
+        const boost = LAYER5_SOURCE_BONUS + consensus;
+        boosts[wx] = boost;
+        unique.push({
+            wx,
+            score: best.score + consensus,
+            reason: reasons.join('+'),
+            source_count
+        });
+    }
 
     // ── 近并列池：最高分 − TIE_DELTA ────────────────────────
     const maxNom = unique.reduce((m, n) => Math.max(m, n.score), -Infinity);
     const pool = unique.filter(n => n.score >= maxNom - LAYER5_TIE_DELTA);
 
-    // ── 破平：本年已出现次数少者优先 ────────────────────────
+    // ── 破平：今年流年内出现次数少者优先 ────────────────────
     const hist = Array.isArray(prev_favors) ? prev_favors : [];
     const countOf = wx => hist.filter(x => x === wx).length;
 
     pool.sort((a, b) => {
         const ca = countOf(a.wx), cb = countOf(b.wx);
-        if (ca !== cb) return ca - cb;                 // 出现少的优先
-        if (b.score !== a.score) return b.score - a.score; // 再比提名分
-        return 0;
+        if (ca !== cb) return ca - cb;                 // 今年内出现少的优先
+        if (b.score !== a.score) return b.score - a.score; // 提名分（已含共识加分）
+        // 同分再看来源数：被多方同时点名的更可信
+        return (b.source_count || 1) - (a.source_count || 1);
     });
 
     const winner = pool[0];
     const conflict_type = winner.reason;
 
-    // adjusted_scores：扶抑底分 + 该五行获得的来源加权（供展示）
+    // adjusted_scores：扶抑底分 + 该五行获得的来源加权（含共识加分）
     const adjusted = {};
     for (let wx of WUXING_LIST) {
         adjusted[wx] = (final_scores[wx] || 0) + (boosts[wx] || 0);
@@ -729,7 +755,13 @@ function run_conflict_detector(final_scores, dyn, coeffs, liuyue_zhi, bazi, peri
         conflict_type,
         favorable_element: winner.wx,   // 主喜用
         secondary_element: secondary,   // 副喜用
-        candidate_pool: pool.map(n => ({ wx: n.wx, score: n.score, reason: n.reason, prior_count: countOf(n.wx) }))
+        candidate_pool: pool.map(n => ({
+            wx: n.wx,
+            score: n.score,
+            reason: n.reason,
+            source_count: n.source_count || 1,
+            prior_count: countOf(n.wx)
+        }))
     };
 }
 
@@ -776,7 +808,7 @@ function get_monthly_weak_domain(dm_gan, adjusted_scores, coeffs, gender) {
 // liuyue_raw  : 流月干支字符串（"壬申"2字优先；兼容"申"单字旧接口）
 // gender      : 1/'1'/'male' = 男，其余 = 女
 // period      : { dayun, year, month } 干支字符串，可传null（调试兼容）
-// prev_favors : 本年已算出的喜用五行数组（用于近并列破平），可省略
+// prev_favors : 今年流年内、首次使用以来已出现的主喜用数组（不含本月；用于近并列池内破平），可省略
 // ============================================================
 function get_monthly_favorable_element(bazi, liuyue_raw, gender, period, prev_favors) {
     // 解析流月干支
@@ -852,12 +884,13 @@ function get_monthly_favorable_element(bazi, liuyue_raw, gender, period, prev_fa
 }
 
 // ============================================================
-// 按年顺序计算十二流月喜用（破平窗口 = 本年已算出的月份）
+// 按年顺序计算十二流月喜用
 // months: 干支字符串数组，如 ['庚寅','辛卯',...]，按正月→十二月顺序
+// initial_favors: 今年流年内、本批月份之前已出现的主喜用（可省略）
 // ============================================================
-function get_year_monthly_favorable(bazi, months, gender, period) {
+function get_year_monthly_favorable(bazi, months, gender, period, initial_favors) {
     const results = [];
-    const prev_favors = [];
+    const prev_favors = Array.isArray(initial_favors) ? initial_favors.slice() : [];
     for (let gz of months) {
         const r = get_monthly_favorable_element(bazi, gz, gender, period, prev_favors);
         results.push(Object.assign({ liuyue: gz }, r));

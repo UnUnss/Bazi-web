@@ -20,6 +20,29 @@ async function assertUser(req) {
   return null;
 }
 
+function normalizeWallpaperHistory(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof k !== 'string' || !k) continue;
+    if (!Array.isArray(v)) continue;
+    out[k] = v.filter((id) => id != null && id !== '').map(String);
+  }
+  return out;
+}
+
+/** 只保留指定流年前缀的记录（如 yearGanZhi='丙午' → 键以 '丙午|' 开头） */
+function pruneWallpaperHistory(raw, yearGanZhi) {
+  const all = normalizeWallpaperHistory(raw);
+  if (!yearGanZhi) return all;
+  const prefix = `${yearGanZhi}|`;
+  const out = {};
+  for (const [k, v] of Object.entries(all)) {
+    if (k.indexOf(prefix) === 0) out[k] = v;
+  }
+  return out;
+}
+
 function toClient(row) {
   return {
     id: row.id,
@@ -32,11 +55,12 @@ function toClient(row) {
     utcOffset: row.utc_offset,
     useTrueSolarTime: !!row.use_true_solar_time,
     useDST: !!row.use_dst,
+    wallpaperHistory: normalizeWallpaperHistory(row.wallpaper_history),
   };
 }
 
 function toRow(profile, email, userId) {
-  return {
+  const row = {
     nickname: profile.nickname,
     gender: Number(profile.gender),
     birth_date: profile.birthDate,
@@ -49,6 +73,11 @@ function toRow(profile, email, userId) {
     owner_email: email,
     user_id: userId,
   };
+  // 未显式传入时不覆盖库里的壁纸历史，避免普通 upsert 把字段抹空
+  if (profile.wallpaperHistory !== undefined) {
+    row.wallpaper_history = normalizeWallpaperHistory(profile.wallpaperHistory);
+  }
+  return row;
 }
 
 export default async function handler(req, res) {
@@ -66,6 +95,29 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: true });
       if (error) return res.status(500).json({ error: error.message });
       return res.status(200).json({ profiles: (data || []).map(toClient) });
+    }
+
+    // 仅更新壁纸历史（本月选图后调用）
+    if (req.method === 'PATCH') {
+      const id = req.body?.id;
+      const wallpaperHistory = req.body?.wallpaperHistory;
+      const yearGanZhi = req.body?.yearGanZhi || null;
+      if (!id) return res.status(400).json({ error: 'Missing id' });
+      if (wallpaperHistory === undefined) {
+        return res.status(400).json({ error: 'Missing wallpaperHistory' });
+      }
+
+      const pruned = pruneWallpaperHistory(wallpaperHistory, yearGanZhi);
+      const { data, error } = await sb
+        .from('bazi_profiles')
+        .update({ wallpaper_history: pruned })
+        .eq('id', id)
+        .eq('owner_email', email)
+        .select('*')
+        .maybeSingle();
+      if (error) return res.status(500).json({ error: error.message });
+      if (!data) return res.status(404).json({ error: 'Profile not found' });
+      return res.status(200).json({ profile: toClient(data) });
     }
 
     if (req.method === 'POST') {

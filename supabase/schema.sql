@@ -92,6 +92,10 @@ alter table public.bazi_profiles
 create index if not exists bazi_profiles_owner_email_idx
   on public.bazi_profiles (owner_email);
 
+-- 壁纸跨月去重历史：{ "丙午|乙未": ["wallpaper-uuid", ...], ... }，只保留当前流年
+alter table public.bazi_profiles
+  add column if not exists wallpaper_history jsonb not null default '{}'::jsonb;
+
 grant select, insert, update, delete on public.bazi_profiles to service_role;
 
 -- ════════════════════════════════════════════
