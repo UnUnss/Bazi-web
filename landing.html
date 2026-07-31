@@ -1371,6 +1371,12 @@
             margin-bottom: 28px;
         }
 
+        #resetPasswordTitle {
+            font-size: 15px;
+            letter-spacing: 0.12em;
+            margin-bottom: 20px;
+        }
+
         .modal-close {
             position: absolute;
             top: 14px;
@@ -2439,6 +2445,41 @@
     </div>
 </div>
 
+<!-- 忘記密碼：先驗證碼，再設新密碼 -->
+<div class="modal-backdrop" id="resetPasswordModal" role="dialog" aria-modal="true">
+    <div class="modal">
+        <button type="button" class="modal-close" id="resetPasswordModalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
+        <h2 id="resetPasswordTitle" data-i18n="reset_password_title">重置密碼</h2>
+
+        <form id="resetVerifyForm">
+            <div class="form-group">
+                <label for="resetEmail" data-i18n="login_email_label">郵箱</label>
+                <input type="email" id="resetEmail" name="resetEmail" autocomplete="email" required />
+            </div>
+            <div class="form-group">
+                <label for="resetCode" data-i18n="login_code_label">驗證碼</label>
+                <div class="code-row">
+                    <input type="text" id="resetCode" name="resetCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required />
+                    <button type="button" class="btn-get-code" id="btnResetGetCode" data-i18n="btn_get_code">獲取驗證碼</button>
+                </div>
+            </div>
+            <button type="submit" class="btn-save" id="resetVerifySubmit" data-i18n="reset_verify_submit">驗證</button>
+        </form>
+
+        <form id="resetSetPasswordForm" style="display:none;">
+            <div class="form-group">
+                <label for="resetNewPassword" data-i18n="new_password_label">新密碼</label>
+                <input type="password" id="resetNewPassword" name="resetNewPassword" autocomplete="new-password" minlength="6" required />
+            </div>
+            <div class="form-group">
+                <label for="resetNewPasswordConfirm" data-i18n="new_password_confirm_label">確認新密碼</label>
+                <input type="password" id="resetNewPasswordConfirm" name="resetNewPasswordConfirm" autocomplete="new-password" minlength="6" required />
+            </div>
+            <button type="submit" class="btn-save" id="resetPasswordConfirmBtn" data-i18n="reset_password_confirm_btn">確認修改</button>
+        </form>
+    </div>
+</div>
+
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- 八字真實排盤邏輯：與 bazi-calc-debug.html 共用同一套 lunar-javascript + bazi_logic.js -->
@@ -2994,8 +3035,68 @@
         const start = h % pool.length;
         return Array.from({ length: count }, (_, i) => pool[(start + i) % pool.length]);
     }
-    // 壁纸缓存，避免重复请求（key = element）
+    // 壁纸缓存：内存 + localStorage（跨刷新）+ Cache API（预览图）
     const _wallpaperCache = {};
+    const _wallpaperInflight = {};
+    const WP_META_LS_KEY = 'bazi_wallpaper_meta_v1';
+    const WP_META_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+    const WP_IMG_CACHE = 'bazi-wp-preview-v1';
+    let _wpBlobUrls = [];
+
+    function readWallpaperMetaCache(element) {
+        try {
+            const all = JSON.parse(localStorage.getItem(WP_META_LS_KEY) || '{}');
+            const entry = all[element];
+            if (
+                entry
+                && entry.ts
+                && (Date.now() - entry.ts) < WP_META_TTL_MS
+                && Array.isArray(entry.data)
+                && entry.data.length > 0
+            ) {
+                return entry.data;
+            }
+        } catch (_) {}
+        return null;
+    }
+
+    function writeWallpaperMetaCache(element, data) {
+        if (!element || !Array.isArray(data) || !data.length) return;
+        try {
+            const all = JSON.parse(localStorage.getItem(WP_META_LS_KEY) || '{}');
+            all[element] = { ts: Date.now(), data };
+            localStorage.setItem(WP_META_LS_KEY, JSON.stringify(all));
+        } catch (_) {}
+    }
+
+    function revokeWallpaperBlobs() {
+        _wpBlobUrls.forEach((u) => {
+            try { URL.revokeObjectURL(u); } catch (_) {}
+        });
+        _wpBlobUrls = [];
+    }
+
+    async function cachedPreviewSrc(url) {
+        if (!url || !('caches' in window)) return url;
+        try {
+            const cache = await caches.open(WP_IMG_CACHE);
+            let res = await cache.match(url);
+            if (!res) {
+                const net = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'force-cache' });
+                if (!net.ok) return url;
+                try { await cache.put(url, net.clone()); } catch (_) {}
+                res = net;
+            }
+            const blob = await res.blob();
+            if (!blob || !blob.size) return url;
+            const obj = URL.createObjectURL(blob);
+            _wpBlobUrls.push(obj);
+            return obj;
+        } catch (_) {
+            return url;
+        }
+    }
+
     // 必须在首次 refresh()/renderWallpapers 之前创建：否则首屏会因 TDZ/_sb 未就绪查库失败，
     // 表现为壁纸空或不匹配；切换档案再次 refresh 时客户端已就绪，看起来又正常了。
     const _sb = supabase.createClient(
@@ -3004,19 +3105,55 @@
     );
     const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
 
-    async function fetchWallpapers(element) {
-        if (_wallpaperCache[element]) return _wallpaperCache[element];
-        try {
-            const { data, error } = await _sb.from('wallpapers').select('*').eq('element', element);
-            if (!error && data && data.length > 0) {
-                _wallpaperCache[element] = data;
-                return data;
-            }
-        } catch (_) { /* 网络失败时降级到本地数据 */ }
-        return null; // null → 调用方降级到本地 WUXING_WALLPAPER
+    async function fetchWallpapersFromNetwork(element) {
+        const { data, error } = await _sb
+            .from('wallpapers')
+            .select('id,element,tags,r2_key,preview_key')
+            .eq('element', element);
+        if (!error && data && data.length > 0) {
+            _wallpaperCache[element] = data;
+            writeWallpaperMetaCache(element, data);
+            return data;
+        }
+        return null;
     }
 
+    function revalidateWallpapers(element) {
+        if (!element || _wallpaperInflight[element]) return;
+        _wallpaperInflight[element] = (async () => {
+            try { await fetchWallpapersFromNetwork(element); } catch (_) {}
+            finally { delete _wallpaperInflight[element]; }
+        })();
+    }
+
+    async function fetchWallpapers(element) {
+        if (!element) return null;
+        if (_wallpaperCache[element]) return _wallpaperCache[element];
+
+        const local = readWallpaperMetaCache(element);
+        if (local) {
+            _wallpaperCache[element] = local;
+            // 后台静默更新，不挡首屏
+            revalidateWallpapers(element);
+            return local;
+        }
+
+        if (_wallpaperInflight[element]) return _wallpaperInflight[element];
+        _wallpaperInflight[element] = (async () => {
+            try {
+                return await fetchWallpapersFromNetwork(element);
+            } catch (_) {
+                return null;
+            } finally {
+                delete _wallpaperInflight[element];
+            }
+        })();
+        return _wallpaperInflight[element];
+    }
+
+    let _wallpaperRenderSeq = 0;
     async function renderWallpapers(profile) {
+        const renderSeq = ++_wallpaperRenderSeq;
         const insight = computeMonthlyInsight(profile);
         renderInsight(insight);
         const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
@@ -3052,11 +3189,13 @@
             { el: secondaryEl, elName: secondaryName, tags: tagsAB, desc: labelAB },
         ];
 
-        // 拉取主/副喜用各自的壁纸池
-        const poolPrimary = await fetchWallpapers(primaryEl);
-        const poolSecondary = secondaryEl === primaryEl
-            ? poolPrimary
-            : await fetchWallpapers(secondaryEl);
+        // 并行拉取主/副喜用壁纸池（同五行只请求一次）
+        const [poolPrimary, poolSecondaryRaw] = await Promise.all([
+            fetchWallpapers(primaryEl),
+            secondaryEl === primaryEl ? Promise.resolve(null) : fetchWallpapers(secondaryEl),
+        ]);
+        if (renderSeq !== _wallpaperRenderSeq) return; // 已被更新的 refresh 覆盖
+        const poolSecondary = secondaryEl === primaryEl ? poolPrimary : poolSecondaryRaw;
         const hasDb = (poolPrimary && poolPrimary.length > 0)
             || (poolSecondary && poolSecondary.length > 0);
 
@@ -3091,6 +3230,8 @@
                     name:  spec.elName,
                     desc:  spec.desc,
                     tags:  normalizeYunTags(w.tags),
+                    // 有 preview 才算轻量；无则回退原图（可能很大）
+                    isPreview: !!w.preview_key,
                 };
             });
 
@@ -3118,20 +3259,32 @@
             }).filter(Boolean);
         }
 
+        // 预览图走 Cache API：刷新后优先本地缓存，避免重复下载
+        revokeWallpaperBlobs();
+        cards = await Promise.all((cards || []).map(async (c) => {
+            const remoteImg = c.img;
+            const displayImg = await cachedPreviewSrc(remoteImg);
+            return { ...c, remoteImg, img: displayImg };
+        }));
+        if (renderSeq !== _wallpaperRenderSeq) return;
+
         // 同一素材（img）可能會出現在多張卡片上（如本月第1、3張共用同一張底圖），
         // 所以下載/加購物車用「卡片位置」cardKey 區分，而不是單純用 img 判斷是否重複。
         function cardHtml(c, idx) {
-            const cardKey = c.img + '#' + idx;
+            const remote = c.remoteImg || c.img;
+            const cardKey = remote + '#' + idx;
             const wxCls = WX_CLASS[c.el] || WX_CLASS[c.name] || '';
             const nameHtml = wxCls
                 ? `<span class="${wxCls}">${escapeHtml(c.name)}</span>`
                 : escapeHtml(c.name);
+            const loading = idx < 2 ? 'eager' : 'lazy';
+            const fetchPriority = idx === 0 ? 'high' : 'auto';
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
-                    <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" />
+                    <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" />
                     <div class="phone-overlay">
                         <div class="phone-overlay-top">
-                            <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" />
+                            <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" loading="lazy" decoding="async" />
                         </div>
                         <div class="phone-overlay-clock">
                             <div class="phone-clock-date"></div>
@@ -3156,11 +3309,12 @@
                 <div class="wallpaper-meta">
                     <p class="name">${nameHtml}</p>
                     <p class="desc">${escapeHtml(c.desc)}</p>
-                    <button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(c.img)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
+                    <button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
                 </div>
             </article>`;
         }
 
+        if (renderSeq !== _wallpaperRenderSeq) return;
         const cardHtmls = cards.map((c, idx) => cardHtml(c, idx));
         wallpaperGrid.innerHTML = `
             <div class="wallpaper-group">
@@ -5018,25 +5172,197 @@
         alert(t('mock_feature_notice'));
     });
 
-    btnForgotPassword.addEventListener('click', async () => {
+    // ── 忘記密碼：驗證碼 → 設置新密碼 ─────────────────────
+    const resetPasswordModal = document.getElementById('resetPasswordModal');
+    const resetPasswordModalClose = document.getElementById('resetPasswordModalClose');
+    const resetPasswordTitle = document.getElementById('resetPasswordTitle');
+    const resetVerifyForm = document.getElementById('resetVerifyForm');
+    const resetSetPasswordForm = document.getElementById('resetSetPasswordForm');
+    const resetEmailInput = document.getElementById('resetEmail');
+    const resetCodeInput = document.getElementById('resetCode');
+    const btnResetGetCode = document.getElementById('btnResetGetCode');
+    const resetVerifySubmit = document.getElementById('resetVerifySubmit');
+    const resetNewPasswordInput = document.getElementById('resetNewPassword');
+    const resetNewPasswordConfirmInput = document.getElementById('resetNewPasswordConfirm');
+    const resetPasswordConfirmBtn = document.getElementById('resetPasswordConfirmBtn');
+    let resetCodeTimer = null;
+    let resetBusy = false;
+
+    function resetResetCodeCooldown() {
+        if (resetCodeTimer) {
+            clearInterval(resetCodeTimer);
+            resetCodeTimer = null;
+        }
+        btnResetGetCode.disabled = false;
+        btnResetGetCode.textContent = window.I18N ? window.I18N.t('btn_get_code') : '獲取驗證碼';
+    }
+
+    function startResetCodeCooldown() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        btnResetGetCode.disabled = true;
+        let remaining = 60;
+        btnResetGetCode.textContent = remaining + 's';
+        if (resetCodeTimer) clearInterval(resetCodeTimer);
+        resetCodeTimer = setInterval(() => {
+            remaining -= 1;
+            if (remaining <= 0) {
+                resetResetCodeCooldown();
+            } else {
+                btnResetGetCode.textContent = remaining + 's';
+            }
+        }, 1000);
+    }
+
+    function showResetStep(step) {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const isVerify = step === 'verify';
+        resetVerifyForm.style.display = isVerify ? '' : 'none';
+        resetSetPasswordForm.style.display = isVerify ? 'none' : '';
+        resetPasswordTitle.textContent = t(isVerify ? 'reset_password_title' : 'reset_set_password_title');
+        resetPasswordTitle.setAttribute('data-i18n', isVerify ? 'reset_password_title' : 'reset_set_password_title');
+    }
+
+    function openResetPasswordModal(email) {
+        resetEmailInput.value = email || '';
+        resetCodeInput.value = '';
+        resetNewPasswordInput.value = '';
+        resetNewPasswordConfirmInput.value = '';
+        resetBusy = false;
+        resetVerifySubmit.disabled = false;
+        resetPasswordConfirmBtn.disabled = false;
+        resetResetCodeCooldown();
+        showResetStep('verify');
+        loginModal.classList.remove('open');
+        resetPasswordModal.classList.add('open');
+        if (!email) resetEmailInput.focus();
+        else resetCodeInput.focus();
+    }
+
+    function closeResetPasswordModal() {
+        resetPasswordModal.classList.remove('open');
+        resetResetCodeCooldown();
+        resetBusy = false;
+    }
+
+    btnForgotPassword.addEventListener('click', () => {
         const t = window.I18N ? window.I18N.t : (k) => k;
         const email = loginEmailInput.value.trim();
-        if (!email) { loginEmailInput.focus(); return; }
-        if (!isValidEmail(email)) {
+        if (email && !isValidEmail(email)) {
             alert(t('email_invalid_notice'));
             loginEmailInput.focus();
             return;
         }
-        btnForgotPassword.disabled = true;
+        openResetPasswordModal(email);
+    });
+
+    resetPasswordModalClose.addEventListener('click', closeResetPasswordModal);
+    resetPasswordModal.addEventListener('click', (e) => {
+        if (e.target === resetPasswordModal) closeResetPasswordModal();
+    });
+
+    btnResetGetCode.addEventListener('click', async () => {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const email = resetEmailInput.value.trim();
+        if (!email) { resetEmailInput.focus(); return; }
+        if (!isValidEmail(email)) {
+            alert(t('email_invalid_notice'));
+            resetEmailInput.focus();
+            return;
+        }
+        btnResetGetCode.disabled = true;
         try {
-            const redirectTo = location.origin + location.pathname;
-            const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo });
+            const { error } = await _sb.auth.signInWithOtp({
+                email,
+                options: { shouldCreateUser: false },
+            });
             if (error) throw error;
-            alert(t('reset_password_sent'));
+            alert(t('otp_sent_notice'));
+            startResetCodeCooldown();
+            resetCodeInput.focus();
+        } catch (err) {
+            btnResetGetCode.disabled = false;
+            btnResetGetCode.textContent = t('btn_get_code');
+            alert(mapAuthError(err, t));
+        }
+    });
+
+    resetVerifyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (resetBusy) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const email = resetEmailInput.value.trim();
+        const token = resetCodeInput.value.trim();
+        if (!email) { resetEmailInput.focus(); return; }
+        if (!isValidEmail(email)) {
+            alert(t('email_invalid_notice'));
+            resetEmailInput.focus();
+            return;
+        }
+        if (!token) { resetCodeInput.focus(); return; }
+
+        resetBusy = true;
+        resetVerifySubmit.disabled = true;
+        try {
+            const { data, error } = await _sb.auth.verifyOtp({
+                email,
+                token,
+                type: 'email',
+            });
+            if (error) throw error;
+            const userEmail = data?.user?.email || data?.session?.user?.email || email;
+            // 驗證通過後先進入設密步驟（此時已有 session，可用 updateUser）
+            if (userEmail) {
+                localStorage.setItem(AUTH_KEY, '1');
+                localStorage.setItem(AUTH_EMAIL_KEY, userEmail);
+                localStorage.removeItem('bazi_logged_in_email');
+                updateAuthUI();
+            }
+            showResetStep('set');
+            resetNewPasswordInput.focus();
         } catch (err) {
             alert(mapAuthError(err, t));
         } finally {
-            btnForgotPassword.disabled = false;
+            resetBusy = false;
+            resetVerifySubmit.disabled = false;
+        }
+    });
+
+    resetSetPasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (resetBusy) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const password = resetNewPasswordInput.value;
+        const confirmPw = resetNewPasswordConfirmInput.value;
+        if (!password) {
+            alert(t('password_required_notice'));
+            resetNewPasswordInput.focus();
+            return;
+        }
+        if (password.length < 6) {
+            alert(t('password_min_notice'));
+            resetNewPasswordInput.focus();
+            return;
+        }
+        if (password !== confirmPw) {
+            alert(t('password_mismatch_notice'));
+            resetNewPasswordConfirmInput.focus();
+            return;
+        }
+
+        resetBusy = true;
+        resetPasswordConfirmBtn.disabled = true;
+        try {
+            const { data, error } = await _sb.auth.updateUser({ password });
+            if (error) throw error;
+            const email = data?.user?.email || resetEmailInput.value.trim();
+            setLoggedIn(email);
+            closeResetPasswordModal();
+            alert(t('reset_password_success'));
+        } catch (err) {
+            alert(mapAuthError(err, t));
+        } finally {
+            resetBusy = false;
+            resetPasswordConfirmBtn.disabled = false;
         }
     });
 
