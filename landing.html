@@ -2719,23 +2719,49 @@
         saveFavorHistoryAll(all);
     }
 
+    const INSIGHT_CACHE_KEY = 'bazi_monthly_insight_v1';
+
+    function readInsightCache(profileId, ymKey) {
+        try {
+            const all = JSON.parse(localStorage.getItem(INSIGHT_CACHE_KEY) || '{}');
+            const entry = all[profileId];
+            if (entry && entry.ymKey === ymKey && entry.data) return entry.data;
+        } catch (_) {}
+        return null;
+    }
+
+    function writeInsightCache(profileId, ymKey, data) {
+        try {
+            const all = JSON.parse(localStorage.getItem(INSIGHT_CACHE_KEY) || '{}');
+            // 只保留最近 5 个档案的缓存，避免 localStorage 无限膨胀
+            const keys = Object.keys(all);
+            if (keys.length >= 5 && !all[profileId]) delete all[keys[0]];
+            all[profileId] = { ymKey, data };
+            localStorage.setItem(INSIGHT_CACHE_KEY, JSON.stringify(all));
+        } catch (_) {}
+    }
+
     function computeMonthlyInsight(profile) {
         try {
+            const nowYearMonth = getCurrentYearMonthGanZhi();
+            const liuyueGanZhi = nowYearMonth.month;
+            const profileId = profile.id || 'anonymous';
+            const ymKey = `${nowYearMonth.year}|${liuyueGanZhi}`;
+
+            // 命中缓存：同一档案同一流月，直接返回，跳过重算
+            const cached = readInsightCache(profileId, ymKey);
+            if (cached) return cached;
+
             const bazi = computeBaziForProfile(profile);
             const logicBazi = toLogicBazi(bazi.pillars);
-            const nowYearMonth = getCurrentYearMonthGanZhi();
-            // 傳完整干支字串（2字），新算法可利用月干；period 含大運/流年供環境乘數計算
-            const liuyueGanZhi = nowYearMonth.month;
             const gender = profile.gender;
-            // 流月鍵：流年干支 + 流月干支，跨年不撞；同一流月只記一次
-            const ymKey = `${nowYearMonth.year}|${liuyueGanZhi}`;
-            const profileId = profile.id || 'anonymous';
             const prevFavors = getPrevFavorsForProfile(profileId, ymKey, nowYearMonth.year);
             const result = get_monthly_favorable_element(
                 logicBazi, liuyueGanZhi, gender, bazi.period, prevFavors
             );
             if (result && result.favorable_element) {
                 recordFavorForProfile(profileId, ymKey, result.favorable_element, nowYearMonth.year);
+                writeInsightCache(profileId, ymKey, result);
             }
             return result;
         } catch (err) {
@@ -2882,13 +2908,22 @@
     async function hydrateProfilesFromCloud() {
         const remote = await cloudLoadProfiles();
         if (!remote || !remote.length) return;
+        // 比较云端与本地是否实质相同，相同则不重新渲染（避免多余的壁纸请求）
+        const localIds = profiles.map((p) => p.id).join(',');
+        const remoteIds = remote.map((p) => p.id).join(',');
+        const changed = localIds !== remoteIds;
         profiles = remote;
         saveProfiles(profiles);
         if (!profiles.some((p) => p.id === activeId)) {
             activeId = profiles[0].id;
             setActiveId(activeId);
         }
-        refresh();
+        if (changed) {
+            refresh();
+        } else {
+            // 数据未变，只刷新菜单（锁定状态可能需要更新）
+            renderMenu(profiles, activeId);
+        }
     }
 
     function getActiveId(list) {
@@ -3741,10 +3776,10 @@
         if (remote === null) return;
         if (remote.length > 0) {
             saveAnnualPlansLocal(remote);
-            if (typeof refresh === 'function') refresh();
+            // 包年只影响菜单锁定状态，不影响壁纸；只刷新菜单，不重新渲染壁纸
+            renderMenu(profiles, activeId);
             return;
         }
-        // 云端为空：若本地还有旧演示数据，推上去一次
         const local = loadAnnualPlans();
         if (local.length > 0) {
             const pushed = await cloudPutAnnualPlans(local);
@@ -4386,6 +4421,24 @@
     }
     let activeId = getActiveId(profiles);
     let editingId = null;
+
+    // 提前预热壁纸元数据：在 refresh() 之前 kick off 网络请求，
+    // 利用 insight 缓存获得喜用五行，让 Supabase 查询与 JS 初始化并行
+    ;(function prefetchWallpaperMeta() {
+        try {
+            const active = profiles.find((p) => p.id === activeId) || profiles[0];
+            if (!active) return;
+            const nowYearMonth = getCurrentYearMonthGanZhi();
+            const profileId = active.id || 'anonymous';
+            const ymKey = `${nowYearMonth.year}|${nowYearMonth.month}`;
+            const cached = readInsightCache(profileId, ymKey);
+            if (!cached) return; // 首次没缓存，refresh() 时再正常走
+            const primary = cached.favorable_element;
+            const secondary = cached.secondary_element;
+            if (primary) fetchWallpapers(primary);
+            if (secondary && secondary !== primary) fetchWallpapers(secondary);
+        } catch (_) {}
+    })();
 
     function resetToGuestProfiles() {
         profiles = defaultProfiles.map((p) => ({ ...p }));
@@ -5093,11 +5146,25 @@
         return err?.message || t('auth_error_generic');
     }
 
+    // 页面初始时 AUTH_KEY 是否已为 '1'（用于防止 onAuthStateChange 重复 hydration）
+    const _wasLoggedInOnLoad = localStorage.getItem(AUTH_KEY) === '1';
+
     // 恢復 / 監聽 Supabase 會話
+    // getSession 是页面首次加载的授权来源，如果本地 AUTH_KEY 已为 '1'，说明已经通过
+    // if(AUTH_KEY) 块做了首次 hydration，这里只需更新 UI；若 token 失效/首次则走完整流程。
     _sb.auth.getSession().then(({ data }) => {
         const user = data?.session?.user;
-        if (user?.email) setLoggedIn(user.email);
-        else updateAuthUI();
+        if (user?.email) {
+            if (localStorage.getItem(AUTH_KEY) === '1') {
+                // 已经由下方 if(AUTH_KEY) 块发起了 hydration，只更新 UI 和 email 即可
+                localStorage.setItem(AUTH_EMAIL_KEY, user.email);
+                updateAuthUI();
+            } else {
+                setLoggedIn(user.email);
+            }
+        } else {
+            updateAuthUI();
+        }
     }).catch(() => updateAuthUI());
 
     _sb.auth.onAuthStateChange((event, session) => {
@@ -5106,11 +5173,16 @@
             localStorage.setItem(AUTH_EMAIL_KEY, session.user.email);
             localStorage.removeItem('bazi_logged_in_email');
             updateAuthUI();
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-                hydrateProfilesFromCloud();
-            }
-            if (event === 'SIGNED_IN') {
-                hydrateAnnualFromCloud();
+            // 页面加载时 Supabase 恢复 session 可能触发 SIGNED_IN，若已由 if(AUTH_KEY) 块做了
+            // 首次 hydration，则跳过，避免重复渲染壁纸。只有真正新登录才执行 hydration。
+            const isPageLoadRestore = _wasLoggedInOnLoad && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION');
+            if (!isPageLoadRestore) {
+                if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                    hydrateProfilesFromCloud();
+                }
+                if (event === 'SIGNED_IN') {
+                    hydrateAnnualFromCloud();
+                }
             }
         } else if (event === 'SIGNED_OUT') {
             clearLoggedIn();
