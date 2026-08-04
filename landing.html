@@ -11,7 +11,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=17"></script>
+    <script src="i18n.js?v=18"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -200,9 +200,12 @@
             display: none;
             position: absolute;
             top: calc(100% + 6px);
-            right: 0;
+            /* 关于我们靠左：左对齐向右展开，避免英文长文案向左溢出裁切 */
+            left: 0;
+            right: auto;
             min-width: 130px;
             width: max-content;
+            max-width: calc(100vw - 32px);
             background: rgba(255, 252, 245, 0.96);
             border: 1px solid var(--line);
             border-radius: 2px;
@@ -590,7 +593,7 @@
             container-type: inline-size;
         }
 
-        .wallpaper-preview img {
+        .wallpaper-preview > img {
             width: 100%;
             height: auto;
             display: block;
@@ -613,14 +616,14 @@
             z-index: 2;
         }
 
-        /* 与原来相同的绝对定位；仅 top 下移到原日期附近（原为 7%） */
+        /* 与原来相同的绝对定位；略下移并放大，与时钟拉开间距 */
         .wallpaper-preview .phone-overlay-logo,
         .pay-wallpaper-preview .phone-overlay-logo {
             position: absolute;
-            width: 200cqw;
+            width: 360cqw;
             height: auto;
             left: 50%;
-            top: 118%;
+            top: 138%;
             transform: translateX(-50%);
             filter: brightness(0) invert(1);
             opacity: 0.88;
@@ -1344,9 +1347,13 @@
             inset: 0;
             background: rgba(42, 30, 10, 0.28);
             z-index: 50;
-            align-items: center;
+            /* flex-start + margin:auto：矮弹窗仍居中，高弹窗可整页滚动，避免居中裁切 */
+            align-items: flex-start;
             justify-content: center;
             padding: 24px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
 
         .modal-backdrop.open {
@@ -1356,6 +1363,9 @@
         .modal {
             width: 100%;
             max-width: 420px;
+            margin-top: auto;
+            margin-bottom: auto;
+            flex-shrink: 0;
             background: #faf6ec;
             border: 1px solid var(--line);
             border-radius: 2px;
@@ -1393,18 +1403,18 @@
 
         .modal-delete {
             display: none;
-            position: absolute;
-            top: 14px;
-            left: 16px;
-            z-index: 2;
-            border: none;
-            background: transparent;
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 10px;
             font-family: inherit;
-            font-size: 13px;
-            letter-spacing: 0.08em;
-            color: var(--ink-muted);
+            font-size: 15px;
+            letter-spacing: 0.12em;
+            padding: 12px;
+            background: transparent;
+            color: #8b3a2a;
+            border: 1px solid #c4a090;
+            border-radius: 2px;
             cursor: pointer;
-            padding: 4px 2px;
         }
 
         .modal-delete.visible {
@@ -1412,7 +1422,8 @@
         }
 
         .modal-delete:hover {
-            color: #8b3a2a;
+            background: #faf0ec;
+            border-color: #8b3a2a;
         }
 
         #deleteConfirmModal {
@@ -2027,8 +2038,6 @@
                 flex-direction: column;
                 gap: 16px;
                 padding: 20px 14px 16px;
-                /* column 布局下交叉轴是水平方向；flex-start 会让 group
-                   按内容收缩并靠左。图片未缓存时更易塌缩，刷新后又偶发正常。 */
                 align-items: stretch;
             }
 
@@ -2196,7 +2205,6 @@
 <!-- 新增／编辑八字彈窗 -->
 <div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal">
-        <button type="button" class="modal-delete" id="modalDelete" data-i18n="btn_delete">删除</button>
         <button type="button" class="modal-close" id="modalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 id="modalTitle" data-i18n="modal_add_title">新增八字</h2>
         <form id="addBaziForm">
@@ -2267,6 +2275,7 @@
                     </label>
                 </div>
             </div>
+            <button type="button" class="modal-delete" id="modalDelete" data-i18n="btn_delete">删除</button>
             <button type="submit" class="btn-save" data-i18n="btn_save">保存八字</button>
         </form>
     </div>
@@ -2295,7 +2304,7 @@
                     <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" />
                 </div>
                 <div class="phone-overlay-clock">
-                    <div class="phone-clock-date">2026/08/09</div>
+                    <div class="phone-clock-date">2026/08/09 Sunday</div>
                     <div class="phone-clock-time">09:00</div>
                 </div>
                 <div class="phone-overlay-bottom">
@@ -3512,7 +3521,7 @@
             const nameHtml = wxCls
                 ? `<span class="${wxCls}">${escapeHtml(c.name)}</span>`
                 : escapeHtml(c.name);
-            const loading = idx < 2 ? 'eager' : 'lazy';
+            const loading = 'eager';
             const fetchPriority = idx === 0 ? 'high' : 'auto';
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
@@ -3559,12 +3568,18 @@
                 <div class="wallpaper-row">${cardHtmls.slice(2, 4).join('')}</div>
             </div>
         `;
-        // 固定顯示示例時間與日期
+        // 固定顯示示例時間與日期（2026/08/09 為星期日）
         wallpaperGrid.querySelectorAll('.phone-clock-time').forEach((el) => { el.textContent = '09:00'; });
         wallpaperGrid.querySelectorAll('.phone-clock-date').forEach((el) => {
             el.style.display = '';
-            el.textContent = '2026/08/09';
+            const weekday = window.I18N ? window.I18N.t('weekday_sun') : 'Sunday';
+            el.textContent = '2026/08/09 ' + weekday;
         });
+        const payDate = document.querySelector('#payModal .phone-clock-date');
+        if (payDate) {
+            const weekday = window.I18N ? window.I18N.t('weekday_sun') : 'Sunday';
+            payDate.textContent = '2026/08/09 ' + weekday;
+        }
     }
 
 

@@ -147,6 +147,7 @@
             lang_menu_zh_tw: '繁體中文',
             lang_menu_zh_cn: '简体中文',
             lang_menu_en: 'English',
+            weekday_sun: '星期日',
             cta_start: '開始',
             cta_sub: '基於生辰八字\n定制每月運勢壁紙'
         },
@@ -293,6 +294,7 @@
             lang_menu_zh_tw: '繁體中文',
             lang_menu_zh_cn: '简体中文',
             lang_menu_en: 'English',
+            weekday_sun: '星期日',
             cta_start: '开始',
             cta_sub: '基于生辰八字\n定制每月运势壁纸'
         },
@@ -439,6 +441,7 @@
             lang_menu_zh_tw: '繁體中文',
             lang_menu_zh_cn: '简体中文',
             lang_menu_en: 'English',
+            weekday_sun: 'Sunday',
             cta_start: 'Start',
             cta_sub: 'Personalized monthly fortune wallpapers based on your BaZi'
         }

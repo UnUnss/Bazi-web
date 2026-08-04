@@ -151,8 +151,12 @@
         }
 
         .about-menu {
+            /* 关于我们靠左：左对齐向右展开，避免英文长文案向左溢出裁切 */
+            left: 0;
+            right: auto;
             min-width: 130px;
             width: max-content;
+            max-width: calc(100vw - 32px);
         }
 
         .lang-menu.open,
