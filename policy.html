@@ -88,6 +88,12 @@
             pointer-events: none;
         }
 
+        .nav-logo-link {
+            display: block;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
         .nav-logo-wrap img {
             display: block;
             width: 100%;
@@ -95,6 +101,8 @@
         }
 
         .nav-user {
+            position: relative;
+            z-index: 2;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -343,7 +351,9 @@
 
 <nav>
     <div class="nav-logo-wrap">
-        <img src="assets/english.png" alt="ElementaWall" draggable="false">
+        <a href="index.html" class="nav-logo-link" aria-label="ElementaWall">
+            <img src="assets/english.png" alt="ElementaWall" draggable="false">
+        </a>
     </div>
     <div class="nav-user">
         <a href="javascript:void(0)" class="nav-link-item" data-i18n="nav_back" onclick="history.length>1?history.back():location.href='landing.html'">返回</a>
@@ -392,7 +402,7 @@
 
     <!-- 繁體中文 -->
     <div class="policy-lang" data-policy-lang="zh-TW">
-    <p class="effective-date">生效日期：2025 年 1 月 1 日</p>
+    <p class="effective-date">生效日期：2026 年 8 月 8 日</p>
 
     <h2>一、服務協議</h2>
 
@@ -431,8 +441,8 @@
     <h3>3. 第三方服務說明</h3>
     <p>為提供網站託管、帳號登入與資料存取功能，本平台使用以下第三方服務。這些服務僅在實現必要功能時處理相關資料，並受其各自隱私政策約束：</p>
     <ul>
-        <li><strong>Vercel：</strong>用於網站託管與前端頁面部署。當您訪問本平台時，Vercel 作為基礎設施可能處理基本的訪問請求資訊（例如 IP 位址、瀏覽器類型），以保障網站正常運作與安全。</li>
-        <li><strong>Supabase：</strong>用於帳號認證、會話管理，以及與壁紙推薦相關的必要資料存取（例如壁紙素材元數據）。我們僅在服務運行所需範圍內使用 Supabase，不會藉此收集與服務無關的個人資訊。</li>
+        <li><strong>Vercel：</strong>用於網站託管與前端頁面部署。當您訪問本平台時，Vercel 作為基礎設施可能處理基本的訪問請求資訊，以保障網站正常運作與安全。</li>
+        <li><strong>Supabase：</strong>用於帳號認證、會話管理，以及與壁紙推薦相關的必要資料存取。我們僅在服務運行所需範圍內使用 Supabase，不會藉此收集與服務無關的個人資訊。</li>
         <li><strong>Google 登入：</strong>若您選擇「使用 Google 登入」，將由 Google 進行身份驗證。我們僅取得完成登入所需的基本帳號識別資訊（例如郵箱），不會取得您的 Google 帳戶密碼，亦不會存取您的 Google 雲端硬碟、通訊錄或其他無關權限。您可隨時在 Google 帳戶設定中管理對本平台的授權。</li>
     </ul>
     <p>除上述為提供服務所必需的第三方處理外，我們不會將您的個人資訊出售、出租或以其他商業目的披露給第三方。</p>
@@ -458,7 +468,7 @@
 
     <!-- 简体中文 -->
     <div class="policy-lang" data-policy-lang="zh-CN" hidden>
-    <p class="effective-date">生效日期：2025 年 1 月 1 日</p>
+    <p class="effective-date">生效日期：2026 年 8 月 8 日</p>
 
     <h2>一、服务协议</h2>
 
@@ -497,8 +507,8 @@
     <h3>3. 第三方服务说明</h3>
     <p>为提供网站托管、账号登录与数据访问功能，本平台使用以下第三方服务。这些服务仅在实现必要功能时处理相关数据，并受其各自隐私政策约束：</p>
     <ul>
-        <li><strong>Vercel：</strong>用于网站托管与前端页面部署。当您访问本平台时，Vercel 作为基础设施可能处理基本的访问请求信息（例如 IP 地址、浏览器类型），以保障网站正常运作与安全。</li>
-        <li><strong>Supabase：</strong>用于账号认证、会话管理，以及与壁纸推荐相关的必要数据访问（例如壁纸素材元数据）。我们仅在服务运行所需范围内使用 Supabase，不会借此收集与服务无关的个人信息。</li>
+        <li><strong>Vercel：</strong>用于网站托管与前端页面部署。当您访问本平台时，Vercel 作为基础设施可能处理基本的访问请求信息，以保障网站正常运作与安全。</li>
+        <li><strong>Supabase：</strong>用于账号认证、会话管理，以及与壁纸推荐相关的必要数据访问。我们仅在服务运行所需范围内使用 Supabase，不会借此收集与服务无关的个人信息。</li>
         <li><strong>Google 登录：</strong>若您选择「使用 Google 登录」，将由 Google 进行身份验证。我们仅取得完成登录所需的基本账号识别信息（例如邮箱），不会取得您的 Google 账户密码，亦不会访问您的 Google 云端硬盘、通讯录或其他无关权限。您可随时在 Google 账户设置中管理对本平台的授权。</li>
     </ul>
     <p>除上述为提供服务所必需的第三方处理外，我们不会将您的个人信息出售、出租或以其他商业目的披露给第三方。</p>
@@ -524,7 +534,7 @@
 
     <!-- English -->
     <div class="policy-lang" data-policy-lang="en" hidden>
-    <p class="effective-date">Effective date: January 1, 2025</p>
+    <p class="effective-date">Effective date: August 8, 2026</p>
 
     <h2>I. Terms of Service</h2>
 
@@ -563,8 +573,8 @@
     <h3>3. Third-Party Services</h3>
     <p>To host the website, enable account login, and access necessary data, the Platform uses the following third-party services. They process related data only as needed to provide required functions, and are subject to their own privacy policies:</p>
     <ul>
-        <li><strong>Vercel:</strong> used for website hosting and frontend deployment. When you visit the Platform, Vercel as infrastructure may process basic request information (such as IP address and browser type) to keep the site running securely.</li>
-        <li><strong>Supabase:</strong> used for account authentication, session management, and necessary data access related to wallpaper recommendations (such as wallpaper metadata). We use Supabase only within the scope required to operate the Service, and do not use it to collect unrelated personal information.</li>
+        <li><strong>Vercel:</strong> used for website hosting and frontend deployment. When you visit the Platform, Vercel as infrastructure may process basic request information to keep the site running securely.</li>
+        <li><strong>Supabase:</strong> used for account authentication, session management, and necessary data access related to wallpaper recommendations. We use Supabase only within the scope required to operate the Service, and do not use it to collect unrelated personal information.</li>
         <li><strong>Google Sign-In:</strong> if you choose “Sign in with Google,” authentication is handled by Google. We only receive basic account identifiers needed to complete login (such as your email). We do not receive your Google password, and we do not access your Google Drive, contacts, or other unrelated permissions. You can manage the Platform’s access anytime in your Google Account settings.</li>
     </ul>
     <p>Except for the third-party processing required to provide the Service as described above, we will not sell, rent, or otherwise disclose your personal information to third parties for commercial purposes.</p>

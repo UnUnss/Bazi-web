@@ -89,6 +89,12 @@
             pointer-events: none;
         }
 
+        .nav-logo-link {
+            display: block;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
         .nav-logo-wrap img {
             display: block;
             width: 100%;
@@ -96,6 +102,8 @@
         }
 
         .nav-user {
+            position: relative;
+            z-index: 2;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -349,7 +357,9 @@
 
 <nav>
     <div class="nav-logo-wrap">
-        <img src="assets/english.png" alt="ElementaWall" draggable="false">
+        <a href="index.html" class="nav-logo-link" aria-label="ElementaWall">
+            <img src="assets/english.png" alt="ElementaWall" draggable="false">
+        </a>
     </div>
     <div class="nav-user">
         <a href="javascript:void(0)" class="nav-link-item" data-i18n="nav_back" onclick="history.length>1?history.back():location.href='landing.html'">返回</a>

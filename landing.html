@@ -11,7 +11,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=18"></script>
+    <script src="i18n.js?v=19"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -98,6 +98,12 @@
             pointer-events: none;
         }
 
+        .nav-logo-link {
+            display: block;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
         .nav-logo-wrap img {
             display: block;
             width: 100%;
@@ -105,6 +111,8 @@
         }
 
         .nav-user {
+            position: relative;
+            z-index: 2;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -322,24 +330,48 @@
             margin-top: 6px;
         }
 
-        .period-info {
+        .period-block {
+            display: grid;
+            grid-template-columns: auto auto auto auto auto;
+            justify-content: center;
+            justify-items: center;
+            align-items: baseline;
+            column-gap: 0;
+            row-gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .period-col-label {
+            font-size: 12px;
+            color: var(--ink-muted);
+            letter-spacing: 0.16em;
+        }
+
+        .period-col-value {
             font-size: 14px;
             letter-spacing: 0.14em;
             color: var(--ink-soft);
-            margin-bottom: 8px;
+            white-space: nowrap;
+        }
+
+        .period-sep {
+            color: var(--ink-muted);
+            font-size: 14px;
+            letter-spacing: 0.14em;
+            margin: 0 2px;
+            line-height: 1;
+        }
+
+        .period-sep-label {
+            font-size: 12px;
         }
 
         .tst-hint {
             font-size: 11px;
             color: var(--ink-muted);
             letter-spacing: 0.05em;
-            margin-bottom: 0;
+            margin-bottom: 16px;
             opacity: 0.75;
-        }
-
-        .period-dot {
-            color: var(--ink-muted);
-            margin: 0 2px;
         }
 
         .mu   { color: var(--mu); }
@@ -366,7 +398,7 @@
         }
 
         .monthly-insight {
-            /* 与有真太阳时提示时一致：间距挂在本月喜用上，避免非太阳时塌缩贴住大运行 */
+            /* 与大运行保持间距；真太阳时已移到大运上方 */
             margin-top: 20px;
             display: flex;
             flex-direction: column;
@@ -1373,6 +1405,21 @@
             position: relative;
         }
 
+        /* 新增／编辑八字：略缩小 */
+        #addModal .bazi-form-modal {
+            max-width: 340px;
+            padding: 26px 22px 22px;
+        }
+
+        #addModal .bazi-form-modal h2 {
+            font-size: 18px;
+            margin-bottom: 22px;
+        }
+
+        #addModal .bazi-form-modal .form-group {
+            margin-bottom: 14px;
+        }
+
         .modal h2 {
             text-align: center;
             font-size: 20px;
@@ -1780,11 +1827,84 @@
             padding: 2px 0;
         }
 
-        .true-solar-row > span {
-            flex: 1;
+        .toggle-label {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
             font-size: 13px;
             color: var(--ink-soft);
             letter-spacing: 0.06em;
+        }
+
+        .toggle-label:has(.help-tip-bubble.open) {
+            z-index: 6;
+        }
+
+        .help-tip-btn {
+            position: relative;
+            top: -0.45em;
+            flex-shrink: 0;
+            width: 14px;
+            height: 14px;
+            padding: 0;
+            margin: 0;
+            border: 1px solid rgba(42, 30, 10, 0.35);
+            border-radius: 50%;
+            background: transparent;
+            color: var(--ink-muted);
+            font-family: inherit;
+            font-size: 10px;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .help-tip-btn:hover,
+        .help-tip-btn[aria-expanded="true"] {
+            border-color: var(--ink);
+            color: var(--ink);
+            background: rgba(42, 30, 10, 0.06);
+        }
+
+        .help-tip-bubble {
+            display: none;
+            position: absolute;
+            left: 0;
+            bottom: calc(100% + 8px);
+            top: auto;
+            z-index: 5;
+            width: max-content;
+            max-width: min(260px, calc(100vw - 80px));
+            padding: 10px 12px;
+            background: #2a1e0a;
+            color: #faf6ec;
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            line-height: 1.55;
+            border-radius: 4px;
+            box-shadow: 0 4px 14px rgba(42, 30, 10, 0.22);
+            text-align: left;
+            white-space: normal;
+        }
+
+        .help-tip-bubble::before {
+            content: '';
+            position: absolute;
+            left: 18px;
+            bottom: -4px;
+            top: auto;
+            width: 9px;
+            height: 9px;
+            background: #2a1e0a;
+            transform: rotate(45deg);
+        }
+
+        .help-tip-bubble.open {
+            display: block;
         }
 
         .toggle-switch {
@@ -2082,7 +2202,9 @@
 
 <nav>
     <div class="nav-logo-wrap">
-        <img src="assets/english.png" alt="ElementaWall" draggable="false">
+        <a href="index.html" class="nav-logo-link" aria-label="ElementaWall">
+            <img src="assets/english.png" alt="ElementaWall" draggable="false">
+        </a>
     </div>
     <div class="nav-user">
         <a href="index.html" class="nav-link-item" data-i18n="nav_home">首頁</a>
@@ -2181,11 +2303,21 @@
         </div>
     </div>
 
-    <div class="period-info" id="periodInfo">
-        <span class="mu">乙</span><span class="tu">未</span>大運<span class="period-dot">·</span><span class="huo">丙</span><span class="huo">午</span>年<span class="period-dot">·</span><span class="mu">甲</span><span class="huo">午</span>月
-    </div>
     <!-- 真太陽時校正提示（useTrueSolarTime=true 時顯示） -->
     <div class="tst-hint" id="tstHint" style="display:none"></div>
+
+    <div class="period-block" id="periodBlock">
+        <span class="period-col-label" data-i18n="period_label_dayun">大運</span>
+        <span class="period-sep period-sep-label">·</span>
+        <span class="period-col-label" data-i18n="period_label_year">流年</span>
+        <span class="period-sep period-sep-label">·</span>
+        <span class="period-col-label" data-i18n="period_label_month">流月</span>
+        <span class="period-col-value" id="periodDayun"><span class="mu">乙</span><span class="tu">未</span>大運</span>
+        <span class="period-sep">·</span>
+        <span class="period-col-value" id="periodYear"><span class="huo">丙</span><span class="huo">午</span>年</span>
+        <span class="period-sep">·</span>
+        <span class="period-col-value" id="periodMonth"><span class="mu">甲</span><span class="huo">午</span>月</span>
+    </div>
 
     <!-- 本月喜用 / 本月補運 文字行 -->
     <div class="monthly-insight" id="monthlyInsight" style="display:none">
@@ -2204,7 +2336,7 @@
 
 <!-- 新增／编辑八字彈窗 -->
 <div class="modal-backdrop" id="addModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal">
+    <div class="modal bazi-form-modal">
         <button type="button" class="modal-close" id="modalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 id="modalTitle" data-i18n="modal_add_title">新增八字</h2>
         <form id="addBaziForm">
@@ -2259,7 +2391,11 @@
             </div>
             <div class="form-group">
                 <div class="true-solar-row">
-                    <span data-i18n="form_true_solar_label">真太陽時</span>
+                    <span class="toggle-label">
+                        <span data-i18n="form_true_solar_label">真太陽時</span>
+                        <button type="button" class="help-tip-btn" data-tip="form_true_solar_tip" aria-expanded="false" data-i18n-aria-label="form_true_solar_help_aria" aria-label="真太陽時說明">?</button>
+                        <span class="help-tip-bubble" role="tooltip" data-i18n="form_true_solar_tip">根據出生地經度與均時差，將鐘錶時間校正為當地真太陽時，使時柱更準確。建議填寫出生地點後開啟。</span>
+                    </span>
                     <label class="toggle-switch" aria-label="真太陽時">
                         <input type="checkbox" id="useTrueSolarTime">
                         <span class="toggle-track"></span>
@@ -2267,7 +2403,11 @@
                     </label>
                 </div>
                 <div class="true-solar-row" style="margin-top:8px;">
-                    <span data-i18n="form_dst_label">夏令時</span>
+                    <span class="toggle-label">
+                        <span data-i18n="form_dst_label">夏令時</span>
+                        <button type="button" class="help-tip-btn" data-tip="form_dst_tip" aria-expanded="false" data-i18n-aria-label="form_dst_help_aria" aria-label="夏令時說明">?</button>
+                        <span class="help-tip-bubble" role="tooltip" data-i18n="form_dst_tip">若出生時當地實行夏令時（時鐘撥快 1 小時），請開啟此項；系統會先還原為標準時間再排盤。</span>
+                    </span>
                     <label class="toggle-switch" aria-label="夏令時">
                         <input type="checkbox" id="useDST">
                         <span class="toggle-track"></span>
@@ -2993,15 +3133,12 @@
 
         const d = bazi.period;
         const t = window.I18N ? window.I18N.t : (k) => k;
-        document.getElementById('periodInfo').innerHTML =
-            `<span class="${wxClass(d.dayun[0])}">${d.dayun[0]}</span>` +
-            `<span class="${wxClass(d.dayun[1])}">${d.dayun[1]}</span>${t('period_dayun')}` +
-            `<span class="period-dot">·</span>` +
-            `<span class="${wxClass(d.year[0])}">${d.year[0]}</span>` +
-            `<span class="${wxClass(d.year[1])}">${d.year[1]}</span>${t('period_year')}` +
-            `<span class="period-dot">·</span>` +
-            `<span class="${wxClass(d.month[0])}">${d.month[0]}</span>` +
-            `<span class="${wxClass(d.month[1])}">${d.month[1]}</span>${t('period_month')}`;
+        const gzHtml = (gz, suffix) =>
+            `<span class="${wxClass(gz[0])}">${gz[0]}</span>` +
+            `<span class="${wxClass(gz[1])}">${gz[1]}</span>${suffix}`;
+        document.getElementById('periodDayun').innerHTML = gzHtml(d.dayun, t('period_dayun'));
+        document.getElementById('periodYear').innerHTML  = gzHtml(d.year,  t('period_year'));
+        document.getElementById('periodMonth').innerHTML = gzHtml(d.month, t('period_month'));
     }
 
     function renderMenu(list, activeId) {
@@ -3266,6 +3403,8 @@
     const _wallpaperInflight = {};
     const WP_META_LS_KEY = 'bazi_wallpaper_meta_v1';
     const WP_META_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+    // 缓存写入 1h 内不重复向 Supabase revalidate，避免每次进页都打网络
+    const WP_META_REVALIDATE_MS = 60 * 60 * 1000; // 1h
     const WP_IMG_CACHE = 'bazi-wp-preview-v1';
     let _wpBlobUrls = [];
 
@@ -3352,6 +3491,15 @@
         })();
     }
 
+    function isCacheStale(element) {
+        try {
+            const all = JSON.parse(localStorage.getItem(WP_META_LS_KEY) || '{}');
+            const entry = all[element];
+            if (!entry || !entry.ts) return true;
+            return (Date.now() - entry.ts) > WP_META_REVALIDATE_MS;
+        } catch (_) { return true; }
+    }
+
     async function fetchWallpapers(element) {
         if (!element) return null;
         if (_wallpaperCache[element]) return _wallpaperCache[element];
@@ -3359,8 +3507,8 @@
         const local = readWallpaperMetaCache(element);
         if (local) {
             _wallpaperCache[element] = local;
-            // 后台静默更新，不挡首屏
-            revalidateWallpapers(element);
+            // 仅缓存写入超过 1h 才后台静默 revalidate，避免每次进页都打 Supabase
+            if (isCacheStale(element)) revalidateWallpapers(element);
             return local;
         }
 
@@ -4428,11 +4576,15 @@
     updateCartBadge();
 
     let profiles = loadProfiles();
-    // 未登入只展示示例盤，并清掉本机包年缓存（云端仍保留，登入后拉回）
-    if (localStorage.getItem('bazi_logged_in') !== '1') {
-        profiles = defaultProfiles.map((p) => ({ ...p }));
-        saveProfiles(profiles);
+    const _isLoggedIn = localStorage.getItem('bazi_logged_in') === '1';
+    if (!_isLoggedIn) {
+        // 未登录：清包年缓存，但保留用户在本地存储的档案；
+        // 仅当本地完全没有档案时才填入默认示例（首次访问）
         clearLocalAnnualPlans();
+        if (!profiles.length) {
+            profiles = defaultProfiles.map((p) => ({ ...p }));
+            saveProfiles(profiles);
+        }
     }
     let activeId = getActiveId(profiles);
     let editingId = null;
@@ -4976,6 +5128,14 @@
         document.getElementById('useDST').checked = false;
     }
 
+    function closeAllHelpTips() {
+        document.querySelectorAll('.help-tip-btn[aria-expanded="true"]').forEach((btn) => {
+            btn.setAttribute('aria-expanded', 'false');
+            const bubble = btn.parentElement && btn.parentElement.querySelector('.help-tip-bubble');
+            if (bubble) bubble.classList.remove('open');
+        });
+    }
+
     function setModalMode(mode) {
         const t = window.I18N ? window.I18N.t : (k) => k;
         const isEdit = mode === 'edit';
@@ -4990,6 +5150,7 @@
         editingId = null;
         setModalMode('add');
         resetBaziForm();
+        closeAllHelpTips();
     }
 
     function openAddModal() {
@@ -5698,6 +5859,31 @@
 
     addModal.addEventListener('click', (e) => {
         if (e.target === addModal) closeAddModal();
+    });
+
+    // 真太阳时 / 夏令时 问号气泡
+    addModal.addEventListener('click', (e) => {
+        const btn = e.target.closest('.help-tip-btn');
+        if (btn && addModal.contains(btn)) {
+            e.preventDefault();
+            e.stopPropagation();
+            const bubble = btn.parentElement.querySelector('.help-tip-bubble');
+            const willOpen = btn.getAttribute('aria-expanded') !== 'true';
+            closeAllHelpTips();
+            if (willOpen && bubble) {
+                const t = window.I18N ? window.I18N.t : (k) => k;
+                const tipKey = btn.getAttribute('data-tip');
+                if (tipKey) bubble.textContent = t(tipKey);
+                btn.setAttribute('aria-expanded', 'true');
+                bubble.classList.add('open');
+            }
+            return;
+        }
+        if (!e.target.closest('.help-tip-bubble')) closeAllHelpTips();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAllHelpTips();
     });
 
     modalDelete.addEventListener('click', (e) => {

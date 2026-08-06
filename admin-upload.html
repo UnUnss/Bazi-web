@@ -75,6 +75,13 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
 #managedGrid .wp-card .thumb { cursor: default; }
 .empty-hint { color: #bbb; font-size: 13px; text-align: center; padding: 60px 0; }
 
+/* 按文件夹编号分组 */
+.folder-groups { display: flex; flex-direction: column; gap: 28px; }
+.folder-group-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e8e8e6; flex-wrap: wrap; }
+.folder-group-title { font-size: 14px; font-weight: 600; color: #1c1c1c; letter-spacing: .04em; }
+.folder-group-meta { font-size: 12px; color: #888; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.folder-group-count { font-size: 12px; color: #bbb; margin-left: auto; }
+
 /* 标签样式 */
 .tag { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 11px; white-space: nowrap; }
 .el-水 { background: #dbeafe; color: #1d4ed8; }
@@ -151,7 +158,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
         <span id="fileCount"></span>
         <button id="btnUpload">开始上传</button>
       </div>
-      <div class="card-grid" id="queueGrid"></div>
+      <div class="folder-groups" id="queueGrid"></div>
     </div>
   </div>
 
@@ -166,7 +173,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
       <button class="filter-btn" data-el="金">金</button>
     </div>
     <div id="manageEmpty" class="empty-hint">暂无已上传壁纸</div>
-    <div class="card-grid" id="managedGrid"></div>
+    <div class="folder-groups" id="managedGrid"></div>
   </div>
 </div>
 
@@ -508,19 +515,44 @@ function renderQueue() {
   if (!pendingFiles.length) return;
   document.getElementById('queueSection').style.display = 'block';
   document.getElementById('fileCount').textContent = `共 ${pendingFiles.length} 张`;
-  document.getElementById('queueGrid').innerHTML = pendingFiles.map((f, i) =>
-    `<div class="wp-card" id="qcard-${i}">
-      <img class="thumb" src="${f.previewUrl}" alt="${esc(f.file.name)}" loading="lazy" />
-      <div class="card-info">
-        <div class="card-name" title="${esc(f.file.name)}">${esc(f.file.name)}</div>
-        <div class="card-tags">
-          <span class="tag el-${f.element}">${esc(f.element)}</span>
-          ${f.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
+
+  // 按文件夹编号分组（保留原始索引以便 updateQCard）
+  const groups = new Map();
+  pendingFiles.forEach((f, i) => {
+    const num = f.folderNum;
+    if (!groups.has(num)) groups.set(num, []);
+    groups.get(num).push({ f, i });
+  });
+  const sortedNums = [...groups.keys()].sort((a, b) => a - b);
+
+  document.getElementById('queueGrid').innerHTML = sortedNums.map(num => {
+    const items = groups.get(num);
+    const meta = FOLDER_MAP[num];
+    const tagsHtml = meta
+      ? `<span class="tag el-${meta.element}">${esc(meta.element)}</span>${meta.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}`
+      : '';
+    const cards = items.map(({ f, i }) =>
+      `<div class="wp-card" id="qcard-${i}">
+        <img class="thumb" src="${f.previewUrl}" alt="${esc(f.file.name)}" loading="lazy" />
+        <div class="card-info">
+          <div class="card-name" title="${esc(f.file.name)}">${esc(f.file.name)}</div>
+          <div class="card-tags">
+            <span class="tag el-${f.element}">${esc(f.element)}</span>
+            ${f.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
+          </div>
+          <div class="card-status ${f.status}">${STATUS_TEXT[f.status]}</div>
         </div>
-        <div class="card-status ${f.status}">${STATUS_TEXT[f.status]}</div>
+      </div>`
+    ).join('');
+    return `<div class="folder-group">
+      <div class="folder-group-header">
+        <span class="folder-group-title">文件夹 ${num}</span>
+        <span class="folder-group-meta">${tagsHtml}</span>
+        <span class="folder-group-count">${items.length} 张</span>
       </div>
-    </div>`
-  ).join('');
+      <div class="card-grid">${cards}</div>
+    </div>`;
+  }).join('');
 }
 
 function updateQCard(i) {
@@ -700,13 +732,14 @@ async function loadUploaded() {
     allUploaded = pendingFiles
       .filter(f => f.status === 'done')
       .map(f => ({
-        filename:    f.file.name,
-        element:     f.element,
-        tags:        f.tags,
-        preview_key: f.preview_key || '',
-        r2_key:      f.r2_key || '',
-        preview_url: f.previewUrl,
-        uploaded_at: now,
+        filename:      f.file.name,
+        folder_number: f.folderNum,
+        element:       f.element,
+        tags:          f.tags,
+        preview_key:   f.preview_key || '',
+        r2_key:        f.r2_key || '',
+        preview_url:   f.previewUrl,
+        uploaded_at:   now,
       }));
   } else {
     allUploaded = data.map(w => ({
@@ -715,6 +748,29 @@ async function loadUploaded() {
     }));
   }
   renderManaged();
+}
+
+function resolveFolderNum(w) {
+  if (w.folder_number != null && !isNaN(w.folder_number)) return Number(w.folder_number);
+  const key = w.r2_key || w.preview_key || '';
+  const m = key.match(/^wallpapers\/(\d+)\//);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function wallpaperCardHtml(w) {
+  const tags = Array.isArray(w.tags) ? w.tags : [];
+  return `<div class="wp-card" data-id="${esc(w.id || '')}">
+    <img class="thumb" src="${esc(w.preview_url || w.r2_url || '')}" alt="${esc(w.filename || '')}" loading="lazy" onerror="this.style.display='none'" />
+    <div class="card-info">
+      <div class="card-name" title="${esc(w.filename || '')}">${esc(w.filename || '')}</div>
+      <div class="card-tags">
+        <span class="tag el-${esc(w.element)}">${esc(w.element)}</span>
+        ${tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
+      </div>
+      ${w.uploaded_at ? `<div style="font-size:11px;color:#bbb;margin-top:4px;">${esc(w.uploaded_at)}</div>` : ''}
+      ${w.id ? `<div class="card-actions"><button type="button" class="btn-del" data-id="${esc(w.id)}">删除</button></div>` : ''}
+    </div>
+  </div>`;
 }
 
 function renderManaged() {
@@ -727,19 +783,35 @@ function renderManaged() {
     return;
   }
   empty.style.display = 'none';
-  grid.innerHTML = list.map(w => {
-    const tags = Array.isArray(w.tags) ? w.tags : [];
-    return `<div class="wp-card" data-id="${esc(w.id || '')}">
-      <img class="thumb" src="${esc(w.preview_url || w.r2_url || '')}" alt="${esc(w.filename || '')}" loading="lazy" onerror="this.style.display='none'" />
-      <div class="card-info">
-        <div class="card-name" title="${esc(w.filename || '')}">${esc(w.filename || '')}</div>
-        <div class="card-tags">
-          <span class="tag el-${esc(w.element)}">${esc(w.element)}</span>
-          ${tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
-        </div>
-        ${w.uploaded_at ? `<div style="font-size:11px;color:#bbb;margin-top:4px;">${esc(w.uploaded_at)}</div>` : ''}
-        ${w.id ? `<div class="card-actions"><button type="button" class="btn-del" data-id="${esc(w.id)}">删除</button></div>` : ''}
+
+  // 按文件夹编号分组
+  const groups = new Map();
+  for (const w of list) {
+    const num = resolveFolderNum(w);
+    const key = num != null ? num : '未知';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(w);
+  }
+  const sortedKeys = [...groups.keys()].sort((a, b) => {
+    if (a === '未知') return 1;
+    if (b === '未知') return -1;
+    return a - b;
+  });
+
+  grid.innerHTML = sortedKeys.map(key => {
+    const items = groups.get(key);
+    const meta = typeof key === 'number' ? FOLDER_MAP[key] : null;
+    const tagsHtml = meta
+      ? `<span class="tag el-${meta.element}">${esc(meta.element)}</span>${meta.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}`
+      : (items[0]?.element ? `<span class="tag el-${esc(items[0].element)}">${esc(items[0].element)}</span>` : '');
+    const title = key === '未知' ? '未知文件夹' : `文件夹 ${key}`;
+    return `<div class="folder-group">
+      <div class="folder-group-header">
+        <span class="folder-group-title">${title}</span>
+        <span class="folder-group-meta">${tagsHtml}</span>
+        <span class="folder-group-count">${items.length} 张</span>
       </div>
+      <div class="card-grid">${items.map(wallpaperCardHtml).join('')}</div>
     </div>`;
   }).join('');
 }

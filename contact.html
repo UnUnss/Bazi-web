@@ -6,7 +6,7 @@
     <title data-i18n="nav_contact">聯絡我們 · ElementaWall</title>
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=4" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=4" />
-    <script src="i18n.js?v=8"></script>
+    <script src="i18n.js?v=19"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -89,6 +89,12 @@
             pointer-events: none;
         }
 
+        .nav-logo-link {
+            display: block;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
         .nav-logo-wrap img {
             display: block;
             width: 100%;
@@ -96,6 +102,8 @@
         }
 
         .nav-user {
+            position: relative;
+            z-index: 2;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -279,6 +287,82 @@
             opacity: 0.5;
         }
 
+        /* ─── 社交账号 ─── */
+        .social-list {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .social-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .social-platform {
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            color: var(--ink-muted);
+            width: 4.5em;
+            flex-shrink: 0;
+        }
+
+        .social-handle {
+            font-size: 14px;
+            letter-spacing: 0.06em;
+            color: var(--ink);
+        }
+
+        .copy-btn {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: transparent;
+            color: var(--ink-muted);
+            cursor: pointer;
+            font-family: inherit;
+            padding: 0;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(42, 30, 10, 0.06);
+            color: var(--ink);
+            border-color: rgba(42, 30, 10, 0.45);
+        }
+
+        .copy-btn.copied {
+            color: #2a7a4a;
+            border-color: #2a7a4a;
+        }
+
+        .copy-btn svg {
+            width: 8px;
+            height: 8px;
+        }
+
+        .social-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .social-icon svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+
         @media (max-width: 720px) {
             nav {
                 padding: 96px 20px 16px;
@@ -317,7 +401,9 @@
 
 <nav>
     <div class="nav-logo-wrap">
-        <img src="assets/english.png" alt="ElementaWall" draggable="false">
+        <a href="index.html" class="nav-logo-link" aria-label="ElementaWall">
+            <img src="assets/english.png" alt="ElementaWall" draggable="false">
+        </a>
     </div>
     <div class="nav-user">
         <a href="javascript:void(0)" class="nav-link-item" data-i18n="nav_back" onclick="history.length>1?history.back():location.href='landing.html'">返回</a>
@@ -372,6 +458,83 @@
         <div class="contact-item">
             <span class="contact-label" data-i18n="contact_response_label">回覆時間</span>
             <span class="contact-value" data-i18n="contact_response_value">工作日 1–2 個工作天內回覆</span>
+        </div>
+        <hr class="divider">
+        <div class="contact-item" style="align-items:center;">
+            <span class="contact-label" data-i18n="contact_social_label">社群帳號</span>
+            <div class="social-list">
+                <div class="social-row">
+                    <span class="social-platform">Instagram</span>
+                    <span class="social-icon" aria-hidden="true">
+                        <!-- Instagram 官方渐变色 -->
+                        <svg viewBox="0 0 24 24">
+                            <defs>
+                                <radialGradient id="igGrad" cx="30%" cy="107%" r="150%">
+                                    <stop offset="0%" stop-color="#fdf497"/>
+                                    <stop offset="5%" stop-color="#fdf497"/>
+                                    <stop offset="45%" stop-color="#fd5949"/>
+                                    <stop offset="60%" stop-color="#d6249f"/>
+                                    <stop offset="90%" stop-color="#285AEB"/>
+                                </radialGradient>
+                            </defs>
+                            <rect x="2" y="2" width="20" height="20" rx="5" fill="url(#igGrad)"/>
+                            <circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="1.8"/>
+                            <circle cx="17.2" cy="6.8" r="1.1" fill="#fff"/>
+                        </svg>
+                    </span>
+                    <span class="social-handle">elementawall</span>
+                    <button type="button" class="copy-btn" data-copy="elementawall" data-i18n-aria-label="contact_copy_aria" aria-label="複製">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="social-row">
+                    <span class="social-platform">X</span>
+                    <span class="social-icon" aria-hidden="true">
+                        <!-- X 官方黑 -->
+                        <svg viewBox="0 0 24 24" fill="#000">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </span>
+                    <span class="social-handle">elementawall</span>
+                    <button type="button" class="copy-btn" data-copy="elementawall" data-i18n-aria-label="contact_copy_aria" aria-label="複製">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="social-row">
+                    <span class="social-platform">Threads</span>
+                    <span class="social-icon" aria-hidden="true">
+                        <!-- Threads 官方黑 -->
+                        <svg viewBox="0 0 24 24" fill="#000">
+                            <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 1.868-.009 3.442-.316 4.684-.938 1.43-.712 2.149-1.783 2.149-3.183 0-2.109-1.129-3.183-3.244-3.183-.406 0-.773.03-1.1.09-.33.06-.636.163-.91.307.044-.447.022-.88-.064-1.295-.117-.572-.36-1.07-.72-1.477-.564-.635-1.387-.978-2.45-.978-1.35 0-2.417.435-3.17 1.294-.752.857-1.136 2.027-1.136 3.477 0 1.45.384 2.621 1.136 3.477.753.859 1.82 1.293 3.17 1.293.72 0 1.362-.12 1.913-.356.55-.238 1.02-.6 1.397-1.075l1.564 1.228c-.546.696-1.244 1.232-2.075 1.594-.832.362-1.778.546-2.8.546zM12 16.8c-.737 0-1.3-.214-1.674-.636-.37-.42-.558-1.053-.558-1.88 0-.825.188-1.46.558-1.879.374-.422.937-.636 1.674-.636.743 0 1.31.214 1.682.636.374.42.56 1.054.56 1.88 0 .826-.186 1.46-.56 1.879-.372.422-.939.636-1.682.636z"/>
+                        </svg>
+                    </span>
+                    <span class="social-handle">elementawall</span>
+                    <button type="button" class="copy-btn" data-copy="elementawall" data-i18n-aria-label="contact_copy_aria" aria-label="複製">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="social-row">
+                    <span class="social-platform">小红书</span>
+                    <span class="social-icon" aria-hidden="true">
+                        <!-- 小红书官方红 -->
+                        <svg viewBox="0 0 24 24" fill="#FF2442">
+                            <path d="M16.148 3.6c-.34-.34-.9-.34-1.24 0l-1.36 1.36h-3.1L9.092 3.6a.877.877 0 0 0-1.24 0L5.612 5.84a.877.877 0 0 0 0 1.24l1.04 1.04H4.2c-.48 0-.88.4-.88.88v9.2c0 .48.4.88.88.88h15.6c.48 0 .88-.4.88-.88v-9.2c0-.48-.4-.88-.88-.88h-2.452l1.04-1.04a.877.877 0 0 0 0-1.24L16.148 3.6zm-4.16 4.48c2.48 0 4.48 2 4.48 4.48s-2 4.48-4.48 4.48-4.48-2-4.48-4.48 2-4.48 4.48-4.48zm0 1.76a2.72 2.72 0 1 0 0 5.44 2.72 2.72 0 0 0 0-5.44z"/>
+                        </svg>
+                    </span>
+                    <span class="social-handle">elementawall</span>
+                    <button type="button" class="copy-btn" data-copy="elementawall" data-i18n-aria-label="contact_copy_aria" aria-label="複製">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -473,6 +636,31 @@
     });
     document.addEventListener('click', () => { userMenu.classList.remove('open'); });
 })();
+
+// 复制按钮
+document.querySelectorAll('.copy-btn[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+        const text = btn.getAttribute('data-copy');
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch (_) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        btn.classList.add('copied');
+        btn.setAttribute('aria-label', t('contact_copied'));
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>`;
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.setAttribute('aria-label', t('contact_copy_aria'));
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+        }, 2000);
+    });
+});
 </script>
 </body>
 </html>
