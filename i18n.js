@@ -510,6 +510,9 @@
 
     let currentLang = detectLang();
 
+    // 立即设置 lang 属性，避免浏览器先用 zh-TW 字体渲染再切换导致的字形闪烁和布局抖动
+    try { document.documentElement.setAttribute('lang', currentLang); } catch (_) {}
+
     function t(key) {
         const dict = DICTS[currentLang] || DICTS[DEFAULT_LANG];
         if (dict && dict[key] != null) return dict[key];
