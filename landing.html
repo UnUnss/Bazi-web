@@ -98,16 +98,25 @@
             pointer-events: none;
         }
 
+        /* 透明热区：覆盖 logo 文字中心，不撑满整张图 */
         .nav-logo-link {
-            display: block;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(260px, 55vw);
+            height: 72px;
             pointer-events: auto;
             cursor: pointer;
+            z-index: 7;
+            display: block;
         }
 
         .nav-logo-wrap img {
             display: block;
             width: 100%;
             height: auto;
+            pointer-events: none;
         }
 
         .nav-user {
@@ -2201,11 +2210,10 @@
 </div>
 
 <nav>
-    <div class="nav-logo-wrap">
-        <a href="index.html" class="nav-logo-link" aria-label="ElementaWall">
-            <img src="assets/english.png" alt="ElementaWall" draggable="false">
-        </a>
+    <div class="nav-logo-wrap" aria-hidden="true">
+        <img src="assets/english.png" alt="" draggable="false">
     </div>
+    <a href="index.html" class="nav-logo-link" aria-label="ElementaWall 首頁"></a>
     <div class="nav-user">
         <a href="index.html" class="nav-link-item" data-i18n="nav_home">首頁</a>
         <div class="about-switch-wrap" id="aboutSwitchWrap">
