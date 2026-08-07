@@ -3405,8 +3405,8 @@
     const _wallpaperInflight = {};
     const WP_META_LS_KEY = 'bazi_wallpaper_meta_v1';
     const WP_META_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-    // 缓存写入 1h 内不重复向 Supabase revalidate，避免每次进页都打网络
-    const WP_META_REVALIDATE_MS = 60 * 60 * 1000; // 1h
+    // 方案B锁定后新壁纸不影响当月，revalidate 与 TTL 对齐，等缓存自然过期再拉取
+    const WP_META_REVALIDATE_MS = WP_META_TTL_MS; // 24h，等同于禁用后台 revalidate
     const WP_IMG_CACHE = 'bazi-wp-preview-v1';
     let _wpBlobUrls = [];
 
