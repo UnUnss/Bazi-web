@@ -1,7 +1,4 @@
-// 已登录用户获取原图临时下载链接
-// 鉴权：
-// 1) Authorization: Bearer <supabase access_token>
-// 2) X-User-Email（模拟登录阶段）
+// 已登录用户获取原图临时下载链接（仅支持 Authorization Bearer）
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl }               from '@aws-sdk/s3-request-presigner';
 import { createClient }               from '@supabase/supabase-js';
@@ -23,18 +20,10 @@ const sb = createClient(
 
 async function assertUser(req) {
   const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
-  if (token) {
-    const { data: { user }, error } = await sb.auth.getUser(token);
-    if (error || !user) return { ok: false, status: 401, error: 'Login required' };
-    return { ok: true, userId: user.id, email: user.email || '' };
-  }
-
-  const email = (req.headers['x-user-email'] || '').trim().toLowerCase();
-  if (email && email.includes('@')) {
-    return { ok: true, userId: null, email };
-  }
-
-  return { ok: false, status: 401, error: 'Login required' };
+  if (!token) return { ok: false, status: 401, error: 'Login required' };
+  const { data: { user }, error } = await sb.auth.getUser(token);
+  if (error || !user) return { ok: false, status: 401, error: 'Login required' };
+  return { ok: true, userId: user.id, email: user.email || '' };
 }
 
 export default async function handler(req, res) {
@@ -44,7 +33,24 @@ export default async function handler(req, res) {
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
   const { r2_key } = req.body || {};
-  if (!r2_key) return res.status(400).json({ error: 'Missing r2_key' });
+  if (!r2_key || typeof r2_key !== 'string') {
+    return res.status(400).json({ error: 'Missing r2_key' });
+  }
+
+  // Verify r2_key exists in wallpapers table (prevents arbitrary R2 file access)
+  const { data: byOriginal } = await sb
+    .from('wallpapers')
+    .select('id')
+    .eq('r2_key', r2_key)
+    .maybeSingle();
+  if (!byOriginal) {
+    const { data: byPreview } = await sb
+      .from('wallpapers')
+      .select('id')
+      .eq('preview_key', r2_key)
+      .maybeSingle();
+    if (!byPreview) return res.status(403).json({ error: 'Forbidden' });
+  }
 
   try {
     const url = await getSignedUrl(

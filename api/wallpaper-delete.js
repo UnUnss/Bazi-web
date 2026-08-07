@@ -30,7 +30,7 @@ async function assertAdmin(req) {
   const email = (req.headers['x-admin-email'] || '').trim();
   if (!email) return { ok: false, status: 401, error: 'Missing auth' };
   const { data, error } = await sb.rpc('is_admin_email', { check_email: email });
-  if (error) return { ok: false, status: 500, error: error.message };
+  if (error) return { ok: false, status: 500, error: 'Server error' };
   if (data !== true) return { ok: false, status: 403, error: 'Forbidden' };
   return { ok: true };
 }
@@ -52,6 +52,9 @@ export default async function handler(req, res) {
   const { id } = req.body || {};
   if (!id) return res.status(400).json({ error: 'Missing id' });
 
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRe.test(String(id))) return res.status(400).json({ error: 'Invalid id' });
+
   try {
     const { data: row, error: fetchErr } = await sb
       .from('wallpapers')
@@ -65,7 +68,10 @@ export default async function handler(req, res) {
     try { await deleteR2Key(row.preview_key); } catch (e) { console.error('R2 delete preview', e); }
 
     const { error: delErr } = await sb.from('wallpapers').delete().eq('id', id);
-    if (delErr) return res.status(500).json({ error: delErr.message });
+    if (delErr) {
+      console.error('wallpaper-delete DB error:', delErr);
+      return res.status(500).json({ error: 'Database error' });
+    }
 
     return res.status(200).json({ ok: true });
   } catch (err) {

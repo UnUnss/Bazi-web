@@ -1,4 +1,4 @@
-// 包年方案云端同步：Authorization Bearer 或 X-User-Email
+// 包年方案云端同步：仅支持 Authorization Bearer
 import { createClient } from '@supabase/supabase-js';
 
 const sb = createClient(
@@ -9,14 +9,11 @@ const sb = createClient(
 
 async function assertUser(req) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
-  if (token) {
-    const { data: { user }, error } = await sb.auth.getUser(token);
-    if (!error && user?.email) {
-      return { email: user.email.trim().toLowerCase(), userId: user.id };
-    }
+  if (!token) return null;
+  const { data: { user }, error } = await sb.auth.getUser(token);
+  if (!error && user?.email) {
+    return { email: user.email.trim().toLowerCase(), userId: user.id };
   }
-  const email = (req.headers['x-user-email'] || '').trim().toLowerCase();
-  if (email && email.includes('@')) return { email, userId: null };
   return null;
 }
 
@@ -55,15 +52,17 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { data, error } = await sb
         .from('annual_plans')
-        .select('*')
+        .select('id, start_date, end_date, profile_ids')
         .eq('owner_email', email)
         .order('start_date', { ascending: true })
         .order('created_at', { ascending: true });
-      if (error) return res.status(500).json({ error: error.message });
+      if (error) {
+        console.error('annual-plans GET error:', error);
+        return res.status(500).json({ error: 'Database error' });
+      }
       return res.status(200).json({ plans: (data || []).map(toClient) });
     }
 
-    // 全量覆盖：与前端 saveAnnualPlans 对齐
     if (req.method === 'PUT' || req.method === 'POST') {
       const plans = Array.isArray(req.body?.plans) ? req.body.plans : null;
       if (!plans) return res.status(400).json({ error: 'Missing plans' });
@@ -72,21 +71,56 @@ export default async function handler(req, res) {
         .filter((p) => p && p.id && p.start && p.end)
         .map((p) => toRow(p, email, userId));
 
-      const { error: delErr } = await sb
-        .from('annual_plans')
-        .delete()
-        .eq('owner_email', email);
-      if (delErr) return res.status(500).json({ error: delErr.message });
-
       if (!rows.length) {
+        const { error: delErr } = await sb
+          .from('annual_plans')
+          .delete()
+          .eq('owner_email', email);
+        if (delErr) {
+          console.error('annual-plans DELETE error:', delErr);
+          return res.status(500).json({ error: 'Database error' });
+        }
         return res.status(200).json({ plans: [] });
+      }
+
+      // Upsert new/updated rows atomically
+      const { error: upsertErr } = await sb
+        .from('annual_plans')
+        .upsert(rows, { onConflict: 'id' });
+      if (upsertErr) {
+        console.error('annual-plans UPSERT error:', upsertErr);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      // Delete rows no longer in the new list
+      const newIds = new Set(rows.map((r) => r.id));
+      const { data: existing } = await sb
+        .from('annual_plans')
+        .select('id')
+        .eq('owner_email', email);
+      const toDelete = (existing || []).filter((r) => !newIds.has(r.id)).map((r) => r.id);
+      if (toDelete.length > 0) {
+        const { error: delErr } = await sb
+          .from('annual_plans')
+          .delete()
+          .eq('owner_email', email)
+          .in('id', toDelete);
+        if (delErr) {
+          console.error('annual-plans cleanup DELETE error:', delErr);
+          return res.status(500).json({ error: 'Database error' });
+        }
       }
 
       const { data, error } = await sb
         .from('annual_plans')
-        .insert(rows)
-        .select('*');
-      if (error) return res.status(500).json({ error: error.message });
+        .select('id, start_date, end_date, profile_ids')
+        .eq('owner_email', email)
+        .order('start_date', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (error) {
+        console.error('annual-plans final GET error:', error);
+        return res.status(500).json({ error: 'Database error' });
+      }
       return res.status(200).json({ plans: (data || []).map(toClient) });
     }
 

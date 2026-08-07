@@ -1,4 +1,4 @@
-// 鉴权：Authorization Bearer（Supabase）或 X-User-Email（兼容）
+// 鉴权：Authorization Bearer（Supabase）
 import { createClient } from '@supabase/supabase-js';
 
 const sb = createClient(
@@ -9,14 +9,11 @@ const sb = createClient(
 
 async function assertUser(req) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
-  if (token) {
-    const { data: { user }, error } = await sb.auth.getUser(token);
-    if (!error && user?.email) {
-      return { email: user.email.trim().toLowerCase(), userId: user.id };
-    }
+  if (!token) return null;
+  const { data: { user }, error } = await sb.auth.getUser(token);
+  if (!error && user?.email) {
+    return { email: user.email.trim().toLowerCase(), userId: user.id };
   }
-  const email = (req.headers['x-user-email'] || '').trim().toLowerCase();
-  if (email && email.includes('@')) return { email, userId: null };
   return null;
 }
 
@@ -89,11 +86,14 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { data, error } = await sb
         .from('bazi_profiles')
-        .select('*')
+        .select('id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, wallpaper_history')
         .eq('owner_email', email)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true });
-      if (error) return res.status(500).json({ error: error.message });
+      if (error) {
+        console.error('bazi-profiles GET error:', error);
+        return res.status(500).json({ error: 'Database error' });
+      }
       return res.status(200).json({ profiles: (data || []).map(toClient) });
     }
 
@@ -113,9 +113,12 @@ export default async function handler(req, res) {
         .update({ wallpaper_history: pruned })
         .eq('id', id)
         .eq('owner_email', email)
-        .select('*')
+        .select('id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, wallpaper_history')
         .maybeSingle();
-      if (error) return res.status(500).json({ error: error.message });
+      if (error) {
+        console.error('bazi-profiles PATCH error:', error);
+        return res.status(500).json({ error: 'Database error' });
+      }
       if (!data) return res.status(404).json({ error: 'Profile not found' });
       return res.status(200).json({ profile: toClient(data) });
     }
@@ -129,32 +132,42 @@ export default async function handler(req, res) {
       const row = toRow(profile, email, userId);
       const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+      const PROFILE_COLS = 'id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, wallpaper_history';
       if (profile.id && uuidRe.test(profile.id)) {
         const { data, error } = await sb
           .from('bazi_profiles')
           .update(row)
           .eq('id', profile.id)
           .eq('owner_email', email)
-          .select('*')
+          .select(PROFILE_COLS)
           .maybeSingle();
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) {
+          console.error('bazi-profiles POST update error:', error);
+          return res.status(500).json({ error: 'Database error' });
+        }
         if (data) return res.status(200).json({ profile: toClient(data) });
 
         const { data: inserted, error: insErr } = await sb
           .from('bazi_profiles')
           .insert({ id: profile.id, ...row })
-          .select('*')
+          .select(PROFILE_COLS)
           .single();
-        if (insErr) return res.status(500).json({ error: insErr.message });
+        if (insErr) {
+          console.error('bazi-profiles POST insert error:', insErr);
+          return res.status(500).json({ error: 'Database error' });
+        }
         return res.status(200).json({ profile: toClient(inserted) });
       }
 
       const { data, error } = await sb
         .from('bazi_profiles')
         .insert(row)
-        .select('*')
+        .select(PROFILE_COLS)
         .single();
-      if (error) return res.status(500).json({ error: error.message });
+      if (error) {
+        console.error('bazi-profiles POST insert error:', error);
+        return res.status(500).json({ error: 'Database error' });
+      }
       return res.status(200).json({ profile: toClient(data) });
     }
 
@@ -166,7 +179,10 @@ export default async function handler(req, res) {
         .delete()
         .eq('id', id)
         .eq('owner_email', email);
-      if (error) return res.status(500).json({ error: error.message });
+      if (error) {
+        console.error('bazi-profiles DELETE error:', error);
+        return res.status(500).json({ error: 'Database error' });
+      }
       return res.status(200).json({ ok: true });
     }
 

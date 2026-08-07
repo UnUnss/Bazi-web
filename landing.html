@@ -575,6 +575,7 @@
             font-size: 16px;
             letter-spacing: 0.2em;
             color: var(--ink-soft);
+            margin-top: 28px;
             margin-bottom: 8px;
             font-weight: 400;
         }
@@ -612,9 +613,10 @@
         .wallpaper-card {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: stretch;
             box-sizing: border-box;
             height: 100%;
+            min-width: 0;
         }
 
         .wallpaper-card .tag {
@@ -2746,7 +2748,7 @@
     let cachedNowGanZhi = null;
     function getCurrentYearMonthGanZhi() {
         const now = new Date();
-        const key = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+        const key = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}-${now.getHours()}`;
         if (cachedNowGanZhi && cachedNowKey === key) return cachedNowGanZhi;
         const nowEightChar = Solar.fromYmdHms(now.getFullYear(), now.getMonth() + 1, now.getDate(),
             now.getHours(), now.getMinutes(), now.getSeconds()).getLunar().getEightChar();
@@ -2966,17 +2968,11 @@
                 }
             }
         } catch (_) {}
-        const email = localStorage.getItem('bazi_logged_email')
-            || localStorage.getItem('bazi_logged_in_email')
-            || '';
-        if (email) headers['X-User-Email'] = email;
         return headers;
     }
 
     async function cloudUpsertProfile(profile) {
-        const email = localStorage.getItem('bazi_logged_email')
-            || localStorage.getItem('bazi_logged_in_email');
-        if (!email || !profile || String(profile.id || '').startsWith('demo-')) return profile;
+        if (!isLoggedIn() || !profile || String(profile.id || '').startsWith('demo-')) return profile;
         try {
             const res = await fetch('/api/bazi-profiles', {
                 method: 'POST',
@@ -2996,9 +2992,7 @@
     }
 
     async function cloudPatchWallpaperHistory(profileId, wallpaperHistory, yearGanZhi) {
-        const email = localStorage.getItem('bazi_logged_email')
-            || localStorage.getItem('bazi_logged_in_email');
-        if (!email || !profileId || String(profileId).startsWith('demo-')) return null;
+        if (!isLoggedIn() || !profileId || String(profileId).startsWith('demo-')) return null;
         try {
             const res = await fetch('/api/bazi-profiles', {
                 method: 'PATCH',
@@ -3023,9 +3017,7 @@
 
     async function cloudDeleteProfile(id) {
         // 尽力同步云端；本地档案可能尚未入库（仅 localStorage），接口失败不阻断本地删除
-        const email = localStorage.getItem('bazi_logged_email')
-            || localStorage.getItem('bazi_logged_in_email');
-        if (!email || !id || String(id).startsWith('demo-')) return true;
+        if (!isLoggedIn() || !id || String(id).startsWith('demo-')) return true;
         try {
             const res = await fetch('/api/bazi-profiles', {
                 method: 'DELETE',
@@ -3043,9 +3035,7 @@
     }
 
     async function cloudLoadProfiles() {
-        const email = localStorage.getItem('bazi_logged_email')
-            || localStorage.getItem('bazi_logged_in_email');
-        if (!email) return null;
+        if (!isLoggedIn()) return null;
         try {
             const headers = await getAuthHeaders();
             delete headers['Content-Type'];
@@ -3278,7 +3268,7 @@
             return [p.a, p.b];
         })();
         const sep = lang === 'en' ? ' & ' : '、';
-        boostLine.innerHTML = `<span class="insight-label">${t('wallpaper_boost_group_title')}</span>&ensp;${yunA}${sep}${yunB}`;
+        boostLine.innerHTML = `<span class="insight-label">${t('wallpaper_boost_group_title')}</span>&ensp;${escapeHtml(yunA)}${escapeHtml(sep)}${escapeHtml(yunB)}`;
 
         el.style.display = '';
     }
@@ -3898,9 +3888,7 @@
     }
 
     async function cloudPutAnnualPlans(plans) {
-        const email = localStorage.getItem('bazi_logged_email')
-            || localStorage.getItem('bazi_logged_in_email');
-        if (!email) return null;
+        if (!isLoggedIn()) return null;
         try {
             const res = await fetch('/api/annual-plans', {
                 method: 'PUT',
@@ -3920,9 +3908,7 @@
     }
 
     async function cloudLoadAnnualPlans() {
-        const email = localStorage.getItem('bazi_logged_email')
-            || localStorage.getItem('bazi_logged_in_email');
-        if (!email) return null;
+        if (!isLoggedIn()) return null;
         try {
             const headers = await getAuthHeaders();
             delete headers['Content-Type'];

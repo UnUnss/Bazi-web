@@ -39,7 +39,7 @@ async function assertAdmin(req) {
   if (!email) return { ok: false, status: 401, error: 'Missing auth' };
 
   const { data, error } = await sb.rpc('is_admin_email', { check_email: email });
-  if (error) return { ok: false, status: 500, error: error.message };
+  if (error) return { ok: false, status: 500, error: 'Server error' };
   if (data !== true) return { ok: false, status: 403, error: 'Forbidden' };
   return { ok: true };
 }
@@ -55,12 +55,16 @@ export default async function handler(req, res) {
   const { filename, folder, contentType, variant } = req.body;
   if (!filename || !folder) return res.status(400).json({ error: 'Missing params' });
 
+  // Sanitize: folder must be digits only; strip path separators from filename
+  const safeFolder = String(folder).replace(/[^0-9]/g, '');
+  if (!safeFolder) return res.status(400).json({ error: 'Invalid folder' });
+  const safeName = String(filename).replace(/^.*[\\/]/, '');
+
   // variant=preview → wallpapers/{folder}/preview/{name}
   // 默认原图 → wallpapers/{folder}/{name}
-  const safeName = String(filename).replace(/^.*[\\/]/, '');
   const key = variant === 'preview'
-    ? `wallpapers/${folder}/preview/${safeName}`
-    : `wallpapers/${folder}/${safeName}`;
+    ? `wallpapers/${safeFolder}/preview/${safeName}`
+    : `wallpapers/${safeFolder}/${safeName}`;
 
   try {
     const url = await getSignedUrl(
