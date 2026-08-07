@@ -3350,24 +3350,29 @@
     }
 
     // 取「上一流月」已展示壁纸 id（仅今年）；用于连续两个月不重复
+    // 兼容旧格式（纯 id 字符串数组）和新格式（{id, si} 对象数组）
     function getPrevMonthWallpaperIds(profile, yearGanZhi, monthGanZhi) {
         const prevMonth = getPrevLiuyueGanZhi(monthGanZhi);
         if (!prevMonth) return [];
         const map = resolveWallpaperHistory(profile);
-        const ids = map[`${yearGanZhi}|${prevMonth}`];
-        return Array.isArray(ids) ? ids.filter((id) => id != null) : [];
+        const entry = map[`${yearGanZhi}|${prevMonth}`];
+        if (!Array.isArray(entry)) return [];
+        return entry.map((e) => (typeof e === 'string' ? e : (e && e.id))).filter(Boolean);
     }
 
-    // 写入本月壁纸 id → 档案内存 + localStorage + 云端 PATCH
-    function recordMonthWallpaperIds(profile, ymKey, ids, yearGanZhi) {
-        if (!profile || !profile.id || !ymKey || !Array.isArray(ids) || !ids.length) return;
+    // 写入本月壁纸选图（含槽位）→ 档案内存 + localStorage + 云端 PATCH
+    // cards: [{id, specIndex}, ...] 新格式；存为 [{id, si}] 节省空间
+    function recordMonthWallpaperIds(profile, ymKey, cards, yearGanZhi) {
+        if (!profile || !profile.id || !ymKey || !Array.isArray(cards) || !cards.length) return;
         const yearPrefix = `${yearGanZhi}|`;
         const prev = resolveWallpaperHistory(profile);
         const next = {};
         for (const k of Object.keys(prev)) {
             if (k.indexOf(yearPrefix) === 0) next[k] = prev[k];
         }
-        next[ymKey] = ids.filter((id) => id != null);
+        next[ymKey] = cards
+            .filter((c) => c && c.id != null)
+            .map((c) => ({ id: c.id, si: c.specIndex }));
 
         profile.wallpaperHistory = next;
         // 同步进 profiles 列表，便于 saveProfiles / 下次选图
@@ -3405,30 +3410,6 @@
     const WP_IMG_CACHE = 'bazi-wp-preview-v1';
     let _wpBlobUrls = [];
 
-    // === 方案B：每月选图锁定 ===
-    // 同一档案同一流月内，首次选图后写入 localStorage，后续直接读取，
-    // 保证图库更新时老用户本月看到的壁纸不变，新用户/下月自动刷新。
-    const WP_LOCK_KEY = 'ew_wp_lock_v1';
-    function readLockedCards(profileId, ymKey) {
-        try {
-            const all = JSON.parse(localStorage.getItem(WP_LOCK_KEY) || '{}');
-            const entry = all[profileId];
-            if (entry && entry.ymKey === ymKey && Array.isArray(entry.cards) && entry.cards.length > 0) {
-                return entry.cards;
-            }
-        } catch (_) {}
-        return null;
-    }
-    function writeLockedCards(profileId, ymKey, cards) {
-        try {
-            const all = JSON.parse(localStorage.getItem(WP_LOCK_KEY) || '{}');
-            // 最多保留 10 个档案的锁定记录，防止 localStorage 膨胀
-            const keys = Object.keys(all);
-            if (keys.length >= 10 && !all[profileId]) delete all[keys[0]];
-            all[profileId] = { ymKey, cards };
-            localStorage.setItem(WP_LOCK_KEY, JSON.stringify(all));
-        } catch (_) {}
-    }
 
     function readWallpaperMetaCache(element) {
         try {
@@ -3600,31 +3581,41 @@
             const nowYearMonth = getCurrentYearMonthGanZhi();
             const liuyueGanZhi = nowYearMonth.month;
             const ymKey = `${nowYearMonth.year}|${liuyueGanZhi}`;
-            const profileLockId = profile.id || 'anonymous';
 
-            // ── 读取本月锁定记录（方案B核心）──
-            const lockedRaw = readLockedCards(profileLockId, ymKey);
-            if (lockedRaw) {
-                // 校验所有锁定壁纸仍在图库中（防止管理员删图后出现空卡）
+            // ── 方案B核心：优先读取 wallpaper_history 中已锁定的本月选图 ──
+            // wallpaper_history 已同步到 Supabase，清本地缓存后仍会从云端恢复
+            const history = resolveWallpaperHistory(profile);
+            const lockedEntry = history[ymKey];
+            if (Array.isArray(lockedEntry) && lockedEntry.length > 0
+                    && lockedEntry[0] && typeof lockedEntry[0] === 'object' && 'si' in lockedEntry[0]) {
+                // 校验锁定壁纸仍在图库中（防止管理员删图后出现空卡）
                 const allPool = [...(poolPrimary || []), ...(poolSecondary || [])];
-                const poolIdSet = new Set(allPool.map((w) => w.id));
-                const allValid = lockedRaw.every((c) => !c.id || poolIdSet.has(c.id));
+                const poolMap = new Map(allPool.map((w) => [w.id, w]));
+                const allValid = lockedEntry.every((e) => !e.id || poolMap.has(e.id));
                 if (allValid) {
-                    // name/desc 从 cardSpecs 重新取，支持语言切换后也能正确显示
-                    cards = lockedRaw.map((c) => ({
-                        id:        c.id,
-                        img:       c.img,
-                        r2key:     c.r2key,
-                        el:        c.el,
-                        name:      cardSpecs[c.specIndex]?.elName || c.el,
-                        desc:      cardSpecs[c.specIndex]?.desc || '',
-                        isPreview: c.isPreview,
-                    }));
+                    // 从图库重新取壁纸对象（获取最新预览 key），name/desc 从 cardSpecs 重取支持语言切换
+                    const restored = lockedEntry.map((e) => {
+                        const w = poolMap.get(e.id);
+                        const spec = cardSpecs[e.si];
+                        if (!w || !spec) return null;
+                        const previewKey = w.preview_key || w.r2_key;
+                        return {
+                            id:        w.id,
+                            img:       `${R2_PUBLIC_URL}/${previewKey}`,
+                            r2key:     w.r2_key,
+                            el:        spec.el,
+                            name:      spec.elName,
+                            desc:      spec.desc,
+                            isPreview: !!w.preview_key,
+                            specIndex: e.si,
+                        };
+                    }).filter(Boolean);
+                    if (restored.length > 0) cards = restored;
                 }
             }
 
             if (!cards) {
-                // ── 首次进入本月：运行选图算法，完成后锁定 ──
+                // ── 首次进入本月：运行选图算法，完成后写入 wallpaper_history ──
                 const userId = getLoggedEmail() || 'guest';
                 // 上一流月已展示的壁纸：本月优先避开（同五行同补运至少有 2 张候选）
                 const prevMonthIds = getPrevMonthWallpaperIds(profile, nowYearMonth.year, liuyueGanZhi);
@@ -3665,14 +3656,6 @@
                     };
                 });
 
-                // 记下本月实际展示的壁纸 id → 档案字段 + 本地缓存 + 云端
-                recordMonthWallpaperIds(
-                    profile,
-                    ymKey,
-                    picked.filter(Boolean).map((c) => c.id),
-                    nowYearMonth.year
-                );
-
                 // 按展示顺序取出；空槽用已选图循环补齐，保证 4 张
                 const availableCards = picked.filter(Boolean);
                 cards = cardSpecs.map((spec, i) => {
@@ -3692,12 +3675,8 @@
                     };
                 }).filter(Boolean);
 
-                // 锁定本月选图：只存稳定字段，name/desc 在恢复时从 cardSpecs 重取
-                const toStore = cards.map((c) => ({
-                    id: c.id, img: c.img, r2key: c.r2key,
-                    el: c.el, specIndex: c.specIndex, isPreview: !!c.isPreview,
-                }));
-                writeLockedCards(profileLockId, ymKey, toStore);
+                // 将本月选图（含槽位）写入 wallpaper_history → 档案 + localStorage + Supabase
+                recordMonthWallpaperIds(profile, ymKey, cards, nowYearMonth.year);
             }
         } else {
             cards = cardSpecs.map((spec, i) => {
