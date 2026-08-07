@@ -6211,6 +6211,17 @@
             profiles.push(finalProfile);
         }
         saveProfiles(profiles);
+
+        // 编辑已有档案时，八字可能变了，必须清掉旧的 insight 缓存，否则
+        // computeMonthlyInsight 会按 profile.id+流月 命中旧结果，不重算喜用/补运。
+        if (editingId) {
+            try {
+                const insightAll = JSON.parse(localStorage.getItem(INSIGHT_CACHE_KEY) || '{}');
+                delete insightAll[editingId];
+                localStorage.setItem(INSIGHT_CACHE_KEY, JSON.stringify(insightAll));
+            } catch (_) {}
+        }
+
         activeId = finalProfile.id;
         setActiveId(activeId);
         refresh();
