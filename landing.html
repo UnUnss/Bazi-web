@@ -3405,6 +3405,31 @@
     const WP_IMG_CACHE = 'bazi-wp-preview-v1';
     let _wpBlobUrls = [];
 
+    // === 方案B：每月选图锁定 ===
+    // 同一档案同一流月内，首次选图后写入 localStorage，后续直接读取，
+    // 保证图库更新时老用户本月看到的壁纸不变，新用户/下月自动刷新。
+    const WP_LOCK_KEY = 'ew_wp_lock_v1';
+    function readLockedCards(profileId, ymKey) {
+        try {
+            const all = JSON.parse(localStorage.getItem(WP_LOCK_KEY) || '{}');
+            const entry = all[profileId];
+            if (entry && entry.ymKey === ymKey && Array.isArray(entry.cards) && entry.cards.length > 0) {
+                return entry.cards;
+            }
+        } catch (_) {}
+        return null;
+    }
+    function writeLockedCards(profileId, ymKey, cards) {
+        try {
+            const all = JSON.parse(localStorage.getItem(WP_LOCK_KEY) || '{}');
+            // 最多保留 10 个档案的锁定记录，防止 localStorage 膨胀
+            const keys = Object.keys(all);
+            if (keys.length >= 10 && !all[profileId]) delete all[keys[0]];
+            all[profileId] = { ymKey, cards };
+            localStorage.setItem(WP_LOCK_KEY, JSON.stringify(all));
+        } catch (_) {}
+    }
+
     function readWallpaperMetaCache(element) {
         try {
             const all = JSON.parse(localStorage.getItem(WP_META_LS_KEY) || '{}');
@@ -3572,73 +3597,108 @@
 
         let cards;
         if (hasDb) {
-            const userId = getLoggedEmail() || 'guest';
             const nowYearMonth = getCurrentYearMonthGanZhi();
             const liuyueGanZhi = nowYearMonth.month;
             const ymKey = `${nowYearMonth.year}|${liuyueGanZhi}`;
-            // 上一流月已展示的壁纸：本月优先避开（同五行同补运至少有 2 张候选）
-            const prevMonthIds = getPrevMonthWallpaperIds(profile, nowYearMonth.year, liuyueGanZhi);
-            const baseSeed = `${userId}|${profile.id}|${nowYearMonth.year}|${liuyueGanZhi}|${primaryEl}|${secondaryEl}|${yunPair.aCN}|${yunPair.bCN}`;
-            const usedIds = [];
+            const profileLockId = profile.id || 'anonymous';
 
-            // 展示顺序：A → B → AB → 副AB
-            // 匹配顺序：先双标签再单标签，避免单标签槽位先把双标签图吃掉
-            const matchOrder = [2, 3, 0, 1];
-            const picked = new Array(cardSpecs.length).fill(null);
+            // ── 读取本月锁定记录（方案B核心）──
+            const lockedRaw = readLockedCards(profileLockId, ymKey);
+            if (lockedRaw) {
+                // 校验所有锁定壁纸仍在图库中（防止管理员删图后出现空卡）
+                const allPool = [...(poolPrimary || []), ...(poolSecondary || [])];
+                const poolIdSet = new Set(allPool.map((w) => w.id));
+                const allValid = lockedRaw.every((c) => !c.id || poolIdSet.has(c.id));
+                if (allValid) {
+                    // name/desc 从 cardSpecs 重新取，支持语言切换后也能正确显示
+                    cards = lockedRaw.map((c) => ({
+                        id:        c.id,
+                        img:       c.img,
+                        r2key:     c.r2key,
+                        el:        c.el,
+                        name:      cardSpecs[c.specIndex]?.elName || c.el,
+                        desc:      cardSpecs[c.specIndex]?.desc || '',
+                        isPreview: c.isPreview,
+                    }));
+                }
+            }
 
-            matchOrder.forEach((i) => {
-                const spec = cardSpecs[i];
-                const preferred = (spec.el === primaryEl ? poolPrimary : poolSecondary) || [];
-                const other = (spec.el === primaryEl ? poolSecondary : poolPrimary) || [];
-                const seed = `${baseSeed}|card${i}`;
-                // 先避开：本月已选 + 上月已展示；不够再放宽上月限制，最后才允许本月内复用
-                const exclStrict = usedIds.concat(prevMonthIds.filter((id) => usedIds.indexOf(id) < 0));
-                const w = pickByTags(preferred, spec.tags, seed, exclStrict)
-                    || pickByTags(preferred, spec.tags, seed + '|relaxPrev', usedIds)
-                    || pickByTags(other, spec.tags, seed + '|other', exclStrict)
-                    || pickByTags(other, spec.tags, seed + '|otherRelax', usedIds)
-                    || pickByTags(preferred, spec.tags, seed + '|reuse', [])
-                    || pickByTags(other, spec.tags, seed + '|otherReuse', []);
-                if (!w) return;
-                if (w.id != null && !usedIds.includes(w.id)) usedIds.push(w.id);
-                const previewKey = w.preview_key || w.r2_key;
-                picked[i] = {
-                    id:    w.id,
-                    img:   `${R2_PUBLIC_URL}/${previewKey}`,
-                    r2key: w.r2_key,
-                    el:    spec.el,
-                    name:  spec.elName,
-                    desc:  spec.desc,
-                    tags:  normalizeYunTags(w.tags),
-                    // 有 preview 才算轻量；无则回退原图（可能很大）
-                    isPreview: !!w.preview_key,
-                };
-            });
+            if (!cards) {
+                // ── 首次进入本月：运行选图算法，完成后锁定 ──
+                const userId = getLoggedEmail() || 'guest';
+                // 上一流月已展示的壁纸：本月优先避开（同五行同补运至少有 2 张候选）
+                const prevMonthIds = getPrevMonthWallpaperIds(profile, nowYearMonth.year, liuyueGanZhi);
+                const baseSeed = `${userId}|${profile.id}|${nowYearMonth.year}|${liuyueGanZhi}|${primaryEl}|${secondaryEl}|${yunPair.aCN}|${yunPair.bCN}`;
+                const usedIds = [];
 
-            // 记下本月实际展示的壁纸 id → 档案字段 + 本地缓存 + 云端
-            recordMonthWallpaperIds(
-                profile,
-                ymKey,
-                picked.filter(Boolean).map((c) => c.id),
-                nowYearMonth.year
-            );
+                // 展示顺序：A → B → AB → 副AB
+                // 匹配顺序：先双标签再单标签，避免单标签槽位先把双标签图吃掉
+                const matchOrder = [2, 3, 0, 1];
+                const picked = new Array(cardSpecs.length).fill(null);
 
-            // 按展示顺序取出；空槽用已选图循环补齐，保证 4 张
-            const availableCards = picked.filter(Boolean);
-            cards = cardSpecs.map((spec, i) => {
-                if (picked[i]) return picked[i];
-                if (!availableCards.length) return null;
-                const src = availableCards[i % availableCards.length];
-                return {
-                    id: src.id,
-                    img: src.img,
-                    r2key: src.r2key,
-                    el: spec.el,
-                    name: spec.elName,
-                    desc: spec.desc,
-                    tags: src.tags,
-                };
-            }).filter(Boolean);
+                matchOrder.forEach((i) => {
+                    const spec = cardSpecs[i];
+                    const preferred = (spec.el === primaryEl ? poolPrimary : poolSecondary) || [];
+                    const other = (spec.el === primaryEl ? poolSecondary : poolPrimary) || [];
+                    const seed = `${baseSeed}|card${i}`;
+                    // 先避开：本月已选 + 上月已展示；不够再放宽上月限制，最后才允许本月内复用
+                    const exclStrict = usedIds.concat(prevMonthIds.filter((id) => usedIds.indexOf(id) < 0));
+                    const w = pickByTags(preferred, spec.tags, seed, exclStrict)
+                        || pickByTags(preferred, spec.tags, seed + '|relaxPrev', usedIds)
+                        || pickByTags(other, spec.tags, seed + '|other', exclStrict)
+                        || pickByTags(other, spec.tags, seed + '|otherRelax', usedIds)
+                        || pickByTags(preferred, spec.tags, seed + '|reuse', [])
+                        || pickByTags(other, spec.tags, seed + '|otherReuse', []);
+                    if (!w) return;
+                    if (w.id != null && !usedIds.includes(w.id)) usedIds.push(w.id);
+                    const previewKey = w.preview_key || w.r2_key;
+                    picked[i] = {
+                        id:        w.id,
+                        img:       `${R2_PUBLIC_URL}/${previewKey}`,
+                        r2key:     w.r2_key,
+                        el:        spec.el,
+                        name:      spec.elName,
+                        desc:      spec.desc,
+                        tags:      normalizeYunTags(w.tags),
+                        specIndex: i,
+                        isPreview: !!w.preview_key,
+                    };
+                });
+
+                // 记下本月实际展示的壁纸 id → 档案字段 + 本地缓存 + 云端
+                recordMonthWallpaperIds(
+                    profile,
+                    ymKey,
+                    picked.filter(Boolean).map((c) => c.id),
+                    nowYearMonth.year
+                );
+
+                // 按展示顺序取出；空槽用已选图循环补齐，保证 4 张
+                const availableCards = picked.filter(Boolean);
+                cards = cardSpecs.map((spec, i) => {
+                    if (picked[i]) return picked[i];
+                    if (!availableCards.length) return null;
+                    const src = availableCards[i % availableCards.length];
+                    return {
+                        id:        src.id,
+                        img:       src.img,
+                        r2key:     src.r2key,
+                        el:        spec.el,
+                        name:      spec.elName,
+                        desc:      spec.desc,
+                        tags:      src.tags,
+                        specIndex: i,
+                        isPreview: src.isPreview,
+                    };
+                }).filter(Boolean);
+
+                // 锁定本月选图：只存稳定字段，name/desc 在恢复时从 cardSpecs 重取
+                const toStore = cards.map((c) => ({
+                    id: c.id, img: c.img, r2key: c.r2key,
+                    el: c.el, specIndex: c.specIndex, isPreview: !!c.isPreview,
+                }));
+                writeLockedCards(profileLockId, ymKey, toStore);
+            }
         } else {
             cards = cardSpecs.map((spec, i) => {
                 const variants = WUXING_WALLPAPER[spec.el] || WUXING_WALLPAPER['水'];
