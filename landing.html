@@ -4885,6 +4885,7 @@
     const locationSearchingEl  = document.getElementById('locationSearching');
     let _stateLatLon       = null;
     let _countryTimezones  = []; // 當前選定國家的時區列表（來自 country.json）
+    let _locationModified  = false; // 用戶是否在本次彈窗中手動更改了地點下拉框
 
     // 官方使用單一民用時區的國家——即使 IANA 收錄了多條記錄（如中國有
     // Asia/Shanghai UTC+8 和 Asia/Urumqi UTC+6，但官方全境使用 UTC+8）。
@@ -5069,6 +5070,7 @@
     });
 
     locCountrySel.addEventListener('change', () => {
+        _locationModified = true;
         const iso2 = locCountrySel.value;
         resetSelect(locStateSel, 'loc_placeholder_state');
         resetSelect(locCitySel,  'loc_placeholder_city');
@@ -5090,6 +5092,7 @@
     });
 
     locStateSel.addEventListener('change', () => {
+        _locationModified = true;
         const iso2      = locCountrySel.value;
         const stateCode = locStateSel.value;
         resetSelect(locCitySel, 'loc_placeholder_city');
@@ -5123,6 +5126,7 @@
     });
 
     locCitySel.addEventListener('change', () => {
+        _locationModified = true;
         const city      = locCitySel.value;
         const stateCode = locStateSel.value;
         const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
@@ -5195,6 +5199,7 @@
         resetSelect(locStateSel, 'loc_placeholder_state');
         resetSelect(locCitySel, 'loc_placeholder_city');
         clearBirthplace();
+        _locationModified = false;
         document.getElementById('useTrueSolarTime').checked = false;
         document.getElementById('useDST').checked = false;
     }
@@ -5247,11 +5252,54 @@
         });
         setBirthDateSelects(profile.birthDate);
         setBirthTimeSelects(profile.birthTime || '12:00');
-        locCountrySel.value = '';
-        resetSelect(locStateSel, 'loc_placeholder_state');
-        resetSelect(locCitySel, 'loc_placeholder_city');
         birthplaceHidden.value = profile.birthplace || '';
         _stateLatLon = null;
+        _locationModified = false;
+
+        // 回填国家/省份/城市下拉框（直接赋值，不触发 change 事件，避免 clearBirthplace）
+        function restoreLocationDropdowns() {
+            if (!profile.countryCode || !_cscCountries) {
+                locCountrySel.value = '';
+                resetSelect(locStateSel, 'loc_placeholder_state');
+                resetSelect(locCitySel,  'loc_placeholder_city');
+                return;
+            }
+            locCountrySel.value = profile.countryCode;
+            renderStateOptions(profile.countryCode);
+            if (profile.stateCode) {
+                locStateSel.value = profile.stateCode;
+                const stateOpt = locStateSel.querySelector(`option[value="${CSS.escape(profile.stateCode)}"]`);
+                if (stateOpt) {
+                    const lat = parseFloat(stateOpt.dataset.lat);
+                    const lon = parseFloat(stateOpt.dataset.lon);
+                    if (!isNaN(lon)) _stateLatLon = { lat, lon };
+                }
+                resetSelect(locCitySel, 'loc_placeholder_city');
+                const cityList = (CITY_DATA[profile.countryCode] || {})[profile.stateCode];
+                if (cityList && cityList.length) {
+                    cityList.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = opt.textContent = c;
+                        locCitySel.appendChild(opt);
+                    });
+                    locCitySel.disabled = false;
+                    if (profile.cityName) locCitySel.value = profile.cityName;
+                }
+            }
+        }
+
+        if (_cscCountries) {
+            restoreLocationDropdowns();
+        } else {
+            locCountrySel.value = '';
+            resetSelect(locStateSel, 'loc_placeholder_state');
+            resetSelect(locCitySel,  'loc_placeholder_city');
+            // CSC 数据还未加载完，等加载后再回填（通常极快，用户几乎感觉不到）
+            loadCSCData().then(() => {
+                if (editingId === profile.id) restoreLocationDropdowns();
+            });
+        }
+
         document.getElementById('useTrueSolarTime').checked = !!profile.useTrueSolarTime;
         document.getElementById('useDST').checked = !!profile.useDST;
         addModal.classList.add('open');
@@ -6109,7 +6157,7 @@
         const useTrueSolarTime = document.getElementById('useTrueSolarTime').checked;
         const useDST = document.getElementById('useDST').checked;
         const existing = editingId ? profiles.find((p) => p.id === editingId) : null;
-        const locationChanged = !!locCountrySel.value;
+        const locationChanged = _locationModified;
 
         if (!nickname || !birthDate || !birthTime) {
             alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
@@ -6197,7 +6245,11 @@
             birthplaceLon: finalLon,
             utcOffset: finalUtcOffset,
             useTrueSolarTime,
-            useDST
+            useDST,
+            // 保存下拉框选中值，供编辑时回填
+            countryCode: locationChanged ? (locCountrySel.value || '') : (existing?.countryCode || ''),
+            stateCode:   locationChanged ? (locStateSel.value   || '') : (existing?.stateCode   || ''),
+            cityName:    locationChanged ? (locCitySel.value    || '') : (existing?.cityName    || ''),
         };
 
         const saved = await cloudUpsertProfile(profile);
