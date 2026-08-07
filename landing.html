@@ -3582,38 +3582,35 @@
             const liuyueGanZhi = nowYearMonth.month;
             const ymKey = `${nowYearMonth.year}|${liuyueGanZhi}`;
 
-            // ── 方案B核心：仅登录用户启用月度锁定 ──
-            // 未登录用户无 Supabase 云端备份，每次重新选图；登录用户从 wallpaper_history 恢复
-            const userLoggedIn = typeof isLoggedIn === 'function' ? isLoggedIn() : false;
-            if (userLoggedIn) {
-                const history = resolveWallpaperHistory(profile);
-                const lockedEntry = history[ymKey];
-                if (Array.isArray(lockedEntry) && lockedEntry.length > 0
-                        && lockedEntry[0] && typeof lockedEntry[0] === 'object' && 'si' in lockedEntry[0]) {
-                    // 校验锁定壁纸仍在图库中（防止管理员删图后出现空卡）
-                    const allPool = [...(poolPrimary || []), ...(poolSecondary || [])];
-                    const poolMap = new Map(allPool.map((w) => [w.id, w]));
-                    const allValid = lockedEntry.every((e) => !e.id || poolMap.has(e.id));
-                    if (allValid) {
-                        // 从图库重新取壁纸对象（获取最新预览 key），name/desc 从 cardSpecs 重取支持语言切换
-                        const restored = lockedEntry.map((e) => {
-                            const w = poolMap.get(e.id);
-                            const spec = cardSpecs[e.si];
-                            if (!w || !spec) return null;
-                            const previewKey = w.preview_key || w.r2_key;
-                            return {
-                                id:        w.id,
-                                img:       `${R2_PUBLIC_URL}/${previewKey}`,
-                                r2key:     w.r2_key,
-                                el:        spec.el,
-                                name:      spec.elName,
-                                desc:      spec.desc,
-                                isPreview: !!w.preview_key,
-                                specIndex: e.si,
-                            };
-                        }).filter(Boolean);
-                        if (restored.length > 0) cards = restored;
-                    }
+            // ── 方案B核心：优先读取 wallpaper_history 中已锁定的本月选图 ──
+            // wallpaper_history 已同步到 Supabase，清本地缓存后仍会从云端恢复
+            const history = resolveWallpaperHistory(profile);
+            const lockedEntry = history[ymKey];
+            if (Array.isArray(lockedEntry) && lockedEntry.length > 0
+                    && lockedEntry[0] && typeof lockedEntry[0] === 'object' && 'si' in lockedEntry[0]) {
+                // 校验锁定壁纸仍在图库中（防止管理员删图后出现空卡）
+                const allPool = [...(poolPrimary || []), ...(poolSecondary || [])];
+                const poolMap = new Map(allPool.map((w) => [w.id, w]));
+                const allValid = lockedEntry.every((e) => !e.id || poolMap.has(e.id));
+                if (allValid) {
+                    // 从图库重新取壁纸对象（获取最新预览 key），name/desc 从 cardSpecs 重取支持语言切换
+                    const restored = lockedEntry.map((e) => {
+                        const w = poolMap.get(e.id);
+                        const spec = cardSpecs[e.si];
+                        if (!w || !spec) return null;
+                        const previewKey = w.preview_key || w.r2_key;
+                        return {
+                            id:        w.id,
+                            img:       `${R2_PUBLIC_URL}/${previewKey}`,
+                            r2key:     w.r2_key,
+                            el:        spec.el,
+                            name:      spec.elName,
+                            desc:      spec.desc,
+                            isPreview: !!w.preview_key,
+                            specIndex: e.si,
+                        };
+                    }).filter(Boolean);
+                    if (restored.length > 0) cards = restored;
                 }
             }
 
@@ -3678,10 +3675,8 @@
                     };
                 }).filter(Boolean);
 
-                // 登录用户才写锁定：未登录用户无云端备份，每次进页重新选图即可
-                if (userLoggedIn) {
-                    recordMonthWallpaperIds(profile, ymKey, cards, nowYearMonth.year);
-                }
+                // 将本月选图（含槽位）写入 wallpaper_history → 档案 + localStorage + Supabase
+                recordMonthWallpaperIds(profile, ymKey, cards, nowYearMonth.year);
             }
         } else {
             cards = cardSpecs.map((spec, i) => {
@@ -3712,14 +3707,9 @@
                 : escapeHtml(c.name);
             const loading = 'eager';
             const fetchPriority = idx === 0 ? 'high' : 'auto';
-            // 预览图 404 时自动降级到原图（preview_key 存在但文件未生成的情况）
-            const originalSrc = (c.isPreview && c.r2key) ? `${R2_PUBLIC_URL}/${c.r2key}` : '';
-            const imgFallback = originalSrc
-                ? `data-fb="${escapeHtml(originalSrc)}" onerror="var f=this.dataset.fb;if(f){this.removeAttribute('data-fb');this.src=f;}"`
-                : '';
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
-                    <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" ${imgFallback} />
+                    <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" />
                     <div class="phone-overlay">
                         <div class="phone-overlay-top">
                             <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" loading="lazy" decoding="async" />
@@ -6182,25 +6172,6 @@
             profiles.push(finalProfile);
         }
         saveProfiles(profiles);
-
-        // 编辑八字时，旧的 insight 缓存和壁纸锁定必须失效，否则改了八字仍显示旧喜用神和旧壁纸
-        if (editingId) {
-            try {
-                const insightAll = JSON.parse(localStorage.getItem(INSIGHT_CACHE_KEY) || '{}');
-                delete insightAll[editingId];
-                localStorage.setItem(INSIGHT_CACHE_KEY, JSON.stringify(insightAll));
-            } catch (_) {}
-            try {
-                const histAll = JSON.parse(localStorage.getItem(WP_HIST_KEY) || '{}');
-                if (histAll[editingId]) {
-                    const nowYM = getCurrentYearMonthGanZhi();
-                    const ymKey = `${nowYM.year}|${nowYM.month}`;
-                    delete histAll[editingId][ymKey];
-                    localStorage.setItem(WP_HIST_KEY, JSON.stringify(histAll));
-                }
-            } catch (_) {}
-        }
-
         activeId = finalProfile.id;
         setActiveId(activeId);
         refresh();
