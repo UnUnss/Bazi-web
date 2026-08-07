@@ -127,3 +127,138 @@ create policy "Users can read own annual plans"
 
 grant select, insert, update, delete on public.annual_plans to service_role;
 
+-- ════════════════════════════════════════════
+-- 下载记录（对应前端 ew_download_history）
+-- ════════════════════════════════════════════
+create table if not exists public.download_records (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users (id) on delete set null,
+  owner_email text not null,
+  wallpaper_id uuid,                 -- 对应 wallpapers.id（可空，兼容旧本地记录）
+  r2_key text not null,              -- 原图 R2 key
+  preview_url text,                  -- 预览图 URL（展示用）
+  wallpaper_name text,               -- 展示名（如五行名）
+  profile_id uuid,                   -- 可选：当时使用的八字档案
+  order_id uuid,                     -- 可选：关联支付订单
+  created_at timestamptz not null default now()
+);
+
+create index if not exists download_records_owner_email_idx
+  on public.download_records (owner_email, created_at desc);
+
+create index if not exists download_records_user_id_idx
+  on public.download_records (user_id, created_at desc);
+
+create index if not exists download_records_r2_key_idx
+  on public.download_records (r2_key);
+
+alter table public.download_records enable row level security;
+
+create policy "Users can read own download records"
+  on public.download_records for select
+  using (
+    auth.uid() = user_id
+    or lower(owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+
+grant select, insert, update, delete on public.download_records to service_role;
+
+-- ════════════════════════════════════════════
+-- 支付订单
+-- product_type:
+--   single  = 单张 US$5.99
+--   pack2   = 2 张 US$10.99
+--   pack4   = 4 张 US$19.99
+--   annual  = 包年 US$219.99
+-- status: pending | paid | failed | refunded | cancelled
+-- ════════════════════════════════════════════
+create table if not exists public.payment_orders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users (id) on delete set null,
+  owner_email text not null,
+  product_type text not null
+    check (product_type in ('single', 'pack2', 'pack4', 'annual')),
+  status text not null default 'pending'
+    check (status in ('pending', 'paid', 'failed', 'refunded', 'cancelled')),
+  amount_cents integer not null check (amount_cents >= 0),  -- 以分为单位，避免浮点
+  currency text not null default 'USD',
+  -- 支付渠道（接入后填）：stripe / paypal / alipay / wechat / mock ...
+  provider text,
+  provider_payment_id text,          -- 渠道侧支付单号
+  provider_session_id text,          -- 渠道侧 session / checkout id
+  -- 包年关联的方案 id（product_type=annual 时用）
+  annual_plan_id text references public.annual_plans (id) on delete set null,
+  paid_at timestamptz,
+  meta jsonb not null default '{}'::jsonb,  -- 扩展字段（渠道原始回执等）
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists payment_orders_owner_email_idx
+  on public.payment_orders (owner_email, created_at desc);
+
+create index if not exists payment_orders_user_id_idx
+  on public.payment_orders (user_id, created_at desc);
+
+create index if not exists payment_orders_status_idx
+  on public.payment_orders (status);
+
+create unique index if not exists payment_orders_provider_payment_uidx
+  on public.payment_orders (provider, provider_payment_id)
+  where provider is not null and provider_payment_id is not null;
+
+alter table public.payment_orders enable row level security;
+
+create policy "Users can read own payment orders"
+  on public.payment_orders for select
+  using (
+    auth.uid() = user_id
+    or lower(owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+
+grant select, insert, update, delete on public.payment_orders to service_role;
+
+-- 订单明细（单张 / 打包购入的壁纸；包年订单可无明细行）
+create table if not exists public.payment_order_items (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.payment_orders (id) on delete cascade,
+  wallpaper_id uuid,
+  r2_key text not null,
+  preview_url text,
+  wallpaper_name text,
+  unit_price_cents integer not null default 0 check (unit_price_cents >= 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists payment_order_items_order_id_idx
+  on public.payment_order_items (order_id);
+
+alter table public.payment_order_items enable row level security;
+
+create policy "Users can read own payment order items"
+  on public.payment_order_items for select
+  using (
+    exists (
+      select 1 from public.payment_orders o
+      where o.id = order_id
+        and (
+          auth.uid() = o.user_id
+          or lower(o.owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        )
+    )
+  );
+
+grant select, insert, update, delete on public.payment_order_items to service_role;
+
+-- download_records.order_id → payment_orders（表建好后再加外键，避免顺序问题）
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'download_records_order_id_fkey'
+  ) then
+    alter table public.download_records
+      add constraint download_records_order_id_fkey
+      foreign key (order_id) references public.payment_orders (id) on delete set null;
+  end if;
+end $$;
+
