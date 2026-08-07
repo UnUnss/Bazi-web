@@ -3712,9 +3712,14 @@
                 : escapeHtml(c.name);
             const loading = 'eager';
             const fetchPriority = idx === 0 ? 'high' : 'auto';
+            // 预览图 404 时自动降级到原图（preview_key 存在但文件未生成的情况）
+            const originalSrc = (c.isPreview && c.r2key) ? `${R2_PUBLIC_URL}/${c.r2key}` : '';
+            const imgFallback = originalSrc
+                ? `data-fb="${escapeHtml(originalSrc)}" onerror="var f=this.dataset.fb;if(f){this.removeAttribute('data-fb');this.src=f;}"`
+                : '';
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
-                    <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" />
+                    <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" ${imgFallback} />
                     <div class="phone-overlay">
                         <div class="phone-overlay-top">
                             <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" loading="lazy" decoding="async" />
