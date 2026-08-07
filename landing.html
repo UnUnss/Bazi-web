@@ -6172,6 +6172,25 @@
             profiles.push(finalProfile);
         }
         saveProfiles(profiles);
+
+        // 编辑八字时，旧的 insight 缓存和壁纸锁定必须失效，否则改了八字仍显示旧喜用神和旧壁纸
+        if (editingId) {
+            try {
+                const insightAll = JSON.parse(localStorage.getItem(INSIGHT_CACHE_KEY) || '{}');
+                delete insightAll[editingId];
+                localStorage.setItem(INSIGHT_CACHE_KEY, JSON.stringify(insightAll));
+            } catch (_) {}
+            try {
+                const histAll = JSON.parse(localStorage.getItem(WP_HIST_KEY) || '{}');
+                if (histAll[editingId]) {
+                    const nowYM = getCurrentYearMonthGanZhi();
+                    const ymKey = `${nowYM.year}|${nowYM.month}`;
+                    delete histAll[editingId][ymKey];
+                    localStorage.setItem(WP_HIST_KEY, JSON.stringify(histAll));
+                }
+            } catch (_) {}
+        }
+
         activeId = finalProfile.id;
         setActiveId(activeId);
         refresh();
