@@ -11,6 +11,9 @@ create table if not exists public.bazi_profiles (
   utc_offset double precision,
   use_true_solar_time boolean not null default false,
   use_dst boolean not null default false,  -- 夏令时
+  country_code text,  -- ISO2，编辑弹窗回填国家下拉
+  state_code text,    -- 省/州 isoCode
+  city_name text,     -- 城市显示名
   sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
@@ -18,6 +21,12 @@ create table if not exists public.bazi_profiles (
 -- 若表已建好、只差夏令时字段，执行下面这行即可：
 -- alter table public.bazi_profiles
 --   add column if not exists use_dst boolean not null default false;
+
+-- 若表已建好、只差地点下拉回填字段，执行下面三行即可：
+-- alter table public.bazi_profiles
+--   add column if not exists country_code text,
+--   add column if not exists state_code text,
+--   add column if not exists city_name text;
 
 alter table public.bazi_profiles enable row level security;
 

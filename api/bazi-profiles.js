@@ -40,6 +40,9 @@ function pruneWallpaperHistory(raw, yearGanZhi) {
   return out;
 }
 
+const PROFILE_COLS =
+  'id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, country_code, state_code, city_name, wallpaper_history';
+
 function toClient(row) {
   return {
     id: row.id,
@@ -52,6 +55,9 @@ function toClient(row) {
     utcOffset: row.utc_offset,
     useTrueSolarTime: !!row.use_true_solar_time,
     useDST: !!row.use_dst,
+    countryCode: row.country_code || '',
+    stateCode: row.state_code || '',
+    cityName: row.city_name || '',
     wallpaperHistory: normalizeWallpaperHistory(row.wallpaper_history),
   };
 }
@@ -67,6 +73,9 @@ function toRow(profile, email, userId) {
     utc_offset: profile.utcOffset ?? null,
     use_true_solar_time: !!profile.useTrueSolarTime,
     use_dst: !!profile.useDST,
+    country_code: profile.countryCode || null,
+    state_code: profile.stateCode || null,
+    city_name: profile.cityName || null,
     owner_email: email,
     user_id: userId,
   };
@@ -86,7 +95,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { data, error } = await sb
         .from('bazi_profiles')
-        .select('id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, wallpaper_history')
+        .select(PROFILE_COLS)
         .eq('owner_email', email)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true });
@@ -113,7 +122,7 @@ export default async function handler(req, res) {
         .update({ wallpaper_history: pruned })
         .eq('id', id)
         .eq('owner_email', email)
-        .select('id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, wallpaper_history')
+        .select(PROFILE_COLS)
         .maybeSingle();
       if (error) {
         console.error('bazi-profiles PATCH error:', error);
@@ -132,7 +141,6 @@ export default async function handler(req, res) {
       const row = toRow(profile, email, userId);
       const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-      const PROFILE_COLS = 'id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, wallpaper_history';
       if (profile.id && uuidRe.test(profile.id)) {
         const { data, error } = await sb
           .from('bazi_profiles')
