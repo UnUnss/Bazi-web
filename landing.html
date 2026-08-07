@@ -3444,18 +3444,31 @@
         _wpBlobUrls = [];
     }
 
+    function withTimeout(promise, ms) {
+        let timer;
+        return Promise.race([
+            Promise.resolve(promise).finally(() => { if (timer) clearTimeout(timer); }),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error('timeout')), ms);
+            }),
+        ]);
+    }
+
     async function cachedPreviewSrc(url) {
         if (!url || !('caches' in window)) return url;
         try {
-            const cache = await caches.open(WP_IMG_CACHE);
+            const cache = await withTimeout(caches.open(WP_IMG_CACHE), 2500);
             let res = await cache.match(url);
             if (!res) {
-                const net = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'force-cache' });
+                const net = await withTimeout(
+                    fetch(url, { mode: 'cors', credentials: 'omit', cache: 'force-cache' }),
+                    4000
+                );
                 if (!net.ok) return url;
                 try { await cache.put(url, net.clone()); } catch (_) {}
                 res = net;
             }
-            const blob = await res.blob();
+            const blob = await withTimeout(res.blob(), 2500);
             if (!blob || !blob.size) return url;
             const obj = URL.createObjectURL(blob);
             _wpBlobUrls.push(obj);
@@ -3518,7 +3531,8 @@
         if (_wallpaperInflight[element]) return _wallpaperInflight[element];
         _wallpaperInflight[element] = (async () => {
             try {
-                return await fetchWallpapersFromNetwork(element);
+                // Safari 偶发请求不返回时，避免永久占住 inflight，导致新增档案后壁纸区卡死
+                return await withTimeout(fetchWallpapersFromNetwork(element), 8000);
             } catch (_) {
                 return null;
             } finally {
@@ -3692,14 +3706,16 @@
             }).filter(Boolean);
         }
 
-        // 预览图走 Cache API：刷新后优先本地缓存，避免重复下载
-        revokeWallpaperBlobs();
-        cards = await Promise.all((cards || []).map(async (c) => {
-            const remoteImg = c.img;
-            const displayImg = await cachedPreviewSrc(remoteImg);
-            return { ...c, remoteImg, img: displayImg };
-        }));
         if (renderSeq !== _wallpaperRenderSeq) return;
+
+        // 先用远程 URL 立刻渲染卡片：喜用/补运已同步更新，壁纸区不应再被 Cache API 卡住。
+        // Safari 上 caches/fetch 偶发挂起时，旧逻辑会导致「上方 insight 已变、下方壁纸仍要手动刷新」。
+        revokeWallpaperBlobs();
+        cards = (cards || []).map((c) => ({
+            ...c,
+            remoteImg: c.remoteImg || c.img,
+            img: c.remoteImg || c.img,
+        }));
 
         // 同一素材（img）可能會出現在多張卡片上（如本月第1、3張共用同一張底圖），
         // 所以下載/加購物車用「卡片位置」cardKey 區分，而不是單純用 img 判斷是否重複。
@@ -3752,7 +3768,6 @@
             </article>`;
         }
 
-        if (renderSeq !== _wallpaperRenderSeq) return;
         const cardHtmls = cards.map((c, idx) => cardHtml(c, idx));
         wallpaperGrid.innerHTML = `
             <div class="wallpaper-group">
@@ -3774,6 +3789,20 @@
             const weekday = window.I18N ? window.I18N.t('weekday_sun') : 'Sunday';
             payDate.textContent = '2026/08/09 ' + weekday;
         }
+
+        // 后台把预览图写入 Cache API，成功后再替换 src；失败不影响已展示的卡片
+        const paintedSeq = renderSeq;
+        const imgs = wallpaperGrid.querySelectorAll('.wallpaper-preview > img');
+        cards.forEach((c, idx) => {
+            const remote = c.remoteImg;
+            if (!remote) return;
+            cachedPreviewSrc(remote).then((blobUrl) => {
+                if (paintedSeq !== _wallpaperRenderSeq) return;
+                if (!blobUrl || blobUrl === remote) return;
+                const img = imgs[idx];
+                if (img) img.src = blobUrl;
+            }).catch(() => {});
+        });
     }
 
 
