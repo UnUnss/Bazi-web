@@ -3209,46 +3209,13 @@
     }
 
     async function hydrateProfilesFromCloud() {
-        if (!isLoggedIn()) return;
-
-        // 先拉云端；失败则不动本地
-        let remote = await cloudLoadProfiles();
-        if (remote === null) return;
-
-        // 本地真实档案（非 demo）若云端没有，补传上去（覆盖：未登录时建档、或上次 upsert 失败）
-        const remoteIds = new Set(remote.map((p) => p && p.id).filter(Boolean));
-        const localReal = (profiles || []).filter(
-            (p) => p && p.id && !String(p.id).startsWith('demo-')
-        );
-        let pushed = false;
-        for (const p of localReal) {
-            if (remoteIds.has(p.id)) continue;
-            const saved = await cloudUpsertProfile(p);
-            if (saved && saved.id) {
-                pushed = true;
-                // 服务端可能分配了新 uuid（本地曾是 p-xxx）
-                if (saved.id !== p.id) {
-                    const idx = profiles.findIndex((x) => x && x.id === p.id);
-                    if (idx >= 0) profiles[idx] = { ...p, ...saved };
-                    if (activeId === p.id) {
-                        activeId = saved.id;
-                        setActiveId(activeId);
-                    }
-                }
-            }
-        }
-        if (pushed) {
-            saveProfiles(profiles);
-            remote = await cloudLoadProfiles();
-            if (remote === null) return;
-        }
-
-        if (!remote.length) return;
-
+        const remote = await cloudLoadProfiles();
+        // 拉取失败或云端暂无档案，不覆盖本地
+        if (!remote || !remote.length) return;
         // 比较云端与本地是否实质相同，相同则不重新渲染（避免多余的壁纸请求）
         const localIds = profiles.map((p) => p.id).join(',');
-        const remoteIdStr = remote.map((p) => p.id).join(',');
-        const changed = localIds !== remoteIdStr;
+        const remoteIds = remote.map((p) => p.id).join(',');
+        const changed = localIds !== remoteIds;
         profiles = remote;
         saveProfiles(profiles);
         if (!profiles.some((p) => p.id === activeId)) {
@@ -3258,7 +3225,6 @@
         if (changed) {
             refresh();
         } else {
-            // 数据未变，只刷新菜单（锁定状态可能需要更新）
             renderMenu(profiles, activeId);
         }
     }
