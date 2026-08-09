@@ -3159,8 +3159,17 @@
 
     async function currentSupabaseUser() {
         if (typeof _sb === 'undefined' || !_sb?.auth) return null;
-        const { data: { user } } = await _sb.auth.getUser();
-        return user || null;
+        try {
+            const { data: { user } } = await _sb.auth.getUser();
+            if (user) return user;
+        } catch (_) {}
+        // 刚登录时 getUser 偶发未就绪，回退本地 session
+        try {
+            const { data: { session } } = await _sb.auth.getSession();
+            return session?.user || null;
+        } catch (_) {
+            return null;
+        }
     }
 
     /** 档案直接由 authenticated + RLS 写入 Supabase。 */
@@ -3272,8 +3281,11 @@
 
     async function hydrateProfilesFromCloud() {
         const remote = await cloudLoadProfiles();
-        // 拉取失败或云端暂无档案，不覆盖本地
-        if (!remote || !remote.length) return;
+        // 拉取失败或云端暂无档案：仍重绘菜单以去掉游客态的「登录后创建」提示
+        if (!remote || !remote.length) {
+            renderMenu(profiles, activeId);
+            return;
+        }
         // 比较云端与本地是否实质相同，相同则不重新渲染（避免多余的壁纸请求）
         const localIds = profiles.map((p) => p.id).join(',');
         const remoteIds = remote.map((p) => p.id).join(',');
@@ -5899,6 +5911,8 @@
         localStorage.setItem(AUTH_EMAIL_KEY, email || '');
         localStorage.removeItem('bazi_logged_in_email');
         updateAuthUI();
+        // 先同步刷新档案菜单，去掉「登录后创建」提示；云端数据随后异步覆盖
+        try { renderMenu(profiles, activeId); } catch (_) {}
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
     }
@@ -5991,6 +6005,7 @@
             localStorage.setItem(AUTH_EMAIL_KEY, session.user.email);
             localStorage.removeItem('bazi_logged_in_email');
             updateAuthUI();
+            try { renderMenu(profiles, activeId); } catch (_) {}
             // 页面加载时 Supabase 恢复 session 可能触发 SIGNED_IN，若已由 if(AUTH_KEY) 块做了
             // 首次 hydration，则跳过，避免重复渲染壁纸。只有真正新登录才执行 hydration。
             const isPageLoadRestore = _wasLoggedInOnLoad && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION');
