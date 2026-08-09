@@ -1028,6 +1028,7 @@
 
         #annualSelectModal.annual-pay-mode .annual-select-pay-only {
             display: flex !important;
+            flex-direction: column;
         }
 
         #annualSelectModal:not(.annual-pay-mode) .annual-select-pay-only {
@@ -1255,36 +1256,17 @@
             background: #3d2e14;
         }
 
-        .btn-pay-confirm:disabled,
-        .btn-pay-provider:disabled {
+        .btn-pay-confirm:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
         .pay-provider-row {
             display: flex;
+            flex-direction: column;
             gap: 10px;
             margin-top: 12px;
             width: 100%;
-        }
-
-        .btn-pay-provider {
-            flex: 1;
-            font-family: inherit;
-            font-size: 13px;
-            letter-spacing: 0.08em;
-            padding: 12px 8px;
-            border: 1px solid var(--line);
-            border-radius: 2px;
-            background: rgba(245, 236, 214, 0.55);
-            color: var(--ink);
-            cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
-        }
-
-        .btn-pay-provider:hover {
-            border-color: rgba(42, 30, 10, 0.45);
-            background: rgba(245, 236, 214, 0.95);
         }
 
         .pay-provider-hint {
@@ -1293,6 +1275,88 @@
             letter-spacing: 0.06em;
             color: var(--ink-muted);
             text-align: center;
+        }
+
+        /* Official Stripe / PayPal brand buttons */
+        .btn-official-stripe,
+        .btn-official-paypal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            min-height: 48px;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0;
+            transition: filter 0.15s, transform 0.1s;
+        }
+
+        .btn-official-stripe:hover,
+        .btn-official-paypal:hover {
+            filter: brightness(0.96);
+        }
+
+        .btn-official-stripe:active,
+        .btn-official-paypal:active {
+            transform: translateY(1px);
+        }
+
+        .btn-official-stripe:disabled,
+        .btn-official-paypal:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: none;
+            transform: none;
+        }
+
+        .btn-official-stripe {
+            background: #635BFF;
+            color: #fff;
+        }
+
+        .btn-official-paypal {
+            background: #FFC439;
+            color: #003087;
+        }
+
+        .btn-official-stripe .brand-mark,
+        .btn-official-paypal .brand-mark {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .btn-official-paypal .brand-mark {
+            color: #003087;
+        }
+
+        .btn-official-paypal .brand-mark span {
+            color: #009CDE;
+        }
+
+        .checkout-provider-modal {
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .checkout-provider-modal h2 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .checkout-provider-modal .pay-provider-hint {
+            margin: 0 0 16px;
+        }
+
+        .cart-modal .btn-pay-confirm {
+            display: block;
+            width: 100%;
+            margin-top: 14px;
         }
 
         /* ─── 購物車（下載列表） ──────────────────────── */
@@ -2567,13 +2631,7 @@
 
         <div class="pay-actions">
             <button type="button" class="btn-add-cart" id="btnAddCart" data-i18n="pay_add_cart">加入購物車</button>
-            <button type="button" class="btn-pay-confirm" id="btnPayConfirm" data-i18n="pay_confirm" style="display:none" aria-hidden="true">確認支付</button>
         </div>
-        <div class="pay-provider-row">
-            <button type="button" class="btn-pay-provider" id="btnPayStripe" data-provider="stripe">Stripe</button>
-            <button type="button" class="btn-pay-provider" id="btnPayPaypal" data-provider="paypal">PayPal</button>
-        </div>
-        <p class="pay-provider-hint" data-i18n="pay_provider_hint">選擇支付方式，完成後自動解鎖下載</p>
     </div>
 </div>
 
@@ -2592,8 +2650,12 @@
             <button type="button" class="btn-annual-later annual-select-manage-only" id="btnAnnualLater" data-i18n="annual_select_later">稍后再选</button>
             <button type="button" class="btn-annual-confirm annual-select-manage-only" id="btnAnnualConfirm" data-i18n="annual_select_confirm">确认</button>
             <div class="pay-provider-row annual-select-pay-only" id="annualPayRow" style="display:none; width:100%;">
-                <button type="button" class="btn-pay-provider" id="btnAnnualPayStripe" data-provider="stripe">Stripe</button>
-                <button type="button" class="btn-pay-provider" id="btnAnnualPayPaypal" data-provider="paypal">PayPal</button>
+                <button type="button" class="btn-official-stripe" id="btnAnnualPayStripe" data-provider="stripe" aria-label="Pay with Stripe">
+                    <span>Pay with</span> <span class="brand-mark">stripe</span>
+                </button>
+                <button type="button" class="btn-official-paypal" id="btnAnnualPayPaypal" data-provider="paypal" aria-label="Pay with PayPal">
+                    <span class="brand-mark">Pay<span>Pal</span></span>
+                </button>
             </div>
         </div>
     </div>
@@ -2620,12 +2682,25 @@
             <span class="cart-total-price" id="cartTotalPrice">US$0.00</span>
         </div>
 
-        <div class="pay-provider-row" id="cartPayRow">
-            <button type="button" class="btn-pay-provider" id="btnCartPayStripe" data-provider="stripe">Stripe</button>
-            <button type="button" class="btn-pay-provider" id="btnCartPayPaypal" data-provider="paypal">PayPal</button>
+        <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout" style="display:none">結算</button>
+        <p class="pay-provider-hint" id="cartPayHint" data-i18n="pay_cart_hint">勾選 1 / 2 / 4 張後點擊結算</p>
+    </div>
+</div>
+
+<!-- 結算時選擇支付方式 -->
+<div class="modal-backdrop" id="checkoutProviderModal" role="dialog" aria-modal="true">
+    <div class="modal checkout-provider-modal">
+        <button type="button" class="modal-close" id="checkoutProviderClose" aria-label="關閉">×</button>
+        <h2 data-i18n="pay_choose_provider">選擇支付方式</h2>
+        <p class="pay-provider-hint" data-i18n="pay_provider_hint">選擇支付方式，完成後自動解鎖下載</p>
+        <div class="pay-provider-row">
+            <button type="button" class="btn-official-stripe" id="btnCheckoutStripe" data-provider="stripe" aria-label="Pay with Stripe">
+                <span>Pay with</span> <span class="brand-mark">stripe</span>
+            </button>
+            <button type="button" class="btn-official-paypal" id="btnCheckoutPaypal" data-provider="paypal" aria-label="Pay with PayPal">
+                <span class="brand-mark">Pay<span>Pal</span></span>
+            </button>
         </div>
-        <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout" style="display:none" aria-hidden="true">結算</button>
-        <p class="pay-provider-hint" data-i18n="pay_cart_hint">勾選 1 / 2 / 4 張後選擇支付方式</p>
     </div>
 </div>
 
@@ -3909,7 +3984,6 @@
     const payNotice = document.getElementById('payNotice');
     const payTierRow = document.getElementById('payTierRow');
     const btnAddCart = document.getElementById('btnAddCart');
-    const btnPayConfirm = document.getElementById('btnPayConfirm');
     let pendingDownloadImg = '';
     let pendingDownloadName = '';
     let pendingDownloadKey = '';
@@ -4709,40 +4783,6 @@
         if (e.target === payModal) payModal.classList.remove('open');
     });
 
-    async function payModalCheckout(provider) {
-        if (!requireLogin()) { payModal.classList.remove('open'); return; }
-        if (selectedTier === 'year') {
-            openAnnualSelectModal('pay');
-            return;
-        }
-        const productType = productTypeFromTier(selectedTier);
-        if (productType !== 'single') {
-            // UI 主弹窗目前只有单张 + 包年；打包走购物车
-            const t = window.I18N ? window.I18N.t : (k) => k;
-            alert(t('pay_use_cart_for_pack'));
-            return;
-        }
-        if (!pendingDownloadR2Key) {
-            const t = window.I18N ? window.I18N.t : (k) => k;
-            alert(t('download_missing_key'));
-            return;
-        }
-        payModal.classList.remove('open');
-        await startCheckout({
-            provider,
-            productType: 'single',
-            items: [{
-                r2_key: pendingDownloadR2Key,
-                preview_url: pendingDownloadImg,
-                wallpaper_name: pendingDownloadName,
-            }],
-        });
-    }
-
-    document.getElementById('btnPayStripe')?.addEventListener('click', () => payModalCheckout('stripe'));
-    document.getElementById('btnPayPaypal')?.addEventListener('click', () => payModalCheckout('paypal'));
-    btnPayConfirm?.addEventListener('click', () => payModalCheckout('stripe'));
-
     document.getElementById('btnAnnualPayStripe')?.addEventListener('click', async () => {
         if (!requireLogin()) return;
         closeAnnualSelectModal();
@@ -4769,6 +4809,9 @@
     const cartTotalRow = document.getElementById('cartTotalRow');
     const cartTotalPrice = document.getElementById('cartTotalPrice');
     const btnCartCheckout = document.getElementById('btnCartCheckout');
+    const cartPayHint = document.getElementById('cartPayHint');
+    const checkoutProviderModal = document.getElementById('checkoutProviderModal');
+    const checkoutProviderClose = document.getElementById('checkoutProviderClose');
 
     function loadCart() {
         try {
@@ -4781,6 +4824,7 @@
     }
 
     let cartItems = loadCart(); // [{ id, img, name, checked }]
+    let pendingCartCheckout = null; // { productType, items }
 
     function updateCartBadge() {
         const count = cartItems.length;
@@ -4806,7 +4850,8 @@
             cartList.innerHTML = `<p class="cart-empty">${escapeHtml(t('cart_empty'))}</p>`;
             cartToolbar.style.display = 'none';
             cartTotalRow.style.display = 'none';
-            btnCartCheckout.disabled = false;
+            if (btnCartCheckout) btnCartCheckout.style.display = 'none';
+            if (cartPayHint) cartPayHint.style.display = 'none';
             return;
         }
 
@@ -4821,9 +4866,15 @@
         `).join('');
 
         const checkedCount = cartItems.filter((it) => it.checked).length;
-        cartSelectAll.checked = checkedCount === cartItems.length;
+        const canCheckout = !!productTypeFromCount(checkedCount);
+        cartSelectAll.checked = checkedCount === cartItems.length && checkedCount > 0;
         cartTotalRow.style.display = checkedCount > 0 ? 'flex' : 'none';
         cartTotalPrice.textContent = 'US$' + computeCartTotal(checkedCount).toFixed(2);
+        if (btnCartCheckout) {
+            btnCartCheckout.style.display = 'block';
+            btnCartCheckout.disabled = !canCheckout;
+        }
+        if (cartPayHint) cartPayHint.style.display = 'block';
     }
 
     function openCartModal() {
@@ -4832,10 +4883,22 @@
         cartModal.classList.add('open');
     }
 
+    function openCheckoutProviderModal() {
+        if (checkoutProviderModal) checkoutProviderModal.classList.add('open');
+    }
+
+    function closeCheckoutProviderModal() {
+        if (checkoutProviderModal) checkoutProviderModal.classList.remove('open');
+    }
+
     cartBtn.addEventListener('click', openCartModal);
     cartModalClose.addEventListener('click', () => { cartModal.classList.remove('open'); });
     cartModal.addEventListener('click', (e) => {
         if (e.target === cartModal) cartModal.classList.remove('open');
+    });
+    checkoutProviderClose?.addEventListener('click', closeCheckoutProviderModal);
+    checkoutProviderModal?.addEventListener('click', (e) => {
+        if (e.target === checkoutProviderModal) closeCheckoutProviderModal();
     });
 
     cartList.addEventListener('click', (e) => {
@@ -4869,35 +4932,52 @@
         renderCart();
     });
 
-    async function cartCheckout(provider) {
+    function prepareCartCheckout() {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        if (!requireLogin()) return;
+        if (!requireLogin()) return false;
         const checked = cartItems.filter((it) => it.checked);
         const productType = productTypeFromCount(checked.length);
         if (!productType) {
             alert(t('pay_cart_count_invalid'));
-            return;
+            return false;
         }
         const missing = checked.some((it) => !it.r2key);
         if (missing) {
             alert(t('download_missing_key'));
-            return;
+            return false;
         }
-        cartModal.classList.remove('open');
-        await startCheckout({
-            provider,
+        pendingCartCheckout = {
             productType,
             items: checked.map((it) => ({
                 r2_key: it.r2key,
                 preview_url: it.img,
                 wallpaper_name: it.name,
             })),
+        };
+        return true;
+    }
+
+    async function cartCheckout(provider) {
+        if (!pendingCartCheckout) {
+            if (!prepareCartCheckout()) return;
+        }
+        const payload = pendingCartCheckout;
+        pendingCartCheckout = null;
+        cartModal.classList.remove('open');
+        closeCheckoutProviderModal();
+        await startCheckout({
+            provider,
+            productType: payload.productType,
+            items: payload.items,
         });
     }
 
-    document.getElementById('btnCartPayStripe')?.addEventListener('click', () => cartCheckout('stripe'));
-    document.getElementById('btnCartPayPaypal')?.addEventListener('click', () => cartCheckout('paypal'));
-    btnCartCheckout?.addEventListener('click', () => cartCheckout('stripe'));
+    btnCartCheckout?.addEventListener('click', () => {
+        if (!prepareCartCheckout()) return;
+        openCheckoutProviderModal();
+    });
+    document.getElementById('btnCheckoutStripe')?.addEventListener('click', () => cartCheckout('stripe'));
+    document.getElementById('btnCheckoutPaypal')?.addEventListener('click', () => cartCheckout('paypal'));
 
     btnAddCart.addEventListener('click', () => {
         if (!requireLogin()) return;
