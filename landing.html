@@ -3111,7 +3111,7 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
-    // 登录后把档案同步到 Supabase（经 /api/bazi-profiles）；优先 Bearer，兼容邮箱头
+    // 需要 Vercel API 的支付/下载操作使用 Bearer；用户档案数据直接走 Supabase RLS。
     async function getAuthHeaders(extra) {
         const headers = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
         try {
@@ -3125,40 +3125,70 @@
         return headers;
     }
 
-    /**
-     * @returns {{ ok: true, profile: object } | { ok: false, error: string } | { ok: true, profile: object, skipped: true }}
-     * skipped: 未登录/demo，只写本地
-     */
+    function profileRowToClient(row) {
+        return {
+            id: row.id,
+            nickname: row.nickname,
+            gender: row.gender,
+            birthDate: row.birth_date,
+            birthTime: row.birth_time,
+            birthplace: row.birthplace,
+            birthplaceLon: row.birthplace_lon,
+            utcOffset: row.utc_offset,
+            useTrueSolarTime: !!row.use_true_solar_time,
+            useDST: !!row.use_dst,
+            countryCode: row.country_code || '',
+            stateCode: row.state_code || '',
+            cityName: row.city_name || '',
+            wallpaperHistory: row.wallpaper_history && typeof row.wallpaper_history === 'object'
+                ? row.wallpaper_history : {},
+        };
+    }
+
+    async function currentSupabaseUser() {
+        if (typeof _sb === 'undefined' || !_sb?.auth) return null;
+        const { data: { user } } = await _sb.auth.getUser();
+        return user || null;
+    }
+
+    /** 档案直接由 authenticated + RLS 写入 Supabase。 */
     async function cloudUpsertProfile(profile) {
         if (!isLoggedIn() || !profile || String(profile.id || '').startsWith('demo-')) {
             return { ok: true, profile, skipped: true };
         }
         try {
-            // 必须有真实 session token；不能只靠 localStorage 的登录标记
-            let headers = await getAuthHeaders();
-            if (!headers.Authorization && typeof _sb !== 'undefined' && _sb?.auth) {
-                try {
-                    const { data } = await _sb.auth.refreshSession();
-                    if (data?.session?.access_token) {
-                        headers = await getAuthHeaders();
-                    }
-                } catch (_) {}
-            }
-            if (!headers.Authorization) {
+            const user = await currentSupabaseUser();
+            if (!user?.id) {
                 return { ok: false, error: 'Login session expired' };
             }
-            const res = await fetch('/api/bazi-profiles', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({ profile }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                const msg = data.detail || data.error || `HTTP ${res.status}`;
-                console.error('cloudUpsertProfile failed', msg, data);
-                return { ok: false, error: msg };
+            const row = {
+                id: profile.id,
+                user_id: user.id,
+                owner_email: user.email || null,
+                nickname: profile.nickname,
+                gender: Number(profile.gender),
+                birth_date: profile.birthDate,
+                birth_time: profile.birthTime,
+                birthplace: profile.birthplace,
+                birthplace_lon: profile.birthplaceLon ?? null,
+                utc_offset: profile.utcOffset ?? null,
+                use_true_solar_time: !!profile.useTrueSolarTime,
+                use_dst: !!profile.useDST,
+                country_code: profile.countryCode || null,
+                state_code: profile.stateCode || null,
+                city_name: profile.cityName || null,
+            };
+            if (profile.wallpaperHistory !== undefined) row.wallpaper_history = profile.wallpaperHistory;
+            const { data, error } = await _sb
+                .from('bazi_profiles')
+                .upsert(row, { onConflict: 'id' })
+                .select('id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, country_code, state_code, city_name, wallpaper_history')
+                .single();
+            if (error) {
+                console.error('cloudUpsertProfile failed', error);
+                return { ok: false, error: error.message };
             }
-            return { ok: true, profile: data.profile || profile };
+            return { ok: true, profile: profileRowToClient(data) };
         } catch (err) {
             console.error('cloudUpsertProfile', err);
             return { ok: false, error: err?.message || 'Network error' };
@@ -3168,21 +3198,24 @@
     async function cloudPatchWallpaperHistory(profileId, wallpaperHistory, yearGanZhi) {
         if (!isLoggedIn() || !profileId || String(profileId).startsWith('demo-')) return null;
         try {
-            const res = await fetch('/api/bazi-profiles', {
-                method: 'PATCH',
-                headers: await getAuthHeaders(),
-                body: JSON.stringify({
-                    id: profileId,
-                    wallpaperHistory,
-                    yearGanZhi: yearGanZhi || null,
-                }),
-            });
-            if (!res.ok) {
-                console.warn('cloudPatchWallpaperHistory failed', await res.text());
+            const user = await currentSupabaseUser();
+            if (!user?.id) return null;
+            const all = wallpaperHistory && typeof wallpaperHistory === 'object' ? wallpaperHistory : {};
+            const prefix = yearGanZhi ? `${yearGanZhi}|` : '';
+            const pruned = prefix
+                ? Object.fromEntries(Object.entries(all).filter(([key]) => key.startsWith(prefix)))
+                : all;
+            const { data, error } = await _sb
+                .from('bazi_profiles')
+                .update({ wallpaper_history: pruned })
+                .eq('id', profileId)
+                .select('id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, country_code, state_code, city_name, wallpaper_history')
+                .maybeSingle();
+            if (error || !data) {
+                if (error) console.warn('cloudPatchWallpaperHistory failed', error);
                 return null;
             }
-            const data = await res.json();
-            return data.profile || null;
+            return profileRowToClient(data);
         } catch (err) {
             console.warn('cloudPatchWallpaperHistory', err);
             return null;
@@ -3190,36 +3223,36 @@
     }
 
     async function cloudDeleteProfile(id) {
-        // 尽力同步云端；本地档案可能尚未入库（仅 localStorage），接口失败不阻断本地删除
-        if (!isLoggedIn() || !id || String(id).startsWith('demo-')) return true;
+        if (!isLoggedIn() || !id || String(id).startsWith('demo-')) {
+            return { ok: true, skipped: true };
+        }
         try {
-            const res = await fetch('/api/bazi-profiles', {
-                method: 'DELETE',
-                headers: await getAuthHeaders(),
-                body: JSON.stringify({ id }),
-            });
-            if (!res.ok) {
-                console.warn('cloudDeleteProfile failed (continue local delete)', await res.text());
-            }
-            return true;
+            const user = await currentSupabaseUser();
+            if (!user?.id) return { ok: false, error: 'Login session expired' };
+            const { error } = await _sb.from('bazi_profiles').delete().eq('id', id);
+            if (error) return { ok: false, error: error.message };
+            return { ok: true };
         } catch (err) {
-            console.warn('cloudDeleteProfile (continue local delete)', err);
-            return true;
+            return { ok: false, error: err?.message || 'Network error' };
         }
     }
 
     async function cloudLoadProfiles() {
         if (!isLoggedIn()) return null;
         try {
-            const headers = await getAuthHeaders();
-            delete headers['Content-Type'];
-            const res = await fetch('/api/bazi-profiles', {
-                method: 'GET',
-                headers,
-            });
-            if (!res.ok) return null;
-            const data = await res.json();
-            return Array.isArray(data.profiles) ? data.profiles : null;
+            const user = await currentSupabaseUser();
+            if (!user?.id) return null;
+            const { data, error } = await _sb
+                .from('bazi_profiles')
+                .select('id, nickname, gender, birth_date, birth_time, birthplace, birthplace_lon, utc_offset, use_true_solar_time, use_dst, country_code, state_code, city_name, wallpaper_history')
+                .eq('user_id', user.id)
+                .order('sort_order', { ascending: true })
+                .order('created_at', { ascending: true });
+            if (error) {
+                console.warn('cloudLoadProfiles', error);
+                return null;
+            }
+            return (data || []).map(profileRowToClient);
         } catch (_) {
             return null;
         }
@@ -4138,43 +4171,57 @@
         updateAnnualNavBtn();
     }
 
-    async function cloudPutAnnualPlans(plans) {
-        if (!isLoggedIn()) return null;
-        try {
-            const res = await fetch('/api/annual-plans', {
-                method: 'PUT',
-                headers: await getAuthHeaders(),
-                body: JSON.stringify({ plans: (plans || []).map(normalizeAnnualPlan).filter(Boolean) }),
-            });
-            if (!res.ok) {
-                console.error('cloudPutAnnualPlans failed', await res.text());
-                return null;
-            }
-            const data = await res.json();
-            return Array.isArray(data.plans) ? data.plans.map(normalizeAnnualPlan).filter(Boolean) : [];
-        } catch (err) {
-            console.error('cloudPutAnnualPlans', err);
-            return null;
-        }
+    function annualRowToClient(row) {
+        return normalizeAnnualPlan({
+            id: row.id,
+            start: row.start_date,
+            end: row.end_date,
+            profileIds: Array.isArray(row.profile_ids) ? row.profile_ids : [],
+        });
     }
 
     async function cloudLoadAnnualPlans() {
         if (!isLoggedIn()) return null;
         try {
-            const headers = await getAuthHeaders();
-            delete headers['Content-Type'];
-            const res = await fetch('/api/annual-plans', { method: 'GET', headers });
-            if (!res.ok) {
-                console.warn('cloudLoadAnnualPlans failed', await res.text());
+            const user = await currentSupabaseUser();
+            if (!user?.id) return null;
+            const { data, error } = await _sb
+                .from('annual_plans')
+                .select('id, start_date, end_date, profile_ids, created_at')
+                .eq('user_id', user.id)
+                .order('start_date', { ascending: true })
+                .order('created_at', { ascending: true });
+            if (error) {
+                console.warn('cloudLoadAnnualPlans failed', error);
                 return null;
             }
-            const data = await res.json();
-            return Array.isArray(data.plans)
-                ? data.plans.map(normalizeAnnualPlan).filter(Boolean)
-                : [];
+            return (data || []).map(annualRowToClient).filter(Boolean);
         } catch (err) {
             console.warn('cloudLoadAnnualPlans', err);
             return null;
+        }
+    }
+
+    async function saveAnnualProfileBindings(plans) {
+        if (!isLoggedIn()) return { ok: false, error: 'Login required' };
+        try {
+            const current = loadAnnualPlans();
+            const changed = (plans || []).filter((plan) => {
+                const before = current.find((p) => p.id === plan.id);
+                const bIds = (before?.profileIds || []).slice().sort().join(',');
+                const aIds = (plan.profileIds || []).slice().sort().join(',');
+                return !before || bIds !== aIds;
+            });
+            for (const plan of changed) {
+                const { error } = await _sb.rpc('set_annual_plan_profiles', {
+                    plan_id: plan.id,
+                    bound_profile_ids: (plan.profileIds || []).slice(0, 2),
+                });
+                if (error) return { ok: false, error: error.message };
+            }
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Network error' };
         }
     }
 
@@ -4187,11 +4234,7 @@
             renderMenu(profiles, activeId);
             return;
         }
-        const local = loadAnnualPlans();
-        if (local.length > 0) {
-            const pushed = await cloudPutAnnualPlans(local);
-            if (pushed) saveAnnualPlansLocal(pushed);
-        } else {
+        if (!remote.length) {
             saveAnnualPlansLocal([]);
         }
     }
@@ -4199,12 +4242,6 @@
     function saveAnnualPlans(plans) {
         const list = (plans || []).map(normalizeAnnualPlan).filter(Boolean);
         saveAnnualPlansLocal(list);
-        // 已登录则同步云端（不阻塞 UI）
-        if (localStorage.getItem('bazi_logged_in') === '1') {
-            cloudPutAnnualPlans(list).then((remote) => {
-                if (remote) saveAnnualPlansLocal(remote);
-            });
-        }
     }
 
     function isAnnualActive() {
@@ -4300,42 +4337,57 @@
         } catch (_) {}
         // 登录态异步写云端（不阻塞 UI）
         if (isLoggedIn() && entry.r2key) {
-            getAuthHeaders().then((headers) => {
-                fetch('/api/download-records', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                        r2key: entry.r2key,
-                        img: entry.img || '',
-                        name: entry.name || '',
-                    }),
-                }).catch(() => {});
-            });
+            currentSupabaseUser().then((user) => {
+                if (!user?.id) return;
+                const ganZhi = getCurrentYearMonthGanZhi();
+                return _sb.from('download_records').insert({
+                    user_id: user.id,
+                    owner_email: user.email || '',
+                    r2_key: entry.r2key,
+                    preview_url: entry.img || null,
+                    wallpaper_name: entry.name || null,
+                    month_ganzhi: ganZhi ? ganZhi.month : null,
+                    profile_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeId || '')
+                        ? activeId : null,
+                });
+            }).then(({ error } = {}) => {
+                if (error) console.warn('download record cloud save failed', error);
+            }).catch(() => {});
         }
     }
 
     async function hydrateDownloadHistoryFromCloud() {
         if (!isLoggedIn()) return;
         try {
-            const headers = await getAuthHeaders();
-            delete headers['Content-Type'];
-            const res = await fetch('/api/download-records?limit=200', { method: 'GET', headers });
-            if (!res.ok) return;
-            const data = await res.json();
-            const remote = Array.isArray(data.records) ? data.records : [];
+            const user = await currentSupabaseUser();
+            if (!user?.id) return;
+            const { data, error } = await _sb
+                .from('download_records')
+                .select('r2_key, preview_url, wallpaper_name, month_ganzhi, created_at')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(200);
+            if (error) {
+                console.warn('download history cloud load failed', error);
+                return;
+            }
+            const remote = (data || []).map((r) => ({
+                r2key: r.r2_key,
+                img: r.preview_url || '',
+                name: r.wallpaper_name || '',
+                date: String(r.created_at || '').slice(0, 19).replace('T', ' '),
+                monthGanZhi: r.month_ganzhi || '',
+            }));
             if (!remote.length) return;
             // 合并云端与本地，按时间去重（以 r2key+date 为 key）
             let local = [];
             try { local = JSON.parse(localStorage.getItem('ew_download_history') || '[]'); } catch (_) {}
-            const ganZhi = getCurrentYearMonthGanZhi();
-            const currentMonth = ganZhi ? ganZhi.month : '';
             const seen = new Set(local.map((r) => `${r.r2key}|${r.date}`));
             for (const r of remote) {
                 const key = `${r.r2key}|${r.date}`;
                 if (seen.has(key)) continue;
                 seen.add(key);
-                // 云端记录没有 monthGanZhi，补上（用下载日期推算会很复杂，留空即可，旧记录保守可下载）
-                local.push({ ...r, monthGanZhi: '' });
+                local.push(r);
             }
             local.sort((a, b) => String(a.date).localeCompare(String(b.date)));
             localStorage.setItem('ew_download_history', JSON.stringify(local.slice(-200)));
@@ -4769,12 +4821,19 @@
         annualSelectModal.classList.remove('open');
     }
 
-    function finishAnnualSelect() {
+    async function finishAnnualSelect() {
         if (annualSelectPurpose === 'manage') {
             const plans = loadAnnualPlans().map((plan) => ({
                 ...plan,
                 profileIds: (annualDraftByPlan[plan.id] || []).slice(0, 2),
             }));
+            if (btnAnnualConfirm) btnAnnualConfirm.disabled = true;
+            const result = await saveAnnualProfileBindings(plans);
+            if (btnAnnualConfirm) btnAnnualConfirm.disabled = false;
+            if (!result.ok) {
+                alert(`包年档案绑定保存失败，请稍后重试。\n(${result.error || 'unknown'})`);
+                return;
+            }
             saveAnnualPlans(plans);
             closeAnnualSelectModal();
             refresh();
@@ -4841,14 +4900,14 @@
 
     btnAnnualConfirm.addEventListener('click', () => {
         if (annualSelectPurpose === 'manage') {
-            finishAnnualSelect();
+            finishAnnualSelect().catch((err) => console.error('finishAnnualSelect', err));
             return;
         }
         if (annualSelectPurpose === 'view') {
             closeAnnualSelectModal();
             return;
         }
-        finishAnnualSelect();
+        finishAnnualSelect().catch((err) => console.error('finishAnnualSelect', err));
     });
 
     document.getElementById('annualSelectClose').addEventListener('click', () => {
@@ -6566,7 +6625,13 @@
             alert(window.I18N ? window.I18N.t('alert_annual_locked') : '包年绑定档案不可删除');
             return;
         }
-        await cloudDeleteProfile(idToDelete);
+        const deleteResult = await cloudDeleteProfile(idToDelete);
+        if (!deleteResult.ok) {
+            deleteConfirmModal.classList.remove('open');
+            const tip = window.I18N ? window.I18N.t('profile_cloud_delete_failed') : '从云端删除档案失败，请稍后重试。';
+            alert(`${tip}\n(${deleteResult.error || 'unknown'})`);
+            return;
+        }
         profiles = profiles.filter((p) => p.id !== idToDelete);
         // 包年绑定若包含该档案，一并移除（壁纸 seed 由 profile.id 即时计算，无独立持久化记录）
         removeProfileFromAnnualPlans(idToDelete);
@@ -6785,8 +6850,9 @@
 
         const cloudResult = await cloudUpsertProfile(profile);
         if (isLoggedIn() && !cloudResult.ok) {
-            const tip = window.I18N ? window.I18N.t('profile_cloud_save_failed') : '档案已保存在本机，但同步到云端失败，换设备可能看不到。请稍后重试。';
+            const tip = window.I18N ? window.I18N.t('profile_cloud_save_failed') : '保存档案到云端失败，未应用此次更改。请稍后重试。';
             alert(`${tip}\n(${cloudResult.error || 'unknown'})`);
+            return;
         }
         // 用云端返回的 id（uuid）替换本地临时 id
         const saved = cloudResult.ok ? cloudResult.profile : null;

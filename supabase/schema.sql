@@ -91,12 +91,12 @@ grant execute on function public.is_admin_email(text) to anon, authenticated;
 alter table public.wallpapers
   add column if not exists preview_key text;
 
--- 模拟登录：八字档案按邮箱归属（user_id 可空）
+-- 兼容字段：邮箱仅用于展示/排查；档案归属以 user_id 为准
 alter table public.bazi_profiles
   add column if not exists owner_email text;
 
-alter table public.bazi_profiles
-  alter column user_id drop not null;
+create index if not exists bazi_profiles_user_id_idx
+  on public.bazi_profiles (user_id);
 
 create index if not exists bazi_profiles_owner_email_idx
   on public.bazi_profiles (owner_email);
@@ -124,16 +124,78 @@ create table if not exists public.annual_plans (
 create index if not exists annual_plans_owner_email_idx
   on public.annual_plans (owner_email);
 
+create index if not exists annual_plans_user_id_idx
+  on public.annual_plans (user_id);
+
 alter table public.annual_plans enable row level security;
 
--- 业务读写走 service_role API；RLS 仅作兜底
+-- 用户仅可读取自己的包年；付款履约仍由 service_role 写入
 create policy "Users can read own annual plans"
   on public.annual_plans for select
-  using (
-    auth.uid() = user_id
-    or lower(owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
-  );
+  using (auth.uid() = user_id);
 
+-- 用户只允许修改自己包年所绑定的档案，不能改有效期、归属或支付结果
+create or replace function public.set_annual_plan_profiles(
+  plan_id text,
+  bound_profile_ids uuid[]
+)
+returns public.annual_plans
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  plan public.annual_plans;
+  ids uuid[] := coalesce(bound_profile_ids, '{}'::uuid[]);
+begin
+  if auth.uid() is null then
+    raise exception 'Login required';
+  end if;
+  if coalesce(array_length(ids, 1), 0) > 2 then
+    raise exception 'At most two profiles may be bound';
+  end if;
+  if cardinality(ids) <> cardinality(array(select distinct unnest(ids))) then
+    raise exception 'Duplicate profile ids are not allowed';
+  end if;
+
+  select * into plan
+  from public.annual_plans
+  where id = plan_id and user_id = auth.uid()
+  for update;
+  if not found then
+    raise exception 'Annual plan not found';
+  end if;
+
+  -- 已确认绑定的档案不可解绑；仅允许补齐尚未使用的名额
+  if exists (
+    select 1
+    from jsonb_array_elements_text(plan.profile_ids) as existing_profile(id)
+    where not (existing_profile.id::uuid = any(ids))
+  ) then
+    raise exception 'Bound profiles cannot be removed';
+  end if;
+
+  if exists (
+    select 1
+    from unnest(ids) as bound_profile(id)
+    where not exists (
+      select 1 from public.bazi_profiles p
+      where p.id = bound_profile.id and p.user_id = auth.uid()
+    )
+  ) then
+    raise exception 'A bound profile does not belong to this user';
+  end if;
+
+  update public.annual_plans
+  set profile_ids = to_jsonb(ids), updated_at = now()
+  where id = plan_id and user_id = auth.uid()
+  returning * into plan;
+  return plan;
+end;
+$$;
+
+revoke execute on function public.set_annual_plan_profiles(text, uuid[]) from public, anon;
+grant execute on function public.set_annual_plan_profiles(text, uuid[]) to authenticated;
 grant select, insert, update, delete on public.annual_plans to service_role;
 
 -- ════════════════════════════════════════════
@@ -147,6 +209,7 @@ create table if not exists public.download_records (
   r2_key text not null,              -- 原图 R2 key
   preview_url text,                  -- 预览图 URL（展示用）
   wallpaper_name text,               -- 展示名（如五行名）
+  month_ganzhi text,                 -- 下载所在节气月，用于当月重新下载有效期
   profile_id uuid,                   -- 可选：当时使用的八字档案
   order_id uuid,                     -- 可选：关联支付订单
   created_at timestamptz not null default now()
@@ -165,12 +228,17 @@ alter table public.download_records enable row level security;
 
 create policy "Users can read own download records"
   on public.download_records for select
-  using (
-    auth.uid() = user_id
-    or lower(owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
-  );
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own download records"
+  on public.download_records for insert
+  with check (auth.uid() = user_id);
 
 grant select, insert, update, delete on public.download_records to service_role;
+grant select, insert on public.download_records to authenticated;
+
+alter table public.download_records
+  add column if not exists month_ganzhi text;
 
 -- ════════════════════════════════════════════
 -- 支付订单
@@ -271,6 +339,44 @@ begin
       foreign key (order_id) references public.payment_orders (id) on delete set null;
   end if;
 end $$;
+
+-- 已有库迁移：按 Auth 用户回填历史记录，再恢复八字档案 user_id 必填
+update public.bazi_profiles bp
+set user_id = au.id
+from auth.users au
+where bp.user_id is null
+  and lower(bp.owner_email) = lower(au.email);
+
+-- 无法关联 Auth 用户的旧测试档案不能安全迁移，删除后再加约束
+delete from public.bazi_profiles where user_id is null;
+
+alter table public.bazi_profiles
+  alter column user_id set not null;
+
+update public.annual_plans ap
+set user_id = au.id
+from auth.users au
+where ap.user_id is null
+  and lower(ap.owner_email) = lower(au.email);
+
+update public.download_records dr
+set user_id = au.id
+from auth.users au
+where dr.user_id is null
+  and lower(dr.owner_email) = lower(au.email);
+
+drop policy if exists "Users can read own annual plans" on public.annual_plans;
+create policy "Users can read own annual plans"
+  on public.annual_plans for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can read own download records" on public.download_records;
+create policy "Users can read own download records"
+  on public.download_records for select
+  using (auth.uid() = user_id);
+
+grant select, insert, update, delete on public.bazi_profiles to authenticated;
+grant select on public.annual_plans to authenticated;
 
 -- 已有库：允许 mixed（任意张数组合计价）
 do $$
