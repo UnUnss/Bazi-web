@@ -6876,6 +6876,23 @@
                 delete insightAll[editingId];
                 localStorage.setItem(INSIGHT_CACHE_KEY, JSON.stringify(insightAll));
             } catch (_) {}
+            // 同时清当月壁纸锁，让选图算法按新八字重新运行
+            try {
+                const nowYM = getCurrentYearMonthGanZhi();
+                if (nowYM) {
+                    const ymKey = `${nowYM.year}|${nowYM.month}`;
+                    if (finalProfile.wallpaperHistory) delete finalProfile.wallpaperHistory[ymKey];
+                    const all = loadWallpaperHistoryAll();
+                    if (all[editingId]) {
+                        delete all[editingId][ymKey];
+                        saveWallpaperHistoryAll(all);
+                    }
+                    // 异步同步到云端（清除云端壁纸锁）
+                    if (isLoggedIn()) {
+                        cloudPatchWallpaperHistory(finalProfile.id, finalProfile.wallpaperHistory || {}, nowYM.year);
+                    }
+                }
+            } catch (_) {}
         }
 
         activeId = finalProfile.id;
