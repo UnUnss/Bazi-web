@@ -4334,77 +4334,25 @@
         saveAnnualPlans(plans);
     }
 
+    /** 下载成功后只写云端记录（不再落本地） */
     function recordDownloadHistory(entry) {
-        try {
-            const raw = JSON.parse(localStorage.getItem('ew_download_history') || '[]');
-            const list = Array.isArray(raw) ? raw : [];
-            const ganZhi = getCurrentYearMonthGanZhi();
-            list.push({
-                img: entry.img || '',
-                name: entry.name || '',
-                date: new Date().toISOString().slice(0, 19).replace('T', ' '),
-                r2key: entry.r2key || '',
-                monthGanZhi: ganZhi ? ganZhi.month : '',
-            });
-            localStorage.setItem('ew_download_history', JSON.stringify(list.slice(-200)));
-        } catch (_) {}
-        // 登录态异步写云端（不阻塞 UI）
-        if (isLoggedIn() && entry.r2key) {
-            currentSupabaseUser().then((user) => {
-                if (!user?.id) return;
-                const ganZhi = getCurrentYearMonthGanZhi();
-                return _sb.from('download_records').insert({
-                    user_id: user.id,
-                    owner_email: user.email || '',
-                    r2_key: entry.r2key,
-                    preview_url: entry.img || null,
-                    wallpaper_name: entry.name || null,
-                    month_ganzhi: ganZhi ? ganZhi.month : null,
-                    profile_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeId || '')
-                        ? activeId : null,
-                });
-            }).then(({ error } = {}) => {
-                if (error) console.warn('download record cloud save failed', error);
-            }).catch(() => {});
-        }
-    }
-
-    async function hydrateDownloadHistoryFromCloud() {
-        if (!isLoggedIn()) return;
-        try {
-            const user = await currentSupabaseUser();
+        if (!isLoggedIn() || !entry.r2key) return;
+        currentSupabaseUser().then((user) => {
             if (!user?.id) return;
-            const { data, error } = await _sb
-                .from('download_records')
-                .select('r2_key, preview_url, wallpaper_name, month_ganzhi, created_at')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(200);
-            if (error) {
-                console.warn('download history cloud load failed', error);
-                return;
-            }
-            const remote = (data || []).map((r) => ({
-                r2key: r.r2_key,
-                img: r.preview_url || '',
-                name: r.wallpaper_name || '',
-                date: String(r.created_at || '').slice(0, 19).replace('T', ' '),
-                monthGanZhi: r.month_ganzhi || '',
-            }));
-            if (!remote.length) return;
-            // 合并云端与本地，按时间去重（以 r2key+date 为 key）
-            let local = [];
-            try { local = JSON.parse(localStorage.getItem('ew_download_history') || '[]'); } catch (_) {}
-            const seen = new Set(local.map((r) => `${r.r2key}|${r.date}`));
-            for (const r of remote) {
-                const key = `${r.r2key}|${r.date}`;
-                if (seen.has(key)) continue;
-                seen.add(key);
-                local.push(r);
-            }
-            local.sort((a, b) => String(a.date).localeCompare(String(b.date)));
-            localStorage.setItem('ew_download_history', JSON.stringify(local.slice(-200)));
-        } catch (_) {}
+            const ganZhi = getCurrentYearMonthGanZhi();
+            return _sb.from('download_records').insert({
+                user_id: user.id,
+                owner_email: user.email || '',
+                r2_key: entry.r2key,
+                preview_url: entry.img || null,
+                wallpaper_name: entry.name || null,
+                month_ganzhi: ganZhi ? ganZhi.month : null,
+                profile_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeId || '')
+                    ? activeId : null,
+            });
+        }).then(({ error } = {}) => {
+            if (error) console.warn('download record cloud save failed', error);
+        }).catch(() => {});
     }
 
     function guessExtFromUrl(url, contentType) {
@@ -5953,7 +5901,6 @@
         updateAuthUI();
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
-        hydrateDownloadHistoryFromCloud();
     }
 
     function clearLoggedIn() {
@@ -6053,7 +6000,6 @@
                 }
                 if (event === 'SIGNED_IN') {
                     hydrateAnnualFromCloud();
-                    hydrateDownloadHistoryFromCloud();
                 }
             }
         } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
@@ -6064,8 +6010,8 @@
     if (localStorage.getItem(AUTH_KEY) === '1') {
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
-        hydrateDownloadHistoryFromCloud();
     }
+    try { localStorage.removeItem('ew_download_history'); } catch (_) {}
 
     // 其他页面「包年服务」跳转落地：landing.html#annual
     if (location.hash === '#annual' && isLoggedIn() && isAnnualActive()) {

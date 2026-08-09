@@ -199,7 +199,7 @@ grant execute on function public.set_annual_plan_profiles(text, uuid[]) to authe
 grant select, insert, update, delete on public.annual_plans to service_role;
 
 -- ════════════════════════════════════════════
--- 下载记录（对应前端 ew_download_history）
+-- 下载记录（仅云端；前端不再使用 ew_download_history）
 -- ════════════════════════════════════════════
 create table if not exists public.download_records (
   id uuid primary key default gen_random_uuid(),

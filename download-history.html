@@ -521,16 +521,49 @@
         } catch (_) { return ''; }
     }
 
-    // 获取 Supabase access_token
-    async function getAccessToken() {
+    const _sb = (() => {
         try {
-            const sb = supabase.createClient(
+            return supabase.createClient(
                 'https://yyiecrsibflscgjxmvbn.supabase.co',
                 'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A'
             );
-            const { data: { session } } = await sb.auth.getSession();
+        } catch (_) { return null; }
+    })();
+
+    // 清理旧版本地下载记录缓存（现已只读云端）
+    try { localStorage.removeItem('ew_download_history'); } catch (_) {}
+
+    // 获取 Supabase access_token
+    async function getAccessToken() {
+        try {
+            if (!_sb) return null;
+            const { data: { session } } = await _sb.auth.getSession();
             return session?.access_token || null;
         } catch (_) { return null; }
+    }
+
+    async function loadDownloadRecordsFromCloud() {
+        if (!_sb) return [];
+        const { data: { session } } = await _sb.auth.getSession();
+        const user = session?.user;
+        if (!user?.id) return null; // null = 未登录
+        const { data, error } = await _sb
+            .from('download_records')
+            .select('r2_key, preview_url, wallpaper_name, month_ganzhi, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(200);
+        if (error) {
+            console.warn('download history cloud load failed', error);
+            throw error;
+        }
+        return (data || []).map((r) => ({
+            r2key: r.r2_key,
+            img: r.preview_url || '',
+            name: r.wallpaper_name || '',
+            date: String(r.created_at || '').slice(0, 19).replace('T', ' '),
+            monthGanZhi: r.month_ganzhi || '',
+        }));
     }
 
     async function doRedownload(btn, r2key, name) {
@@ -587,14 +620,26 @@
         }
     }
 
-    function renderHistory() {
+    async function renderHistory() {
         const list = document.getElementById('historyList');
+        const tip = (map) => map[getLang()] || map['zh-TW'];
+        list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '載入中…', 'zh-CN': '加载中…', 'en': 'Loading…' })}</div>`;
+
         let records = [];
-        try { records = JSON.parse(localStorage.getItem('ew_download_history') || '[]'); } catch (_) {}
+        try {
+            const loaded = await loadDownloadRecordsFromCloud();
+            if (loaded === null) {
+                list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '請先登入查看下載記錄', 'zh-CN': '请先登录查看下载记录', 'en': 'Please sign in to view download history' })}</div>`;
+                return;
+            }
+            records = loaded;
+        } catch (_) {
+            list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '載入失敗，請稍後重試', 'zh-CN': '加载失败，请稍后重试', 'en': 'Failed to load. Please try again.' })}</div>`;
+            return;
+        }
 
         if (!records.length) {
-            const emptyText = { 'zh-TW': '尚無下載記錄', 'zh-CN': '暂无下载记录', 'en': 'No download history yet' };
-            list.innerHTML = `<div class="empty-tip">${emptyText[getLang()] || emptyText['zh-TW']}</div>`;
+            list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '尚無下載記錄', 'zh-CN': '暂无下载记录', 'en': 'No download history yet' })}</div>`;
             return;
         }
 
@@ -605,7 +650,8 @@
         };
         const lang = getLang();
 
-        list.innerHTML = records.slice().reverse().map((r, i) => {
+        // 云端已按 created_at desc，直接渲染
+        list.innerHTML = records.map((r) => {
             const isActive = currentMonth && r.monthGanZhi && r.monthGanZhi === currentMonth;
             // 旧记录没有 monthGanZhi，保守处理：允许重新下载
             const canDownload = !r.monthGanZhi || isActive;
@@ -628,14 +674,17 @@
             </div>`;
         }).join('');
 
-        list.addEventListener('click', e => {
-            const btn = e.target.closest('.btn-redownload');
-            if (!btn || btn.dataset.can !== '1') return;
-            const r2key = btn.getAttribute('data-r2key');
-            const name = btn.getAttribute('data-name');
-            if (!r2key) return;
-            doRedownload(btn, r2key, name);
-        });
+        if (!list._redownloadBound) {
+            list._redownloadBound = true;
+            list.addEventListener('click', e => {
+                const btn = e.target.closest('.btn-redownload');
+                if (!btn || btn.dataset.can !== '1') return;
+                const r2key = btn.getAttribute('data-r2key');
+                const name = btn.getAttribute('data-name');
+                if (!r2key) return;
+                doRedownload(btn, r2key, name);
+            });
+        }
     }
 
     renderHistory();
