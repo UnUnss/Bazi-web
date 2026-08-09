@@ -1013,7 +1013,7 @@
             letter-spacing: 0.04em;
         }
 
-        /* 下载选包年：只显示说明 + 确认支付 */
+        /* 下载选包年：只显示说明 + Stripe/PayPal */
         #annualSelectModal.annual-pay-mode .annual-select-manage-only {
             display: none;
         }
@@ -1023,7 +1023,15 @@
         }
 
         #annualSelectModal.annual-pay-mode .btn-annual-confirm {
-            width: 100%;
+            display: none;
+        }
+
+        #annualSelectModal.annual-pay-mode .annual-select-pay-only {
+            display: flex !important;
+        }
+
+        #annualSelectModal:not(.annual-pay-mode) .annual-select-pay-only {
+            display: none !important;
         }
 
         #annualSelectModal.annual-manage-mode .annual-select-manage-only {
@@ -1245,6 +1253,46 @@
 
         .btn-pay-confirm:hover {
             background: #3d2e14;
+        }
+
+        .btn-pay-confirm:disabled,
+        .btn-pay-provider:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pay-provider-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            width: 100%;
+        }
+
+        .btn-pay-provider {
+            flex: 1;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            padding: 12px 8px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: rgba(245, 236, 214, 0.55);
+            color: var(--ink);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn-pay-provider:hover {
+            border-color: rgba(42, 30, 10, 0.45);
+            background: rgba(245, 236, 214, 0.95);
+        }
+
+        .pay-provider-hint {
+            margin-top: 8px;
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            color: var(--ink-muted);
+            text-align: center;
         }
 
         /* ─── 購物車（下載列表） ──────────────────────── */
@@ -2519,8 +2567,13 @@
 
         <div class="pay-actions">
             <button type="button" class="btn-add-cart" id="btnAddCart" data-i18n="pay_add_cart">加入購物車</button>
-            <button type="button" class="btn-pay-confirm" id="btnPayConfirm" data-i18n="pay_confirm">確認支付</button>
+            <button type="button" class="btn-pay-confirm" id="btnPayConfirm" data-i18n="pay_confirm" style="display:none" aria-hidden="true">確認支付</button>
         </div>
+        <div class="pay-provider-row">
+            <button type="button" class="btn-pay-provider" id="btnPayStripe" data-provider="stripe">Stripe</button>
+            <button type="button" class="btn-pay-provider" id="btnPayPaypal" data-provider="paypal">PayPal</button>
+        </div>
+        <p class="pay-provider-hint" data-i18n="pay_provider_hint">選擇支付方式，完成後自動解鎖下載</p>
     </div>
 </div>
 
@@ -2537,7 +2590,11 @@
         </div>
         <div class="annual-select-actions">
             <button type="button" class="btn-annual-later annual-select-manage-only" id="btnAnnualLater" data-i18n="annual_select_later">稍后再选</button>
-            <button type="button" class="btn-annual-confirm" id="btnAnnualConfirm" data-i18n="pay_confirm">确认支付</button>
+            <button type="button" class="btn-annual-confirm annual-select-manage-only" id="btnAnnualConfirm" data-i18n="annual_select_confirm">确认</button>
+            <div class="pay-provider-row annual-select-pay-only" id="annualPayRow" style="display:none; width:100%;">
+                <button type="button" class="btn-pay-provider" id="btnAnnualPayStripe" data-provider="stripe">Stripe</button>
+                <button type="button" class="btn-pay-provider" id="btnAnnualPayPaypal" data-provider="paypal">PayPal</button>
+            </div>
         </div>
     </div>
 </div>
@@ -2563,7 +2620,12 @@
             <span class="cart-total-price" id="cartTotalPrice">US$0.00</span>
         </div>
 
-        <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout">結算</button>
+        <div class="pay-provider-row" id="cartPayRow">
+            <button type="button" class="btn-pay-provider" id="btnCartPayStripe" data-provider="stripe">Stripe</button>
+            <button type="button" class="btn-pay-provider" id="btnCartPayPaypal" data-provider="paypal">PayPal</button>
+        </div>
+        <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout" style="display:none" aria-hidden="true">結算</button>
+        <p class="pay-provider-hint" data-i18n="pay_cart_hint">勾選 1 / 2 / 4 張後選擇支付方式</p>
     </div>
 </div>
 
@@ -4133,7 +4195,7 @@
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return;
         if (!r2key) {
-            alert(t('mock_feature_notice'));
+            alert(t('download_missing_key'));
             return;
         }
 
@@ -4145,15 +4207,23 @@
                 headers,
                 body: JSON.stringify({ r2_key: r2key }),
             });
+            if (res.status === 402) {
+                alert(t('download_payment_required'));
+                return;
+            }
+            if (res.status === 401) {
+                requireLogin();
+                return;
+            }
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.url) fileUrl = data.url;
             }
         } catch (_) {}
 
-        // 本地无 API / 鉴权失败时：用公共桶原图 key 拉文件（仍走 blob，不会跳转打开）
         if (!fileUrl) {
-            fileUrl = `${R2_PUBLIC_URL}/${r2key}`;
+            alert(t('download_failed'));
+            return;
         }
 
         try {
@@ -4172,7 +4242,161 @@
             setTimeout(() => URL.revokeObjectURL(obj), 2000);
             recordDownloadHistory({ img: previewImg || fileUrl, name, r2key });
         } catch (_) {
-            alert(t('mock_feature_notice'));
+            alert(t('download_failed'));
+        }
+    }
+
+    function productTypeFromTier(tier) {
+        if (tier === 'year' || tier === 'annual') return 'annual';
+        if (tier === '2') return 'pack2';
+        if (tier === '4') return 'pack4';
+        return 'single';
+    }
+
+    function productTypeFromCount(n) {
+        if (n === 1) return 'single';
+        if (n === 2) return 'pack2';
+        if (n === 4) return 'pack4';
+        return null;
+    }
+
+    async function startCheckout({ provider, productType, items }) {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        if (!requireLogin()) return;
+        if (provider !== 'stripe' && provider !== 'paypal') {
+            alert(t('pay_provider_required'));
+            return;
+        }
+        try {
+            const headers = await getAuthHeaders();
+            const res = await fetch('/api/checkout/create', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    provider,
+                    product_type: productType,
+                    items: items || [],
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.checkoutUrl) {
+                throw new Error(data.error || t('pay_create_failed'));
+            }
+            try {
+                sessionStorage.setItem('ew_pending_checkout', JSON.stringify({
+                    orderId: data.orderId,
+                    provider,
+                    productType,
+                }));
+            } catch (_) {}
+            window.location.href = data.checkoutUrl;
+        } catch (err) {
+            alert(err?.message || t('pay_create_failed'));
+        }
+    }
+
+    async function pollCheckoutStatus(orderId, { attempts = 20, intervalMs = 1500 } = {}) {
+        for (let i = 0; i < attempts; i++) {
+            const headers = await getAuthHeaders();
+            const res = await fetch(`/api/checkout/status?orderId=${encodeURIComponent(orderId)}`, {
+                method: 'GET',
+                headers,
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.status === 'paid') return data;
+            }
+            await new Promise((r) => setTimeout(r, intervalMs));
+        }
+        return null;
+    }
+
+    async function handleCheckoutReturn() {
+        const params = new URLSearchParams(window.location.search);
+        const checkout = params.get('checkout');
+        if (!checkout) return;
+
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const orderId = params.get('order') || '';
+        const provider = (params.get('provider') || '').toLowerCase();
+        const paypalToken = params.get('token') || '';
+
+        // Clean URL early
+        try {
+            history.replaceState(null, '', window.location.pathname + (window.location.hash || ''));
+        } catch (_) {}
+
+        if (checkout === 'cancel') {
+            alert(t('pay_cancelled'));
+            return;
+        }
+        if (checkout !== '1' || !orderId) return;
+        if (!isLoggedIn()) {
+            requireLogin();
+            return;
+        }
+
+        try {
+            if (provider === 'paypal') {
+                const headers = await getAuthHeaders();
+                const cap = await fetch('/api/checkout/paypal-capture', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ orderId, token: paypalToken }),
+                });
+                const capData = await cap.json().catch(() => ({}));
+                if (!cap.ok && !capData.alreadyPaid) {
+                    throw new Error(capData.error || t('pay_capture_failed'));
+                }
+            }
+
+            const status = await pollCheckoutStatus(orderId);
+            if (!status || status.status !== 'paid') {
+                alert(t('pay_pending_notice'));
+                return;
+            }
+
+            if (status.productType === 'annual') {
+                // Sync cloud annual plans then open manage UI
+                await hydrateAnnualFromCloud();
+                if (!isAnnualActive() && status.meta?.annual_plan) {
+                    const ap = status.meta.annual_plan;
+                    purchaseAnnualPlan();
+                    // Align local plan id/dates if cloud hydrate missed
+                    const plans = loadAnnualPlans();
+                    if (plans.length && ap.id) {
+                        plans[plans.length - 1] = normalizeAnnualPlan({
+                            id: ap.id,
+                            start: ap.start,
+                            end: ap.end,
+                            profileIds: [],
+                        });
+                        saveAnnualPlans(plans);
+                    }
+                }
+                refresh();
+                alert(t('annual_pay_success'));
+                openAnnualSelectModal('manage');
+                return;
+            }
+
+            const items = Array.isArray(status.items) ? status.items : [];
+            for (const it of items) {
+                await startOriginalDownload({
+                    r2key: it.r2Key,
+                    name: it.name || '',
+                    previewImg: it.previewUrl || '',
+                });
+            }
+            if (items.length) {
+                const keys = new Set(items.map((it) => it.r2Key).filter(Boolean));
+                cartItems = loadCart().filter((it) => !keys.has(it.r2key || ''));
+                saveCart(cartItems);
+                updateCartBadge();
+            }
+            alert(t('pay_success_download'));
+        } catch (err) {
+            alert(err?.message || t('pay_create_failed'));
         }
     }
 
@@ -4308,10 +4532,12 @@
             annualSelectDesc.textContent = t(descKey);
         }
         if (btnAnnualConfirm) {
-            btnAnnualConfirm.setAttribute('data-i18n', btnKey);
-            btnAnnualConfirm.textContent = t(btnKey);
+            btnAnnualConfirm.setAttribute('data-i18n', isPay ? 'annual_select_confirm' : btnKey);
+            btnAnnualConfirm.textContent = t(isPay ? 'annual_select_confirm' : btnKey);
             btnAnnualConfirm.disabled = false;
         }
+        const annualPayRow = document.getElementById('annualPayRow');
+        if (annualPayRow) annualPayRow.style.display = isPay ? 'flex' : 'none';
     }
 
     function openAnnualSelectModal(purpose) {
@@ -4351,17 +4577,6 @@
         annualSelectModal.classList.remove('open');
     }
 
-    function completeAnnualPurchaseMock() {
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        applyTierUI('year');
-        purchaseAnnualPlan();
-        closeAnnualSelectModal();
-        payModal.classList.remove('open');
-        refresh();
-        alert(t('annual_pay_success_mock'));
-        openAnnualSelectModal('manage');
-    }
-
     function finishAnnualSelect() {
         if (annualSelectPurpose === 'manage') {
             const plans = loadAnnualPlans().map((plan) => ({
@@ -4377,7 +4592,7 @@
             closeAnnualSelectModal();
             return;
         }
-        completeAnnualPurchaseMock();
+        // pay 模式改走 Stripe / PayPal 按钮
     }
 
     payTierRow.addEventListener('click', (e) => {
@@ -4494,24 +4709,51 @@
         if (e.target === payModal) payModal.classList.remove('open');
     });
 
-    btnPayConfirm.addEventListener('click', async () => {
+    async function payModalCheckout(provider) {
         if (!requireLogin()) { payModal.classList.remove('open'); return; }
-        payModal.classList.remove('open');
-        const t = window.I18N ? window.I18N.t : (k) => k;
         if (selectedTier === 'year') {
-            // 支付未接入：先模拟包年支付成功，写入新包年段并打开管理弹窗
-            purchaseAnnualPlan();
-            refresh();
-            alert(t('annual_pay_success_mock'));
-            openAnnualSelectModal('manage');
+            openAnnualSelectModal('pay');
             return;
         }
-        // 单张/多张：支付尚未接入，登录用户可先走真实原图下载（Bearer → /api/download）
-        await startOriginalDownload({
-            r2key: pendingDownloadR2Key,
-            name: pendingDownloadName,
-            previewImg: pendingDownloadImg,
+        const productType = productTypeFromTier(selectedTier);
+        if (productType !== 'single') {
+            // UI 主弹窗目前只有单张 + 包年；打包走购物车
+            const t = window.I18N ? window.I18N.t : (k) => k;
+            alert(t('pay_use_cart_for_pack'));
+            return;
+        }
+        if (!pendingDownloadR2Key) {
+            const t = window.I18N ? window.I18N.t : (k) => k;
+            alert(t('download_missing_key'));
+            return;
+        }
+        payModal.classList.remove('open');
+        await startCheckout({
+            provider,
+            productType: 'single',
+            items: [{
+                r2_key: pendingDownloadR2Key,
+                preview_url: pendingDownloadImg,
+                wallpaper_name: pendingDownloadName,
+            }],
         });
+    }
+
+    document.getElementById('btnPayStripe')?.addEventListener('click', () => payModalCheckout('stripe'));
+    document.getElementById('btnPayPaypal')?.addEventListener('click', () => payModalCheckout('paypal'));
+    btnPayConfirm?.addEventListener('click', () => payModalCheckout('stripe'));
+
+    document.getElementById('btnAnnualPayStripe')?.addEventListener('click', async () => {
+        if (!requireLogin()) return;
+        closeAnnualSelectModal();
+        payModal.classList.remove('open');
+        await startCheckout({ provider: 'stripe', productType: 'annual', items: [] });
+    });
+    document.getElementById('btnAnnualPayPaypal')?.addEventListener('click', async () => {
+        if (!requireLogin()) return;
+        closeAnnualSelectModal();
+        payModal.classList.remove('open');
+        await startCheckout({ provider: 'paypal', productType: 'annual', items: [] });
     });
 
     // ─── 下載列表（購物車） ─────────────────────────────
@@ -4627,16 +4869,35 @@
         renderCart();
     });
 
-    btnCartCheckout.addEventListener('click', () => {
+    async function cartCheckout(provider) {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        const checkedCount = cartItems.filter((it) => it.checked).length;
-        if (checkedCount === 0) return;
-        // 前端模擬結算，後端接入時替換此處邏輯（依 checkedCount 對應 1/2/4 張的檔位金額）
-        cartItems = cartItems.filter((it) => !it.checked);
-        saveCart(cartItems);
-        renderCart();
-        alert(t('mock_feature_notice'));
-    });
+        if (!requireLogin()) return;
+        const checked = cartItems.filter((it) => it.checked);
+        const productType = productTypeFromCount(checked.length);
+        if (!productType) {
+            alert(t('pay_cart_count_invalid'));
+            return;
+        }
+        const missing = checked.some((it) => !it.r2key);
+        if (missing) {
+            alert(t('download_missing_key'));
+            return;
+        }
+        cartModal.classList.remove('open');
+        await startCheckout({
+            provider,
+            productType,
+            items: checked.map((it) => ({
+                r2_key: it.r2key,
+                preview_url: it.img,
+                wallpaper_name: it.name,
+            })),
+        });
+    }
+
+    document.getElementById('btnCartPayStripe')?.addEventListener('click', () => cartCheckout('stripe'));
+    document.getElementById('btnCartPayPaypal')?.addEventListener('click', () => cartCheckout('paypal'));
+    btnCartCheckout?.addEventListener('click', () => cartCheckout('stripe'));
 
     btnAddCart.addEventListener('click', () => {
         if (!requireLogin()) return;
@@ -4649,6 +4910,7 @@
                 key,
                 img: pendingDownloadImg,
                 name: pendingDownloadName,
+                r2key: pendingDownloadR2Key || '',
                 checked: true
             });
             saveCart(cartItems);
@@ -5543,6 +5805,13 @@
         setTimeout(() => {
             openAnnualSelectModal('manage');
             try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+        }, 0);
+    }
+
+    // Stripe / PayPal 回跳履约
+    if (typeof handleCheckoutReturn === 'function') {
+        setTimeout(() => {
+            handleCheckoutReturn().catch((err) => console.error('checkout return', err));
         }, 0);
     }
 

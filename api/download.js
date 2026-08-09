@@ -1,30 +1,19 @@
-// 已登录用户获取原图临时下载链接（仅支持 Authorization Bearer）
+// 已登录用户获取原图临时下载链接（Bearer）
+// 授权：有效包年 或 已支付订单包含该 r2_key
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl }               from '@aws-sdk/s3-request-presigner';
-import { createClient }               from '@supabase/supabase-js';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { assertUser } from './_lib/auth.js';
+import { getServiceSupabase } from './_lib/supabase.js';
+import { userCanDownloadKey } from './_lib/fulfill-order.js';
 
 const s3 = new S3Client({
-  region:   'auto',
+  region: 'auto',
   endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
-    accessKeyId:     process.env.R2_ACCESS_KEY_ID,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
   },
 });
-
-const sb = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  { auth: { persistSession: false } }
-);
-
-async function assertUser(req) {
-  const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
-  if (!token) return { ok: false, status: 401, error: 'Login required' };
-  const { data: { user }, error } = await sb.auth.getUser(token);
-  if (error || !user) return { ok: false, status: 401, error: 'Login required' };
-  return { ok: true, userId: user.id, email: user.email || '' };
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -36,6 +25,8 @@ export default async function handler(req, res) {
   if (!r2_key || typeof r2_key !== 'string') {
     return res.status(400).json({ error: 'Missing r2_key' });
   }
+
+  const sb = getServiceSupabase();
 
   // Verify r2_key exists in wallpapers table (prevents arbitrary R2 file access)
   const { data: byOriginal } = await sb
@@ -52,14 +43,23 @@ export default async function handler(req, res) {
     if (!byPreview) return res.status(403).json({ error: 'Forbidden' });
   }
 
+  const allowed = await userCanDownloadKey({
+    userId: auth.userId,
+    email: auth.email,
+    r2Key: r2_key,
+  });
+  if (!allowed) {
+    return res.status(402).json({ error: 'Payment required' });
+  }
+
   try {
     const url = await getSignedUrl(
       s3,
       new GetObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME,
-        Key:    r2_key,
+        Key: r2_key,
       }),
-      { expiresIn: 300 } // 5 分钟有效
+      { expiresIn: 300 }
     );
     return res.status(200).json({ url });
   } catch (err) {
