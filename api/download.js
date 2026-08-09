@@ -21,10 +21,23 @@ export default async function handler(req, res) {
   const auth = await assertUser(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
-  const { r2_key, profile_id: profileId } = req.body || {};
+  const { r2_key, profile_id: profileId, filename: rawName } = req.body || {};
   if (!r2_key || typeof r2_key !== 'string') {
     return res.status(400).json({ error: 'Missing r2_key' });
   }
+
+  // Safe download filename for Content-Disposition
+  const safeBase = String(rawName || 'wallpaper')
+    .replace(/[\\/:*?"<>|\r\n]+/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80) || 'wallpaper';
+  const keyExt = (String(r2_key).match(/\.(jpe?g|png|webp)$/i) || [])[1];
+  const ext = keyExt ? `.${keyExt.toLowerCase().replace('jpeg', 'jpg')}` : '.jpg';
+  const downloadName = /\.(jpe?g|png|webp)$/i.test(safeBase) ? safeBase : `${safeBase}${ext}`;
+  const asciiName = downloadName.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_') || 'wallpaper.jpg';
+  const utf8Name = encodeURIComponent(downloadName);
+  const contentDisposition = `attachment; filename="${asciiName}"; filename*=UTF-8''${utf8Name}`;
 
   const sb = getServiceSupabase();
 
@@ -67,15 +80,18 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ResponseContentDisposition forces browser download (not inline preview)
+    // when CORS blob-fetch fails and we fall back to opening the signed URL.
     const url = await getSignedUrl(
       s3,
       new GetObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME,
         Key: originalKey,
+        ResponseContentDisposition: contentDisposition,
       }),
       { expiresIn: 300 }
     );
-    return res.status(200).json({ url, r2_key: originalKey });
+    return res.status(200).json({ url, r2_key: originalKey, filename: downloadName });
   } catch (err) {
     console.error('download presign error:', err);
     return res.status(500).json({ error: 'Failed to generate download URL' });

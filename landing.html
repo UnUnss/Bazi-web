@@ -3125,6 +3125,9 @@
         return headers;
     }
 
+    /**
+     * @returns {object|null} 成功返回云端档案；未登录/demo 返回原 profile；失败返回 null
+     */
     async function cloudUpsertProfile(profile) {
         if (!isLoggedIn() || !profile || String(profile.id || '').startsWith('demo-')) return profile;
         try {
@@ -3135,13 +3138,13 @@
             });
             if (!res.ok) {
                 console.error('cloudUpsertProfile failed', await res.text());
-                return profile;
+                return null;
             }
             const data = await res.json();
             return data.profile || profile;
         } catch (err) {
             console.error('cloudUpsertProfile', err);
-            return profile;
+            return null;
         }
     }
 
@@ -3206,12 +3209,46 @@
     }
 
     async function hydrateProfilesFromCloud() {
-        const remote = await cloudLoadProfiles();
-        if (!remote || !remote.length) return;
+        if (!isLoggedIn()) return;
+
+        // 先拉云端；失败则不动本地
+        let remote = await cloudLoadProfiles();
+        if (remote === null) return;
+
+        // 本地真实档案（非 demo）若云端没有，补传上去（覆盖：未登录时建档、或上次 upsert 失败）
+        const remoteIds = new Set(remote.map((p) => p && p.id).filter(Boolean));
+        const localReal = (profiles || []).filter(
+            (p) => p && p.id && !String(p.id).startsWith('demo-')
+        );
+        let pushed = false;
+        for (const p of localReal) {
+            if (remoteIds.has(p.id)) continue;
+            const saved = await cloudUpsertProfile(p);
+            if (saved && saved.id) {
+                pushed = true;
+                // 服务端可能分配了新 uuid（本地曾是 p-xxx）
+                if (saved.id !== p.id) {
+                    const idx = profiles.findIndex((x) => x && x.id === p.id);
+                    if (idx >= 0) profiles[idx] = { ...p, ...saved };
+                    if (activeId === p.id) {
+                        activeId = saved.id;
+                        setActiveId(activeId);
+                    }
+                }
+            }
+        }
+        if (pushed) {
+            saveProfiles(profiles);
+            remote = await cloudLoadProfiles();
+            if (remote === null) return;
+        }
+
+        if (!remote.length) return;
+
         // 比较云端与本地是否实质相同，相同则不重新渲染（避免多余的壁纸请求）
         const localIds = profiles.map((p) => p.id).join(',');
-        const remoteIds = remote.map((p) => p.id).join(',');
-        const changed = localIds !== remoteIds;
+        const remoteIdStr = remote.map((p) => p.id).join(',');
+        const changed = localIds !== remoteIdStr;
         profiles = remote;
         saveProfiles(profiles);
         if (!profiles.some((p) => p.id === activeId)) {
@@ -4310,6 +4347,7 @@
 
         let fileUrl = '';
         let lastStatus = 0;
+        const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
         try {
             const headers = await getAuthHeaders();
             const res = await fetch('/api/download', {
@@ -4318,6 +4356,7 @@
                 body: JSON.stringify({
                     r2_key: r2key,
                     profile_id: (typeof activeId !== 'undefined' ? activeId : '') || '',
+                    filename: baseName,
                 }),
             });
             lastStatus = res.status;
@@ -4340,7 +4379,6 @@
             return 'fail';
         }
 
-        const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
         try {
             const resp = await fetch(fileUrl, { mode: 'cors', credentials: 'omit' });
             if (!resp.ok) throw new Error('fetch failed');
@@ -4357,7 +4395,7 @@
             setTimeout(() => URL.revokeObjectURL(obj), 2000);
             recordDownloadHistory({ img: previewImg || fileUrl, name, r2key });
         } catch (_) {
-            // R2 S3 签名域名若未配 CORS，blob fetch 会失败；改直链仍可下载
+            // R2 未配 CORS 时 blob fetch 失败；签名 URL 已带 attachment，直链会触发下载而非预览
             const filename = baseName + guessExtFromUrl(fileUrl, '');
             triggerDirectDownload(fileUrl, filename);
             recordDownloadHistory({ img: previewImg || fileUrl, name, r2key });
@@ -6716,6 +6754,9 @@
         };
 
         const saved = await cloudUpsertProfile(profile);
+        if (isLoggedIn() && saved === null) {
+            alert(window.I18N ? window.I18N.t('profile_cloud_save_failed') : '档案已保存在本机，但同步到云端失败，换设备可能看不到。请稍后重试。');
+        }
         // 用云端返回的 id（uuid）替换本地临时 id
         const finalProfile = saved && saved.id ? { ...profile, ...saved } : profile;
         if (editingId) {
