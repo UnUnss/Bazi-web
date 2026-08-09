@@ -4254,14 +4254,16 @@
         const remote = await cloudLoadAnnualPlans();
         if (remote === null) return;
         if (remote.length > 0) {
-            saveAnnualPlansLocal(remote);
-            // 包年只影响菜单锁定状态，不影响壁纸；只刷新菜单，不重新渲染壁纸
+            // 清掉云端 profile_ids 里残留的 demo id（demo 档案不持久化到云端）
+            const cleaned = remote.map((plan) => ({
+                ...plan,
+                profileIds: (plan.profileIds || []).filter((id) => !String(id).startsWith('demo-')),
+            }));
+            saveAnnualPlansLocal(cleaned);
             renderMenu(profiles, activeId);
             return;
         }
-        if (!remote.length) {
-            saveAnnualPlansLocal([]);
-        }
+        saveAnnualPlansLocal([]);
     }
 
     function saveAnnualPlans(plans) {
@@ -4686,6 +4688,7 @@
             let selectRows = '';
             if (editable) {
                 const candidates = list.filter((p) =>
+                    !String(p.id).startsWith('demo-') &&
                     !savedIds.includes(p.id) && !lockedElsewhere.has(p.id)
                 );
                 if (!candidates.length && !savedIds.length) {
@@ -6725,8 +6728,10 @@
         });
     });
 
+    let _profileSaving = false;
     document.getElementById('addBaziForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (_profileSaving) return;
         const nicknameRaw = document.getElementById('nickname').value.trim();
         const nickname = truncateNickname(nicknameRaw);
         if (nickname !== nicknameRaw) {
@@ -6767,8 +6772,7 @@
         }
 
         // ── 提交时统一查询坐标 ──────────────────────────────────────
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        if (submitBtn) submitBtn.disabled = true;
+        _profileSaving = true;
         locationSearchingEl.style.display = '';
 
         let finalLon       = existing ? existing.birthplaceLon ?? null : null;
@@ -6782,8 +6786,6 @@
                 const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
 
                 if (iso2 && (city || stateCode)) {
-                    // 只用城市+省名（不拼 countryName，避免自定义名称如"中国大陆"导致 Nominatim 无结果）
-                    // countrycodes 参数已限定国家，不需要在 q 里再写国家名
                     const q = city ? `${city}, ${stateName}` : stateName;
                     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=${iso2.toLowerCase()}`;
                     try {
@@ -6808,7 +6810,6 @@
             }
         } finally {
             locationSearchingEl.style.display = 'none';
-            if (submitBtn) submitBtn.disabled = false;
         }
 
         if (!birthplace) {
@@ -6834,7 +6835,12 @@
             cityName:    locationChanged ? (locCitySel.value    || '') : (existing?.cityName    || ''),
         };
 
-        const cloudResult = await cloudUpsertProfile(profile);
+        let cloudResult;
+        try {
+            cloudResult = await cloudUpsertProfile(profile);
+        } finally {
+            _profileSaving = false;
+        }
         if (isLoggedIn() && !cloudResult.ok) {
             const tip = window.I18N ? window.I18N.t('profile_cloud_save_failed') : '保存档案到云端失败，未应用此次更改。请稍后重试。';
             alert(`${tip}\n(${cloudResult.error || 'unknown'})`);
