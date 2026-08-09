@@ -2353,17 +2353,17 @@
     <div class="nav-logo-wrap" aria-hidden="true">
         <img src="assets/english.png" alt="" draggable="false">
     </div>
-    <a href="index.html" class="nav-logo-link" aria-label="ElementaWall 首頁"></a>
+    <a href="/" class="nav-logo-link" aria-label="ElementaWall 首頁"></a>
     <div class="nav-user">
-        <a href="index.html" class="nav-link-item" data-i18n="nav_home">首頁</a>
+        <a href="/" class="nav-link-item" data-i18n="nav_home">首頁</a>
         <div class="about-switch-wrap" id="aboutSwitchWrap">
             <button type="button" class="nav-link-item about-switch-btn" id="aboutSwitchBtn">
                 <span data-i18n="nav_about">關於我們</span><span class="caret">▼</span>
             </button>
             <div class="about-menu" id="aboutMenu" role="menu">
-                <a href="about.html" data-i18n="nav_about">關於我們</a>
-                <a href="contact.html" data-i18n="nav_contact">聯絡我們</a>
-                <a href="policy.html" data-i18n="nav_policy">用戶服務與隱私協議</a>
+                <a href="/about" data-i18n="nav_about">關於我們</a>
+                <a href="/contact" data-i18n="nav_contact">聯絡我們</a>
+                <a href="/policy" data-i18n="nav_policy">用戶服務與隱私協議</a>
             </div>
         </div>
         <div class="lang-switch-wrap" id="langSwitchWrap">
@@ -6540,7 +6540,7 @@
 
     document.getElementById('btnDownloadHistory').addEventListener('click', () => {
         userMenu.classList.remove('open');
-        location.href = 'download-history.html';
+        location.href = '/download-history';
     });
     document.getElementById('btnAccount').addEventListener('click', showMockNotice);
 

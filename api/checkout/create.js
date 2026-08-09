@@ -96,11 +96,11 @@ export default async function handler(req, res) {
   }
 
   const base = siteUrl();
-  const successUrl = `${base}/landing.html?checkout=1&provider=${provider}&order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
-  const cancelUrl = `${base}/landing.html?checkout=cancel&order=${order.id}`;
+  const successUrl = `${base}/landing?checkout=1&provider=${provider}&order=${order.id}&session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = `${base}/landing?checkout=cancel&order=${order.id}`;
   // PayPal success without Stripe placeholder
-  const paypalReturn = `${base}/landing.html?checkout=1&provider=paypal&order=${order.id}`;
-  const paypalCancel = `${base}/landing.html?checkout=cancel&order=${order.id}`;
+  const paypalReturn = `${base}/landing?checkout=1&provider=paypal&order=${order.id}`;
+  const paypalCancel = `${base}/landing?checkout=cancel&order=${order.id}`;
 
   try {
     if (provider === 'stripe') {

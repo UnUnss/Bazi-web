@@ -377,17 +377,17 @@
     <div class="nav-logo-wrap" aria-hidden="true">
         <img src="assets/english.png" alt="" draggable="false">
     </div>
-    <a href="index.html" class="nav-logo-link" aria-label="ElementaWall 首頁"></a>
+    <a href="/" class="nav-logo-link" aria-label="ElementaWall 首頁"></a>
     <div class="nav-user">
-        <a href="javascript:void(0)" class="nav-link-item" data-i18n="nav_back" onclick="history.length>1?history.back():location.href='landing.html'">返回</a>
+        <a href="javascript:void(0)" class="nav-link-item" data-i18n="nav_back" onclick="history.length>1?history.back():location.href='/landing'">返回</a>
         <div class="about-switch-wrap" id="aboutSwitchWrap">
             <button type="button" class="nav-link-item about-switch-btn" id="aboutSwitchBtn">
                 <span data-i18n="nav_about">關於我們</span><span class="caret">▼</span>
             </button>
             <div class="about-menu" id="aboutMenu" role="menu">
-                <a href="about.html" data-i18n="nav_about">關於我們</a>
-                <a href="contact.html" data-i18n="nav_contact">聯絡我們</a>
-                <a href="policy.html" data-i18n="nav_policy">用戶服務與隱私協議</a>
+                <a href="/about" data-i18n="nav_about">關於我們</a>
+                <a href="/contact" data-i18n="nav_contact">聯絡我們</a>
+                <a href="/policy" data-i18n="nav_policy">用戶服務與隱私協議</a>
             </div>
         </div>
         <div class="lang-switch-wrap" id="langSwitchWrap">
@@ -489,15 +489,15 @@
     }
     window.BaziAuth.syncFromSupabase().then(({ loggedIn, email }) => updateAuthUI(loggedIn, email));
     document.addEventListener('i18n:change', () => { updateLangLabel(); renderHistory(); });
-    btnLogin.addEventListener('click', () => { location.href = 'landing.html?login=1'; });
+    btnLogin.addEventListener('click', () => { location.href = '/landing?login=1'; });
     userMenuBtn.addEventListener('click', e => { e.stopPropagation(); userMenu.classList.toggle('open'); });
     if (btnAnnualService) {
         btnAnnualService.addEventListener('click', (e) => {
             e.stopPropagation();
-            location.href = 'landing.html#annual';
+            location.href = '/landing#annual';
         });
     }
-    document.getElementById('btnDownloadHistory').addEventListener('click', () => { location.href = 'download-history.html'; });
+    document.getElementById('btnDownloadHistory').addEventListener('click', () => { location.href = '/download-history'; });
     document.getElementById('btnAccount').addEventListener('click', () => {
         alert(window.I18N ? window.I18N.t('mock_feature_notice') : '此功能即將推出');
         userMenu.classList.remove('open');
@@ -575,7 +575,7 @@
             const token = await getAccessToken();
             if (!token) {
                 alert(window.I18N ? window.I18N.t('nav_login') : '請先登入');
-                location.href = 'landing.html?login=1';
+                location.href = '/landing?login=1';
                 return;
             }
             const res = await fetch('/api/download', {
@@ -583,7 +583,7 @@
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ r2_key: r2key, filename: name }),
             });
-            if (res.status === 401) { location.href = 'landing.html?login=1'; return; }
+            if (res.status === 401) { location.href = '/landing?login=1'; return; }
             if (res.status === 402) {
                 alert(window.I18N ? window.I18N.t('download_payment_required') : '需要先購買此壁紙');
                 return;
