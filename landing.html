@@ -4843,18 +4843,23 @@
             const id = item.dataset.id;
             if (!planId || !id) return;
             const plan = loadAnnualPlans().find((p) => p.id === planId);
-            const savedIds = (plan && plan.profileIds) ? plan.profileIds.slice() : [];
+            const list = (typeof profiles !== 'undefined' && Array.isArray(profiles)) ? profiles : [];
+            // 只认当前列表里存在的档案；忽略云端残留的 demo-/失效 id，否则会占满 2 个名额导致勾第二个挤掉第一个
+            const savedIds = ((plan && plan.profileIds) || []).filter((sid) =>
+                list.some((p) => p.id === sid)
+            );
             // 已确认绑定的不可取消
             if (savedIds.includes(id)) return;
 
-            let draft = (annualDraftByPlan[planId] || []).slice();
+            let draft = (annualDraftByPlan[planId] || []).filter((sid) =>
+                list.some((p) => p.id === sid)
+            );
             savedIds.forEach((sid) => {
                 if (!draft.includes(sid)) draft.push(sid);
             });
             const idx = draft.indexOf(id);
             if (idx >= 0) {
                 draft.splice(idx, 1);
-                // 确保 saved 仍在
                 savedIds.forEach((sid) => {
                     if (!draft.includes(sid)) draft.unshift(sid);
                 });

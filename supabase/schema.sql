@@ -167,10 +167,12 @@ begin
   end if;
 
   -- 已确认绑定的档案不可解绑；仅允许补齐尚未使用的名额
+  -- 忽略非法 uuid（如历史残留的 demo-1），下次保存时会被清掉
   if exists (
     select 1
     from jsonb_array_elements_text(plan.profile_ids) as existing_profile(id)
-    where not (existing_profile.id::uuid = any(ids))
+    where existing_profile.id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      and not (existing_profile.id::uuid = any(ids))
   ) then
     raise exception 'Bound profiles cannot be removed';
   end if;
