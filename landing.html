@@ -4281,6 +4281,48 @@
             });
             localStorage.setItem('ew_download_history', JSON.stringify(list.slice(-200)));
         } catch (_) {}
+        // 登录态异步写云端（不阻塞 UI）
+        if (isLoggedIn() && entry.r2key) {
+            getAuthHeaders().then((headers) => {
+                fetch('/api/download-records', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        r2key: entry.r2key,
+                        img: entry.img || '',
+                        name: entry.name || '',
+                    }),
+                }).catch(() => {});
+            });
+        }
+    }
+
+    async function hydrateDownloadHistoryFromCloud() {
+        if (!isLoggedIn()) return;
+        try {
+            const headers = await getAuthHeaders();
+            delete headers['Content-Type'];
+            const res = await fetch('/api/download-records?limit=200', { method: 'GET', headers });
+            if (!res.ok) return;
+            const data = await res.json();
+            const remote = Array.isArray(data.records) ? data.records : [];
+            if (!remote.length) return;
+            // 合并云端与本地，按时间去重（以 r2key+date 为 key）
+            let local = [];
+            try { local = JSON.parse(localStorage.getItem('ew_download_history') || '[]'); } catch (_) {}
+            const ganZhi = getCurrentYearMonthGanZhi();
+            const currentMonth = ganZhi ? ganZhi.month : '';
+            const seen = new Set(local.map((r) => `${r.r2key}|${r.date}`));
+            for (const r of remote) {
+                const key = `${r.r2key}|${r.date}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                // 云端记录没有 monthGanZhi，补上（用下载日期推算会很复杂，留空即可，旧记录保守可下载）
+                local.push({ ...r, monthGanZhi: '' });
+            }
+            local.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+            localStorage.setItem('ew_download_history', JSON.stringify(local.slice(-200)));
+        } catch (_) {}
     }
 
     function guessExtFromUrl(url, contentType) {
@@ -5824,6 +5866,7 @@
         updateAuthUI();
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
+        hydrateDownloadHistoryFromCloud();
     }
 
     function clearLoggedIn() {
@@ -5923,6 +5966,7 @@
                 }
                 if (event === 'SIGNED_IN') {
                     hydrateAnnualFromCloud();
+                    hydrateDownloadHistoryFromCloud();
                 }
             }
         } else if (event === 'SIGNED_OUT') {
@@ -5933,6 +5977,7 @@
     if (localStorage.getItem(AUTH_KEY) === '1') {
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
+        hydrateDownloadHistoryFromCloud();
     }
 
     // 其他页面「包年服务」跳转落地：landing.html#annual
