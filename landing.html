@@ -1075,6 +1075,17 @@
             cursor: not-allowed;
         }
 
+        .bazi-menu-login-hint {
+            padding: 8px 14px;
+            font-size: 11px;
+            color: var(--ink-muted);
+            text-align: center;
+            border-top: 1px solid rgba(42,30,10,0.07);
+            cursor: pointer;
+            opacity: 0.75;
+        }
+        .bazi-menu-login-hint:hover { opacity: 1; }
+
         .annual-select-modal .annual-select-desc {
             font-size: 13.5px;
             line-height: 1.7;
@@ -3108,6 +3119,7 @@
     }
 
     function saveProfiles(list) {
+        if (localStorage.getItem('bazi_logged_in') !== '1') return; // 游客不持久化档案
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
@@ -3351,6 +3363,7 @@
         const editLabel = t('btn_edit_profile');
         const lockedLabel = t('btn_edit_locked');
         const lockedIds = getLockedAnnualProfileIds();
+        const loggedIn = localStorage.getItem('bazi_logged_in') === '1';
         menu.innerHTML = list.map((p) => {
             const short = computeBaziForProfile(p).pillars[0];
             const activeCls = p.id === activeId ? ' active' : '';
@@ -3364,7 +3377,7 @@
                 `</button>` +
                 `<button type="button" class="bazi-menu-edit${lockedCls}" data-edit-id="${escapeHtml(p.id)}"${lockedAttr} aria-label="${escapeHtml(btnLabel)}">${escapeHtml(btnLabel)}</button>` +
                 `</div>`;
-        }).join('');
+        }).join('') + (!loggedIn ? `<div class="bazi-menu-login-hint">${escapeHtml(t('menu_login_to_create') || '登录后创建你的档案')}</div>` : '');
     }
 
     // 作图运名 i18n（logic 输出简体短名，最多两个）
@@ -5186,13 +5199,11 @@
     let profiles = loadProfiles();
     const _isLoggedIn = localStorage.getItem('bazi_logged_in') === '1';
     if (!_isLoggedIn) {
-        // 未登录：清包年缓存，但保留用户在本地存储的档案；
-        // 仅当本地完全没有档案时才填入默认示例（首次访问）
+        // 未登录：始终使用默认 demo 档案，不读取/保存 localStorage
+        profiles = defaultProfiles.map((p) => ({ ...p }));
         clearLocalAnnualPlans();
-        if (!profiles.length) {
-            profiles = defaultProfiles.map((p) => ({ ...p }));
-            saveProfiles(profiles);
-        }
+    } else if (!profiles.length) {
+        profiles = defaultProfiles.map((p) => ({ ...p }));
     }
     let activeId = getActiveId(profiles);
     let editingId = null;
@@ -6046,8 +6057,6 @@
                 }
             }
         } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-            // INITIAL_SESSION with null session 发生在：其他页面退出后跳转回来，
-            // 此时 Supabase session 已清空，需要同步清除本地登录状态
             if (isLoggedIn()) clearLoggedIn();
         }
     });
@@ -6561,6 +6570,7 @@
         baziMenu.classList.remove('open');
         langMenu.classList.remove('open');
         aboutMenu.classList.remove('open');
+        if (!requireLogin()) return;
         openAddModal();
     });
 
@@ -6668,18 +6678,22 @@
         const editBtn = e.target.closest('button[data-edit-id]');
         if (editBtn) {
             e.stopPropagation();
+            baziMenu.classList.remove('open');
+            if (!isLoggedIn()) { requireLogin(); return; }
             if (editBtn.dataset.locked === '1') {
-                baziMenu.classList.remove('open');
                 alert(window.I18N ? window.I18N.t('alert_annual_locked') : '包年绑定档案不可修改');
                 return;
             }
             const profile = profiles.find((p) => p.id === editBtn.dataset.editId);
-            baziMenu.classList.remove('open');
             openEditModal(profile);
             return;
         }
         const selectBtn = e.target.closest('.bazi-menu-select');
-        if (!selectBtn) return;
+        if (!selectBtn) {
+            // 点击「登录后创建档案」提示
+            if (e.target.closest('.bazi-menu-login-hint')) { baziMenu.classList.remove('open'); requireLogin(); }
+            return;
+        }
         const item = selectBtn.closest('.bazi-menu-item');
         if (!item) return;
         e.stopPropagation();
