@@ -61,7 +61,7 @@ export async function markOrderPaidAndFulfill(orderId, {
     annualPlanId = `ap_${order.id.replace(/-/g, '').slice(0, 16)}`;
     const { error: planErr } = await sb.from('annual_plans').upsert({
       id: annualPlanId,
-      owner_email: order.owner_email,
+      owner_email: String(order.owner_email || '').trim().toLowerCase(),
       user_id: order.user_id,
       start_date: start,
       end_date: end,
@@ -111,32 +111,50 @@ export async function markOrderPaidAndFulfill(orderId, {
   return { ok: true, order: updated, alreadyPaid: false };
 }
 
-/** Whether user may download this r2_key (paid order item or active annual). */
-export async function userCanDownloadKey({ userId, email, r2Key }) {
+function profileIdsInclude(profileIds, profileId) {
+  if (!profileId) return false;
+  const id = String(profileId);
+  const list = Array.isArray(profileIds) ? profileIds : [];
+  return list.some((x) => String(x) === id);
+}
+
+/**
+ * Whether user may download this r2_key:
+ * - active annual AND current profileId is one of the (up to 2) bound profiles, or
+ * - paid order containing this r2_key
+ */
+export async function userCanDownloadKey({ userId, email, r2Key, profileId }) {
   const sb = getServiceSupabase();
   const emailNorm = String(email || '').trim().toLowerCase();
-
-  // Active annual plan
   const today = todayYMD();
-  if (userId) {
-    const { data: byUser } = await sb
-      .from('annual_plans')
-      .select('id')
-      .eq('user_id', userId)
-      .lte('start_date', today)
-      .gte('end_date', today)
-      .limit(1);
-    if (byUser?.length) return true;
-  }
-  if (emailNorm) {
-    const { data: byEmail } = await sb
-      .from('annual_plans')
-      .select('id')
-      .eq('owner_email', emailNorm)
-      .lte('start_date', today)
-      .gte('end_date', today)
-      .limit(1);
-    if (byEmail?.length) return true;
+
+  // Active annual plan + bound profile only (not account-wide)
+  if (profileId) {
+    const plans = [];
+    if (userId) {
+      const { data: byUser } = await sb
+        .from('annual_plans')
+        .select('id, profile_ids')
+        .eq('user_id', userId)
+        .lte('start_date', today)
+        .gte('end_date', today);
+      if (byUser?.length) plans.push(...byUser);
+    }
+    if (emailNorm) {
+      const { data: byEmail } = await sb
+        .from('annual_plans')
+        .select('id, profile_ids')
+        .eq('owner_email', emailNorm)
+        .lte('start_date', today)
+        .gte('end_date', today);
+      if (byEmail?.length) plans.push(...byEmail);
+    }
+    const seen = new Set();
+    for (const plan of plans) {
+      if (!plan?.id || seen.has(plan.id)) continue;
+      seen.add(plan.id);
+      if (profileIdsInclude(plan.profile_ids, profileId)) return true;
+    }
   }
 
   // Paid order containing this r2_key

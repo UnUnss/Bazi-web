@@ -37,7 +37,8 @@ export default async function handler(req, res) {
       if (order.provider === 'stripe' && order.provider_session_id && process.env.STRIPE_SECRET_KEY) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
         const session = await stripe.checkout.sessions.retrieve(order.provider_session_id);
-        if (session.payment_status === 'paid' || session.status === 'complete') {
+        // payment_status=paid is authoritative; complete+paid covers Checkout return races
+        if (session.payment_status === 'paid') {
           await markOrderPaidAndFulfill(order.id, {
             provider: 'stripe',
             providerSessionId: session.id,
@@ -50,14 +51,34 @@ export default async function handler(req, res) {
       }
       if (order.provider === 'paypal' && order.provider_session_id) {
         const { ok, data } = await paypalFetch(`/v2/checkout/orders/${order.provider_session_id}`);
-        if (ok && data.status === 'COMPLETED') {
-          const captureId = data.purchase_units?.[0]?.payments?.captures?.[0]?.id || null;
-          await markOrderPaidAndFulfill(order.id, {
-            provider: 'paypal',
-            providerSessionId: data.id,
-            providerPaymentId: captureId,
-            metaExtra: { synced_from: 'status' },
-          });
+        // APPROVED means buyer returned but capture may still be in flight on this request path
+        if (ok && (data.status === 'COMPLETED' || data.status === 'APPROVED')) {
+          if (data.status === 'APPROVED') {
+            const cap = await paypalFetch(`/v2/checkout/orders/${order.provider_session_id}/capture`, {
+              method: 'POST',
+              body: {},
+            });
+            const already = !cap.ok && (cap.data?.name === 'ORDER_ALREADY_CAPTURED'
+              || String(cap.data?.message || '').includes('already'));
+            if (cap.ok || already) {
+              const payload = cap.ok ? cap.data : data;
+              const captureId = payload?.purchase_units?.[0]?.payments?.captures?.[0]?.id || null;
+              await markOrderPaidAndFulfill(order.id, {
+                provider: 'paypal',
+                providerSessionId: order.provider_session_id,
+                providerPaymentId: captureId,
+                metaExtra: { synced_from: 'status_capture' },
+              });
+            }
+          } else {
+            const captureId = data.purchase_units?.[0]?.payments?.captures?.[0]?.id || null;
+            await markOrderPaidAndFulfill(order.id, {
+              provider: 'paypal',
+              providerSessionId: data.id,
+              providerPaymentId: captureId,
+              metaExtra: { synced_from: 'status' },
+            });
+          }
         }
       }
     } catch (err) {

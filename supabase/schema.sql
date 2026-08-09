@@ -178,6 +178,7 @@ grant select, insert, update, delete on public.download_records to service_role;
 --   single  = 单张 US$5.99
 --   pack2   = 2 张 US$10.99
 --   pack4   = 4 张 US$19.99
+--   mixed   = 任意张数，按 4+2+1 组合计价（如 3=pack2+single）
 --   annual  = 包年 US$219.99
 -- status: pending | paid | failed | refunded | cancelled
 -- ════════════════════════════════════════════
@@ -186,7 +187,7 @@ create table if not exists public.payment_orders (
   user_id uuid references auth.users (id) on delete set null,
   owner_email text not null,
   product_type text not null
-    check (product_type in ('single', 'pack2', 'pack4', 'annual')),
+    check (product_type in ('single', 'pack2', 'pack4', 'mixed', 'annual')),
   status text not null default 'pending'
     check (status in ('pending', 'paid', 'failed', 'refunded', 'cancelled')),
   amount_cents integer not null check (amount_cents >= 0),  -- 以分为单位，避免浮点
@@ -269,5 +270,16 @@ begin
       add constraint download_records_order_id_fkey
       foreign key (order_id) references public.payment_orders (id) on delete set null;
   end if;
+end $$;
+
+-- 已有库：允许 mixed（任意张数组合计价）
+do $$
+begin
+  alter table public.payment_orders drop constraint if exists payment_orders_product_type_check;
+  alter table public.payment_orders
+    add constraint payment_orders_product_type_check
+    check (product_type in ('single', 'pack2', 'pack4', 'mixed', 'annual'));
+exception
+  when others then null;
 end $$;
 

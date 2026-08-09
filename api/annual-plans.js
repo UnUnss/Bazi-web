@@ -50,17 +50,33 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { data, error } = await sb
-        .from('annual_plans')
-        .select('id, start_date, end_date, profile_ids')
-        .eq('owner_email', email)
-        .order('start_date', { ascending: true })
-        .order('created_at', { ascending: true });
-      if (error) {
-        console.error('annual-plans GET error:', error);
+      // Match by email or user_id (payment fulfill writes both)
+      const [byEmail, byUser] = await Promise.all([
+        sb.from('annual_plans')
+          .select('id, start_date, end_date, profile_ids, created_at')
+          .eq('owner_email', email),
+        sb.from('annual_plans')
+          .select('id, start_date, end_date, profile_ids, created_at')
+          .eq('user_id', userId),
+      ]);
+      if (byEmail.error) {
+        console.error('annual-plans GET email error:', byEmail.error);
         return res.status(500).json({ error: 'Database error' });
       }
-      return res.status(200).json({ plans: (data || []).map(toClient) });
+      if (byUser.error) {
+        console.error('annual-plans GET user error:', byUser.error);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      const map = new Map();
+      [...(byEmail.data || []), ...(byUser.data || [])].forEach((row) => {
+        if (row?.id) map.set(row.id, row);
+      });
+      const plans = [...map.values()].sort((a, b) => {
+        const ds = String(a.start_date).localeCompare(String(b.start_date));
+        if (ds) return ds;
+        return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+      });
+      return res.status(200).json({ plans: plans.map(toClient) });
     }
 
     if (req.method === 'PUT' || req.method === 'POST') {

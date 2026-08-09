@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   const auth = await assertUser(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
-  const { r2_key } = req.body || {};
+  const { r2_key, profile_id: profileId } = req.body || {};
   if (!r2_key || typeof r2_key !== 'string') {
     return res.status(400).json({ error: 'Missing r2_key' });
   }
@@ -29,24 +29,38 @@ export default async function handler(req, res) {
   const sb = getServiceSupabase();
 
   // Verify r2_key exists in wallpapers table (prevents arbitrary R2 file access)
+  // wallpapers may not have a separate preview_key column; treat r2_key match as sufficient
+  let originalKey = r2_key;
   const { data: byOriginal } = await sb
     .from('wallpapers')
-    .select('id')
+    .select('id, r2_key')
     .eq('r2_key', r2_key)
     .maybeSingle();
-  if (!byOriginal) {
-    const { data: byPreview } = await sb
-      .from('wallpapers')
-      .select('id')
-      .eq('preview_key', r2_key)
-      .maybeSingle();
-    if (!byPreview) return res.status(403).json({ error: 'Forbidden' });
+  if (byOriginal?.r2_key) {
+    originalKey = byOriginal.r2_key;
+  } else {
+    // Try matching as preview_key (column may not exist in all deployments)
+    let resolvedByPreview = null;
+    try {
+      const { data: byPreview } = await sb
+        .from('wallpapers')
+        .select('id, r2_key')
+        .eq('preview_key', r2_key)
+        .maybeSingle();
+      resolvedByPreview = byPreview;
+    } catch (_) {}
+    if (resolvedByPreview?.r2_key) {
+      originalKey = resolvedByPreview.r2_key;
+    } else {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
   }
 
   const allowed = await userCanDownloadKey({
     userId: auth.userId,
     email: auth.email,
-    r2Key: r2_key,
+    r2Key: originalKey,
+    profileId: profileId ? String(profileId) : null,
   });
   if (!allowed) {
     return res.status(402).json({ error: 'Payment required' });
@@ -57,11 +71,11 @@ export default async function handler(req, res) {
       s3,
       new GetObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME,
-        Key: r2_key,
+        Key: originalKey,
       }),
       { expiresIn: 300 }
     );
-    return res.status(200).json({ url });
+    return res.status(200).json({ url, r2_key: originalKey });
   } catch (err) {
     console.error('download presign error:', err);
     return res.status(500).json({ error: 'Failed to generate download URL' });

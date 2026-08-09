@@ -3,6 +3,7 @@ import { assertUser } from '../_lib/auth.js';
 import { getServiceSupabase } from '../_lib/supabase.js';
 import {
   PRODUCT_LABELS,
+  amountCentsForItemCount,
   amountForProduct,
   productTypeFromItemCount,
   siteUrl,
@@ -36,26 +37,21 @@ export default async function handler(req, res) {
   let productType = body.product_type || body.productType || null;
   const items = normalizeItems(body.items);
 
+  let amountCents;
   if (productType === 'annual') {
-    // ok, no items required
-  } else if (!productType) {
+    amountCents = amountForProduct('annual');
+  } else {
+    // Wallpaper cart: price by item count (4+2+1 packs). Ignore client product_type.
+    if (!items.length) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
     productType = productTypeFromItemCount(items.length);
-    if (!productType) {
-      return res.status(400).json({ error: 'Cart must contain 1, 2, or 4 items' });
-    }
-  } else if (!['single', 'pack2', 'pack4'].includes(productType)) {
-    return res.status(400).json({ error: 'Invalid product_type' });
+    amountCents = amountCentsForItemCount(items.length);
   }
 
-  if (productType !== 'annual') {
-    const expectedCount = productType === 'single' ? 1 : productType === 'pack2' ? 2 : 4;
-    if (items.length !== expectedCount) {
-      return res.status(400).json({ error: `Expected ${expectedCount} items for ${productType}` });
-    }
+  if (!productType || amountCents == null) {
+    return res.status(400).json({ error: 'Unknown product' });
   }
-
-  const amountCents = amountForProduct(productType);
-  if (amountCents == null) return res.status(400).json({ error: 'Unknown product' });
 
   const unitPrice = productType === 'annual'
     ? amountCents

@@ -2683,7 +2683,6 @@
         </div>
 
         <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout" style="display:none">結算</button>
-        <p class="pay-provider-hint" id="cartPayHint" data-i18n="pay_cart_hint">勾選 1 / 2 / 4 張後點擊結算</p>
     </div>
 </div>
 
@@ -4189,9 +4188,32 @@
     }
 
     function isAnnualActive() {
-        // 包年綁定屬帳號狀態：未登入不顯示鎖定／包年入口
+        // 帳號級有效包年（未登入不算）；按本地日期判斷是否在有效期內
         if (localStorage.getItem('bazi_logged_in') !== '1') return false;
-        return loadAnnualPlans().length > 0;
+        const today = todayYMD();
+        return loadAnnualPlans().some((p) => p && p.start <= today && p.end >= today);
+    }
+
+    /** 將支付回跳的包年方案寫入本地（避免新建隨機 id 覆蓋雲端履約記錄） */
+    function ensureLocalAnnualFromCheckout(status) {
+        const ap = status?.meta?.annual_plan || {};
+        const id = status?.annualPlanId || ap.id;
+        if (!id) return;
+        const start = ap.start || todayYMD();
+        const end = ap.end || addOneYearYMD(start);
+        const existing = loadAnnualPlans();
+        const idx = existing.findIndex((p) => p.id === id);
+        const next = normalizeAnnualPlan({
+            id,
+            start,
+            end,
+            profileIds: idx >= 0 ? (existing[idx].profileIds || []) : [],
+        });
+        if (!next) return;
+        if (idx >= 0) existing[idx] = next;
+        else existing.push(next);
+        // 只寫本地；雲端已由支付履約寫入，避免 PUT 誤刪
+        saveAnnualPlansLocal(existing);
     }
 
     function updateAnnualNavBtn() {
@@ -4264,30 +4286,48 @@
         return m ? `.${m[1].toLowerCase().replace('jpeg', 'jpg')}` : '.jpg';
     }
 
-    /** 发起原图下载任务：取签名链接 → blob 保存到本地（不打开预览图） */
-    async function startOriginalDownload({ r2key, name, previewImg }) {
+    /** 发起原图下载：取签名链接；优先 blob 落盘，CORS 失败则直链下载 */
+    function triggerDirectDownload(fileUrl, filename) {
+        const a = document.createElement('a');
+        a.href = fileUrl;
+        a.download = filename || 'wallpaper.jpg';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    /**
+     * @returns {'ok'|'missing'|'auth'|'payment'|'fail'}
+     */
+    async function startOriginalDownload({ r2key, name, previewImg, silentPaymentAlert = false }) {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        if (!requireLogin()) return;
+        if (!requireLogin()) return 'auth';
         if (!r2key) {
             alert(t('download_missing_key'));
-            return;
+            return 'missing';
         }
 
         let fileUrl = '';
+        let lastStatus = 0;
         try {
             const headers = await getAuthHeaders();
             const res = await fetch('/api/download', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ r2_key: r2key }),
+                body: JSON.stringify({
+                    r2_key: r2key,
+                    profile_id: (typeof activeId !== 'undefined' ? activeId : '') || '',
+                }),
             });
+            lastStatus = res.status;
             if (res.status === 402) {
-                alert(t('download_payment_required'));
-                return;
+                if (!silentPaymentAlert) alert(t('download_payment_required'));
+                return 'payment';
             }
             if (res.status === 401) {
                 requireLogin();
-                return;
+                return 'auth';
             }
             if (res.ok) {
                 const data = await res.json();
@@ -4296,16 +4336,17 @@
         } catch (_) {}
 
         if (!fileUrl) {
-            alert(t('download_failed'));
-            return;
+            if (lastStatus !== 402) alert(t('download_failed'));
+            return 'fail';
         }
 
+        const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
         try {
-            const resp = await fetch(fileUrl);
+            const resp = await fetch(fileUrl, { mode: 'cors', credentials: 'omit' });
             if (!resp.ok) throw new Error('fetch failed');
             const blob = await resp.blob();
             const ext = guessExtFromUrl(fileUrl, blob.type);
-            const filename = ((name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_')) + ext;
+            const filename = baseName + ext;
             const obj = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = obj;
@@ -4316,8 +4357,34 @@
             setTimeout(() => URL.revokeObjectURL(obj), 2000);
             recordDownloadHistory({ img: previewImg || fileUrl, name, r2key });
         } catch (_) {
-            alert(t('download_failed'));
+            // R2 S3 签名域名若未配 CORS，blob fetch 会失败；改直链仍可下载
+            const filename = baseName + guessExtFromUrl(fileUrl, '');
+            triggerDirectDownload(fileUrl, filename);
+            recordDownloadHistory({ img: previewImg || fileUrl, name, r2key });
         }
+        return 'ok';
+    }
+
+    /** 支付刚成功时 webhook/读库可能略延迟，402 时短重试 */
+    async function downloadAfterPayment(item) {
+        const args = {
+            r2key: item.r2Key,
+            name: item.name || '',
+            previewImg: item.previewUrl || '',
+            silentPaymentAlert: true,
+        };
+        for (let i = 0; i < 6; i++) {
+            const result = await startOriginalDownload(args);
+            if (result === 'ok' || result === 'auth' || result === 'missing') return result;
+            if (result === 'payment' || result === 'fail') {
+                await new Promise((r) => setTimeout(r, 1000));
+                continue;
+            }
+            return result;
+        }
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        alert(t('download_payment_required'));
+        return 'payment';
     }
 
     function productTypeFromTier(tier) {
@@ -4331,6 +4398,7 @@
         if (n === 1) return 'single';
         if (n === 2) return 'pack2';
         if (n === 4) return 'pack4';
+        if (n >= 1) return 'mixed';
         return null;
     }
 
@@ -4431,23 +4499,11 @@
             }
 
             if (status.productType === 'annual') {
-                // Sync cloud annual plans then open manage UI
+                // 先按履约结果写本地，再拉云端（避免随机 id + PUT 误删云端方案）
+                ensureLocalAnnualFromCheckout(status);
                 await hydrateAnnualFromCloud();
-                if (!isAnnualActive() && status.meta?.annual_plan) {
-                    const ap = status.meta.annual_plan;
-                    purchaseAnnualPlan();
-                    // Align local plan id/dates if cloud hydrate missed
-                    const plans = loadAnnualPlans();
-                    if (plans.length && ap.id) {
-                        plans[plans.length - 1] = normalizeAnnualPlan({
-                            id: ap.id,
-                            start: ap.start,
-                            end: ap.end,
-                            profileIds: [],
-                        });
-                        saveAnnualPlans(plans);
-                    }
-                }
+                if (!isAnnualActive()) ensureLocalAnnualFromCheckout(status);
+                updateAnnualNavBtn();
                 refresh();
                 alert(t('annual_pay_success'));
                 openAnnualSelectModal('manage');
@@ -4456,11 +4512,8 @@
 
             const items = Array.isArray(status.items) ? status.items : [];
             for (const it of items) {
-                await startOriginalDownload({
-                    r2key: it.r2Key,
-                    name: it.name || '',
-                    previewImg: it.previewUrl || '',
-                });
+                if (!it?.r2Key) continue;
+                await downloadAfterPayment(it);
             }
             if (items.length) {
                 const keys = new Set(items.map((it) => it.r2Key).filter(Boolean));
@@ -4766,7 +4819,7 @@
         pendingDownloadName = name;
         pendingDownloadKey = key;
         pendingDownloadR2Key = r2key;
-        // 当前档案已绑定包年：跳过价格窗，直接发起原图下载任务
+        // 当前档案已绑定包年：跳过价格窗，直接发起原图下载
         if (isActiveProfileAnnualBound()) {
             startOriginalDownload({ r2key, name, previewImg: img });
             return;
@@ -4809,7 +4862,6 @@
     const cartTotalRow = document.getElementById('cartTotalRow');
     const cartTotalPrice = document.getElementById('cartTotalPrice');
     const btnCartCheckout = document.getElementById('btnCartCheckout');
-    const cartPayHint = document.getElementById('cartPayHint');
     const checkoutProviderModal = document.getElementById('checkoutProviderModal');
     const checkoutProviderClose = document.getElementById('checkoutProviderClose');
 
@@ -4851,7 +4903,6 @@
             cartToolbar.style.display = 'none';
             cartTotalRow.style.display = 'none';
             if (btnCartCheckout) btnCartCheckout.style.display = 'none';
-            if (cartPayHint) cartPayHint.style.display = 'none';
             return;
         }
 
@@ -4866,7 +4917,7 @@
         `).join('');
 
         const checkedCount = cartItems.filter((it) => it.checked).length;
-        const canCheckout = !!productTypeFromCount(checkedCount);
+        const canCheckout = checkedCount >= 1;
         cartSelectAll.checked = checkedCount === cartItems.length && checkedCount > 0;
         cartTotalRow.style.display = checkedCount > 0 ? 'flex' : 'none';
         cartTotalPrice.textContent = 'US$' + computeCartTotal(checkedCount).toFixed(2);
@@ -4874,7 +4925,6 @@
             btnCartCheckout.style.display = 'block';
             btnCartCheckout.disabled = !canCheckout;
         }
-        if (cartPayHint) cartPayHint.style.display = 'block';
     }
 
     function openCartModal() {
@@ -4936,9 +4986,8 @@
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return false;
         const checked = cartItems.filter((it) => it.checked);
-        const productType = productTypeFromCount(checked.length);
-        if (!productType) {
-            alert(t('pay_cart_count_invalid'));
+        if (!checked.length) {
+            alert(t('pay_cart_empty'));
             return false;
         }
         const missing = checked.some((it) => !it.r2key);
@@ -4947,7 +4996,7 @@
             return false;
         }
         pendingCartCheckout = {
-            productType,
+            productType: productTypeFromCount(checked.length),
             items: checked.map((it) => ({
                 r2_key: it.r2key,
                 preview_url: it.img,
