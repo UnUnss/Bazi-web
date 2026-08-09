@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title data-i18n="meta_title">八字定製每月運勢壁紙</title>
+    <title data-i18n="meta_title">ElementaWall · 八字定製每月運勢壁紙</title>
+    <meta name="application-name" content="ElementaWall">
+    <meta name="description" content="ElementaWall 根據生辰八字，為你定制每月運勢壁紙。支援 Google 與郵箱登入，提供個人化壁紙推薦與下載。">
     <!--
         汇迹正楷 CooperZhengKai：UI 子集优先；子集没有的字回退到完整 CooperZhengKai。
         城市名等地点文案仍可走系统字体（见 .loc-select）。
@@ -17,6 +19,20 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+
+        /* 可抓取品牌文案：对用户不可见，仍留在 HTML 供审核/爬虫读取 */
+        .brand-title,
+        .brand-purpose {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         :root {
@@ -2274,6 +2290,8 @@
 
 <div class="content-wrap">
 <main class="hero">
+    <h1 class="brand-title">ElementaWall</h1>
+    <p class="brand-purpose">ElementaWall 根據生辰八字，為你定制每月運勢壁紙。支援 Google 與郵箱登入。</p>
     <div class="action-row">
         <button type="button" class="btn-outline" id="btnAddBazi" data-i18n="btn_add_bazi">+ 新增檔案</button>
         <div class="switch-wrap">
