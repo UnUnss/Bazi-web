@@ -1,5 +1,6 @@
 // 已登录用户获取原图临时下载链接（Bearer）
 // 授权：有效包年 或 已支付订单包含该 r2_key
+// 可选：record_history=true 时由服务端写入 download_records（避免浏览器直连 Supabase 失败）
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { assertUser } from './_lib/auth.js';
@@ -15,13 +16,65 @@ const s3 = new S3Client({
   },
 });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function sanitizePreviewUrl(raw) {
+  if (typeof raw !== 'string') return null;
+  const url = raw.trim();
+  if (!url || url.length > 500) return null;
+  // 只存公网预览图，不存带签名参数的临时下载链
+  if (/[?&](X-Amz-|Signature=|token=)/i.test(url)) return null;
+  if (!/^https?:\/\//i.test(url)) return null;
+  return url;
+}
+
+function sanitizeText(raw, max) {
+  if (typeof raw !== 'string') return null;
+  const s = raw.trim();
+  if (!s) return null;
+  return s.slice(0, max);
+}
+
+async function recordDownload(sb, {
+  userId,
+  email,
+  wallpaperId,
+  r2Key,
+  previewUrl,
+  wallpaperName,
+  monthGanzhi,
+  profileId,
+}) {
+  const row = {
+    user_id: userId,
+    owner_email: email || '',
+    wallpaper_id: wallpaperId || null,
+    r2_key: r2Key,
+    preview_url: sanitizePreviewUrl(previewUrl),
+    wallpaper_name: sanitizeText(wallpaperName, 120),
+    month_ganzhi: sanitizeText(monthGanzhi, 16),
+    profile_id: profileId && UUID_RE.test(profileId) ? profileId : null,
+  };
+  const { error } = await sb.from('download_records').insert(row);
+  if (error) console.error('download_records insert failed', error);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const auth = await assertUser(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
-  const { r2_key, profile_id: profileId, filename: rawName } = req.body || {};
+  const body = req.body || {};
+  const {
+    r2_key,
+    profile_id: profileId,
+    filename: rawName,
+    record_history: recordHistory,
+    preview_url: previewUrl,
+    wallpaper_name: wallpaperName,
+    month_ganzhi: monthGanzhi,
+  } = body;
   if (!r2_key || typeof r2_key !== 'string') {
     return res.status(400).json({ error: 'Missing r2_key' });
   }
@@ -44,6 +97,7 @@ export default async function handler(req, res) {
   // Verify r2_key exists in wallpapers table (prevents arbitrary R2 file access)
   // wallpapers may not have a separate preview_key column; treat r2_key match as sufficient
   let originalKey = r2_key;
+  let wallpaperId = null;
   const { data: byOriginal } = await sb
     .from('wallpapers')
     .select('id, r2_key')
@@ -51,6 +105,7 @@ export default async function handler(req, res) {
     .maybeSingle();
   if (byOriginal?.r2_key) {
     originalKey = byOriginal.r2_key;
+    wallpaperId = byOriginal.id || null;
   } else {
     // Try matching as preview_key (column may not exist in all deployments)
     let resolvedByPreview = null;
@@ -64,6 +119,7 @@ export default async function handler(req, res) {
     } catch (_) {}
     if (resolvedByPreview?.r2_key) {
       originalKey = resolvedByPreview.r2_key;
+      wallpaperId = resolvedByPreview.id || null;
     } else {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -91,6 +147,21 @@ export default async function handler(req, res) {
       }),
       { expiresIn: 300 }
     );
+
+    // 签发成功后再记下载记录；重新下载不传 record_history，避免重复写入
+    if (recordHistory) {
+      await recordDownload(sb, {
+        userId: auth.userId,
+        email: auth.email,
+        wallpaperId,
+        r2Key: originalKey,
+        previewUrl,
+        wallpaperName: wallpaperName || safeBase,
+        monthGanzhi,
+        profileId: profileId ? String(profileId) : null,
+      });
+    }
+
     return res.status(200).json({ url, r2_key: originalKey, filename: downloadName });
   } catch (err) {
     console.error('download presign error:', err);

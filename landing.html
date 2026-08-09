@@ -4353,27 +4353,6 @@
         saveAnnualPlans(plans);
     }
 
-    /** 下载成功后只写云端记录（不再落本地） */
-    function recordDownloadHistory(entry) {
-        if (!isLoggedIn() || !entry.r2key) return;
-        currentSupabaseUser().then((user) => {
-            if (!user?.id) return;
-            const ganZhi = getCurrentYearMonthGanZhi();
-            return _sb.from('download_records').insert({
-                user_id: user.id,
-                owner_email: user.email || '',
-                r2_key: entry.r2key,
-                preview_url: entry.img || null,
-                wallpaper_name: entry.name || null,
-                month_ganzhi: ganZhi ? ganZhi.month : null,
-                profile_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeId || '')
-                    ? activeId : null,
-            });
-        }).then(({ error } = {}) => {
-            if (error) console.warn('download record cloud save failed', error);
-        }).catch(() => {});
-    }
-
     function guessExtFromUrl(url, contentType) {
         if (contentType && contentType.includes('jpeg')) return '.jpg';
         if (contentType && contentType.includes('png')) return '.png';
@@ -4407,6 +4386,7 @@
         let fileUrl = '';
         let lastStatus = 0;
         const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
+        const ganZhi = getCurrentYearMonthGanZhi();
         try {
             const headers = await getAuthHeaders();
             const res = await fetch('/api/download', {
@@ -4416,6 +4396,11 @@
                     r2_key: r2key,
                     profile_id: (typeof activeId !== 'undefined' ? activeId : '') || '',
                     filename: baseName,
+                    // 由服务端写 download_records（不依赖浏览器直连 Supabase）
+                    record_history: true,
+                    preview_url: previewImg || '',
+                    wallpaper_name: name || '',
+                    month_ganzhi: ganZhi ? ganZhi.month : '',
                 }),
             });
             lastStatus = res.status;
@@ -4452,12 +4437,10 @@
             a.click();
             a.remove();
             setTimeout(() => URL.revokeObjectURL(obj), 2000);
-            recordDownloadHistory({ img: previewImg || fileUrl, name, r2key });
         } catch (_) {
             // R2 未配 CORS 时 blob fetch 失败；签名 URL 已带 attachment，直链会触发下载而非预览
             const filename = baseName + guessExtFromUrl(fileUrl, '');
             triggerDirectDownload(fileUrl, filename);
-            recordDownloadHistory({ img: previewImg || fileUrl, name, r2key });
         }
         return 'ok';
     }
