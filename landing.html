@@ -59,14 +59,18 @@
 
         html {
             font-family: var(--font-kai);
-            overflow-x: hidden;
+            /* clip 比 hidden 少一层滚动容器；减轻 iOS 到顶/底反向滑要滑两次的问题 */
+            overflow-x: clip;
+            overscroll-behavior-y: none;
         }
 
         body {
             font-family: var(--font-kai);
             color: var(--ink);
             min-height: 100vh;
-            overflow-x: hidden;
+            overflow-x: clip;
+            /* iOS 16+：关掉边缘橡皮筋链式滚动，避免滑到顶/底后第一次反向滑动被吞掉 */
+            overscroll-behavior-y: none;
         }
 
         /*
