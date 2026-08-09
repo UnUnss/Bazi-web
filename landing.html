@@ -6828,6 +6828,10 @@
         const newId = (window.crypto && crypto.randomUUID)
             ? crypto.randomUUID()
             : ('p-' + Date.now());
+        // 展示选图锁定：沿用已有记录；表单保存不写 wallpaper_history，避免 upsert 误清空
+        const prevHistory = existing?.wallpaperHistory && typeof existing.wallpaperHistory === 'object'
+            ? { ...existing.wallpaperHistory }
+            : {};
         const profile = {
             id: (editingId && !editingDemo) ? editingId : newId,
             nickname,
@@ -6843,11 +6847,14 @@
             countryCode: locationChanged ? (locCountrySel.value || '') : (existing?.countryCode || ''),
             stateCode:   locationChanged ? (locStateSel.value   || '') : (existing?.stateCode   || ''),
             cityName:    locationChanged ? (locCitySel.value    || '') : (existing?.cityName    || ''),
+            wallpaperHistory: prevHistory,
         };
 
         let cloudResult;
         try {
-            cloudResult = await cloudUpsertProfile(profile);
+            // 表单保存不带 wallpaper_history，避免 upsert 改写展示选图锁定
+            const { wallpaperHistory: _keepHist, ...profileForCloud } = profile;
+            cloudResult = await cloudUpsertProfile(profileForCloud);
         } finally {
             _profileSaving = false;
         }
@@ -6856,9 +6863,11 @@
             alert(`${tip}\n(${cloudResult.error || 'unknown'})`);
             return;
         }
-        // 用云端返回的 id（uuid）替换本地临时 id
+        // 用云端返回的字段合并；壁纸历史以本地/已有为准（upsert 不应改写该列）
         const saved = cloudResult.ok ? cloudResult.profile : null;
-        const finalProfile = saved && saved.id ? { ...profile, ...saved } : profile;
+        const finalProfile = saved && saved.id
+            ? { ...profile, ...saved, wallpaperHistory: prevHistory }
+            : profile;
         if (editingId) {
             const idx = profiles.findIndex((p) => p.id === editingId);
             if (idx >= 0) profiles[idx] = finalProfile;
@@ -6876,7 +6885,8 @@
                 delete insightAll[editingId];
                 localStorage.setItem(INSIGHT_CACHE_KEY, JSON.stringify(insightAll));
             } catch (_) {}
-            // 同时清当月壁纸锁，让选图算法按新八字重新运行
+            // 只清本地当月壁纸锁，让随后 refresh 重新选图并写入云端。
+            // 切勿在此处异步 PATCH {}：会与 recordMonthWallpaperIds 竞态，把新选图覆盖成空。
             try {
                 const nowYM = getCurrentYearMonthGanZhi();
                 if (nowYM) {
@@ -6887,9 +6897,9 @@
                         delete all[editingId][ymKey];
                         saveWallpaperHistoryAll(all);
                     }
-                    // 异步同步到云端（清除云端壁纸锁）
-                    if (isLoggedIn()) {
-                        cloudPatchWallpaperHistory(finalProfile.id, finalProfile.wallpaperHistory || {}, nowYM.year);
+                    if (all[finalProfile.id] && finalProfile.id !== editingId) {
+                        delete all[finalProfile.id][ymKey];
+                        saveWallpaperHistoryAll(all);
                     }
                 }
             } catch (_) {}
