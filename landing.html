@@ -6075,6 +6075,15 @@
         }, 0);
     }
 
+    // 其他页面点「登录」跳转落地：landing.html?login=1 → 自动打开登录框
+    if (new URLSearchParams(location.search).get('login') === '1' && !isLoggedIn()) {
+        setTimeout(() => {
+            const modal = document.getElementById('loginModal');
+            if (modal) modal.classList.add('open');
+            try { history.replaceState(null, '', location.pathname); } catch (_) {}
+        }, 0);
+    }
+
     // Stripe / PayPal 回跳履约
     if (typeof handleCheckoutReturn === 'function') {
         setTimeout(() => {

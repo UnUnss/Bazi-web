@@ -695,7 +695,7 @@
         }
     }
     window.BaziAuth.syncFromSupabase().then(({ loggedIn, email }) => updateAuthUI(loggedIn, email));
-    btnLogin.addEventListener('click', () => { location.href = 'landing.html'; });
+    btnLogin.addEventListener('click', () => { location.href = 'landing.html?login=1'; });
     userMenuBtn.addEventListener('click', e => { e.stopPropagation(); userMenu.classList.toggle('open'); });
     if (btnAnnualService) {
         btnAnnualService.addEventListener('click', (e) => {

@@ -489,7 +489,7 @@
     }
     window.BaziAuth.syncFromSupabase().then(({ loggedIn, email }) => updateAuthUI(loggedIn, email));
     document.addEventListener('i18n:change', () => { updateLangLabel(); renderHistory(); });
-    btnLogin.addEventListener('click', () => { location.href = 'landing.html'; });
+    btnLogin.addEventListener('click', () => { location.href = 'landing.html?login=1'; });
     userMenuBtn.addEventListener('click', e => { e.stopPropagation(); userMenu.classList.toggle('open'); });
     if (btnAnnualService) {
         btnAnnualService.addEventListener('click', (e) => {
@@ -542,7 +542,7 @@
             const token = await getAccessToken();
             if (!token) {
                 alert(window.I18N ? window.I18N.t('nav_login') : '請先登入');
-                location.href = 'landing.html';
+                location.href = 'landing.html?login=1';
                 return;
             }
             const res = await fetch('/api/download', {
@@ -550,7 +550,7 @@
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ r2_key: r2key, filename: name }),
             });
-            if (res.status === 401) { location.href = 'landing.html'; return; }
+            if (res.status === 401) { location.href = 'landing.html?login=1'; return; }
             if (res.status === 402) {
                 alert(window.I18N ? window.I18N.t('download_payment_required') : '需要先購買此壁紙');
                 return;
