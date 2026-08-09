@@ -934,8 +934,7 @@
     });
     document.getElementById('btnLogout').addEventListener('click', async () => {
         await window.BaziAuth.signOut();
-        updateAuthUI(false, '');
-        userMenu.classList.remove('open');
+        window.location.href = '/';
     });
     document.addEventListener('click', () => { userMenu.classList.remove('open'); });
 })();

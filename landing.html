@@ -6045,8 +6045,10 @@
                     hydrateDownloadHistoryFromCloud();
                 }
             }
-        } else if (event === 'SIGNED_OUT') {
-            clearLoggedIn();
+        } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+            // INITIAL_SESSION with null session 发生在：其他页面退出后跳转回来，
+            // 此时 Supabase session 已清空，需要同步清除本地登录状态
+            if (isLoggedIn()) clearLoggedIn();
         }
     });
 
