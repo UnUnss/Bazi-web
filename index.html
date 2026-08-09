@@ -150,20 +150,6 @@
             white-space: pre-line; /* 用真实换行符换行，不用逗号 */
         }
 
-        /* 可抓取品牌文案：对用户不可见，仍留在 HTML 供审核/爬虫读取 */
-        .brand-title,
-        .brand-purpose {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
         @keyframes spin {
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
@@ -279,8 +265,6 @@
 <img class="brand" src="assets/english.png" alt="ElementaWall" draggable="false" style="mix-blend-mode: multiply;">
 
 <div class="cta-wrap">
-    <h1 class="brand-title">ElementaWall</h1>
-    <p class="brand-purpose" data-i18n="cta_purpose">ElementaWall 根據生辰八字，為你定制每月運勢壁紙。支援 Google 與郵箱登入。</p>
     <a class="cta-btn" href="/landing">
         <span data-i18n="cta_start">開始</span><span class="arrow">›</span>
     </a>
