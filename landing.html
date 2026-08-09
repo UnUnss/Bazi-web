@@ -3126,25 +3126,42 @@
     }
 
     /**
-     * @returns {object|null} 成功返回云端档案；未登录/demo 返回原 profile；失败返回 null
+     * @returns {{ ok: true, profile: object } | { ok: false, error: string } | { ok: true, profile: object, skipped: true }}
+     * skipped: 未登录/demo，只写本地
      */
     async function cloudUpsertProfile(profile) {
-        if (!isLoggedIn() || !profile || String(profile.id || '').startsWith('demo-')) return profile;
+        if (!isLoggedIn() || !profile || String(profile.id || '').startsWith('demo-')) {
+            return { ok: true, profile, skipped: true };
+        }
         try {
+            // 必须有真实 session token；不能只靠 localStorage 的登录标记
+            let headers = await getAuthHeaders();
+            if (!headers.Authorization && typeof _sb !== 'undefined' && _sb?.auth) {
+                try {
+                    const { data } = await _sb.auth.refreshSession();
+                    if (data?.session?.access_token) {
+                        headers = await getAuthHeaders();
+                    }
+                } catch (_) {}
+            }
+            if (!headers.Authorization) {
+                return { ok: false, error: 'Login session expired' };
+            }
             const res = await fetch('/api/bazi-profiles', {
                 method: 'POST',
-                headers: await getAuthHeaders(),
+                headers,
                 body: JSON.stringify({ profile }),
             });
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                console.error('cloudUpsertProfile failed', await res.text());
-                return null;
+                const msg = data.detail || data.error || `HTTP ${res.status}`;
+                console.error('cloudUpsertProfile failed', msg, data);
+                return { ok: false, error: msg };
             }
-            const data = await res.json();
-            return data.profile || profile;
+            return { ok: true, profile: data.profile || profile };
         } catch (err) {
             console.error('cloudUpsertProfile', err);
-            return null;
+            return { ok: false, error: err?.message || 'Network error' };
         }
     }
 
@@ -6766,11 +6783,13 @@
             cityName:    locationChanged ? (locCitySel.value    || '') : (existing?.cityName    || ''),
         };
 
-        const saved = await cloudUpsertProfile(profile);
-        if (isLoggedIn() && saved === null) {
-            alert(window.I18N ? window.I18N.t('profile_cloud_save_failed') : '档案已保存在本机，但同步到云端失败，换设备可能看不到。请稍后重试。');
+        const cloudResult = await cloudUpsertProfile(profile);
+        if (isLoggedIn() && !cloudResult.ok) {
+            const tip = window.I18N ? window.I18N.t('profile_cloud_save_failed') : '档案已保存在本机，但同步到云端失败，换设备可能看不到。请稍后重试。';
+            alert(`${tip}\n(${cloudResult.error || 'unknown'})`);
         }
         // 用云端返回的 id（uuid）替换本地临时 id
+        const saved = cloudResult.ok ? cloudResult.profile : null;
         const finalProfile = saved && saved.id ? { ...profile, ...saved } : profile;
         if (editingId) {
             const idx = profiles.findIndex((p) => p.id === editingId);

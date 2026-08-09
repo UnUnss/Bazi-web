@@ -1,21 +1,6 @@
 // 鉴权：Authorization Bearer（Supabase）
-import { createClient } from '@supabase/supabase-js';
-
-const sb = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  { auth: { persistSession: false } }
-);
-
-async function assertUser(req) {
-  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
-  if (!token) return null;
-  const { data: { user }, error } = await sb.auth.getUser(token);
-  if (!error && user?.email) {
-    return { email: user.email.trim().toLowerCase(), userId: user.id };
-  }
-  return null;
-}
+import { assertUser } from './_lib/auth.js';
+import { getServiceSupabase } from './_lib/supabase.js';
 
 function normalizeWallpaperHistory(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
@@ -88,8 +73,9 @@ function toRow(profile, email, userId) {
 
 export default async function handler(req, res) {
   const auth = await assertUser(req);
-  if (!auth) return res.status(401).json({ error: 'Login required' });
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
   const { email, userId } = auth;
+  const sb = getServiceSupabase();
 
   try {
     if (req.method === 'GET') {
@@ -101,7 +87,7 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: true });
       if (error) {
         console.error('bazi-profiles GET error:', error);
-        return res.status(500).json({ error: 'Database error' });
+        return res.status(500).json({ error: 'Database error', detail: error.message });
       }
       return res.status(200).json({ profiles: (data || []).map(toClient) });
     }
@@ -126,7 +112,7 @@ export default async function handler(req, res) {
         .maybeSingle();
       if (error) {
         console.error('bazi-profiles PATCH error:', error);
-        return res.status(500).json({ error: 'Database error' });
+        return res.status(500).json({ error: 'Database error', detail: error.message });
       }
       if (!data) return res.status(404).json({ error: 'Profile not found' });
       return res.status(200).json({ profile: toClient(data) });
@@ -151,7 +137,7 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (error) {
           console.error('bazi-profiles POST update error:', error);
-          return res.status(500).json({ error: 'Database error' });
+          return res.status(500).json({ error: 'Database error', detail: error.message });
         }
         if (data) return res.status(200).json({ profile: toClient(data) });
 
@@ -162,7 +148,7 @@ export default async function handler(req, res) {
           .single();
         if (insErr) {
           console.error('bazi-profiles POST insert error:', insErr);
-          return res.status(500).json({ error: 'Database error' });
+          return res.status(500).json({ error: 'Database error', detail: insErr.message });
         }
         return res.status(200).json({ profile: toClient(inserted) });
       }
@@ -174,7 +160,7 @@ export default async function handler(req, res) {
         .single();
       if (error) {
         console.error('bazi-profiles POST insert error:', error);
-        return res.status(500).json({ error: 'Database error' });
+        return res.status(500).json({ error: 'Database error', detail: error.message });
       }
       return res.status(200).json({ profile: toClient(data) });
     }
@@ -189,7 +175,7 @@ export default async function handler(req, res) {
         .eq('owner_email', email);
       if (error) {
         console.error('bazi-profiles DELETE error:', error);
-        return res.status(500).json({ error: 'Database error' });
+        return res.status(500).json({ error: 'Database error', detail: error.message });
       }
       return res.status(200).json({ ok: true });
     }
