@@ -4488,8 +4488,12 @@
             openAnnualSelectModal('manage');
             return;
         }
-        // 模拟登录阶段：不调用真实 /api/download（需要 Supabase token）
-        alert(t('mock_feature_notice'));
+        // 单张/多张：支付尚未接入，登录用户可先走真实原图下载（Bearer → /api/download）
+        await startOriginalDownload({
+            r2key: pendingDownloadR2Key,
+            name: pendingDownloadName,
+            previewImg: pendingDownloadImg,
+        });
     });
 
     // ─── 下載列表（購物車） ─────────────────────────────
@@ -5444,6 +5448,23 @@
     // 页面初始时 AUTH_KEY 是否已为 '1'（用于防止 onAuthStateChange 重复 hydration）
     const _wasLoggedInOnLoad = localStorage.getItem(AUTH_KEY) === '1';
 
+    // OAuth 回调失败时 URL 可能带 error（Google / Supabase）
+    try {
+        const oauthParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+        const oauthError = oauthParams.get('error_description')
+            || oauthParams.get('error')
+            || hashParams.get('error_description')
+            || hashParams.get('error');
+        if (oauthError) {
+            const t = window.I18N ? window.I18N.t : (k) => k;
+            alert(decodeURIComponent(oauthError.replace(/\+/g, ' ')) || t('auth_error_generic'));
+            try {
+                history.replaceState(null, '', window.location.pathname);
+            } catch (_) {}
+        }
+    } catch (_) {}
+
     // 恢復 / 監聽 Supabase 會話
     // getSession 是页面首次加载的授权来源，如果本地 AUTH_KEY 已为 '1'，说明已经通过
     // if(AUTH_KEY) 块做了首次 hydration，这里只需更新 UI；若 token 失效/首次则走完整流程。
@@ -5457,6 +5478,16 @@
             } else {
                 setLoggedIn(user.email);
             }
+            // 仅清掉 OAuth 回调残留参数，保留 #annual 等业务 hash
+            try {
+                const qs = new URLSearchParams(window.location.search);
+                const hs = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+                const hasOAuthDebris = qs.has('code') || qs.has('state')
+                    || hs.has('access_token') || hs.has('refresh_token') || hs.has('code');
+                if (hasOAuthDebris) {
+                    history.replaceState(null, '', window.location.pathname);
+                }
+            } catch (_) {}
         } else {
             updateAuthUI();
         }
@@ -5733,10 +5764,26 @@
         }
     });
 
-    // Google 登录（暂仍模拟；后续可接 signInWithOAuth）
-    document.getElementById('btnGoogleLogin').addEventListener('click', () => {
+    // Google 登录（Supabase OAuth）
+    document.getElementById('btnGoogleLogin').addEventListener('click', async () => {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        alert(t('mock_feature_notice'));
+        const btn = document.getElementById('btnGoogleLogin');
+        if (btn) btn.disabled = true;
+        try {
+            const redirectTo = `${window.location.origin}${window.location.pathname}`;
+            const { error } = await _sb.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo,
+                    queryParams: { prompt: 'select_account' },
+                },
+            });
+            if (error) throw error;
+            // 成功时浏览器会跳转到 Google，无需本地收尾
+        } catch (err) {
+            if (btn) btn.disabled = false;
+            alert(mapAuthError(err, t));
+        }
     });
 
     // ── 忘記密碼：驗證碼 → 設置新密碼 ─────────────────────

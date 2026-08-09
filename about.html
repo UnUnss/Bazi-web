@@ -6,6 +6,8 @@
     <title>關於我們 · ElementaWall</title>
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=4" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=4" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="auth-session.js"></script>
     <script src="i18n.js?v=20"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -892,9 +894,6 @@
 })();
 
 (function () {
-    const AUTH_KEY = 'bazi_logged_in';
-    const AUTH_EMAIL_KEY = 'bazi_logged_email';
-    const AUTH_EMAIL_KEY_LEGACY = 'bazi_logged_in_email';
     const ANNUAL_PLANS_KEY = 'bazi_annual_plans';
     const ANNUAL_ACTIVE_KEY = 'bazi_annual_active';
     const btnLogin = document.getElementById('btnLogin');
@@ -904,12 +903,6 @@
     const userMenuEmail = document.getElementById('userMenuEmail');
     const btnAnnualService = document.getElementById('btnAnnualService');
 
-    function getLoggedEmail() {
-        return localStorage.getItem(AUTH_EMAIL_KEY)
-            || localStorage.getItem(AUTH_EMAIL_KEY_LEGACY)
-            || '';
-    }
-    function isLoggedIn() { return localStorage.getItem(AUTH_KEY) === '1'; }
     function isAnnualActive() {
         try {
             const raw = JSON.parse(localStorage.getItem(ANNUAL_PLANS_KEY) || 'null');
@@ -917,16 +910,15 @@
         } catch (_) {}
         return localStorage.getItem(ANNUAL_ACTIVE_KEY) === '1';
     }
-    function updateAuthUI() {
-        const logged = isLoggedIn();
+    function updateAuthUI(logged, email) {
         btnLogin.style.display = logged ? 'none' : '';
         userMenuWrap.style.display = logged ? '' : 'none';
-        userMenuEmail.textContent = logged ? getLoggedEmail() : '';
+        userMenuEmail.textContent = logged ? (email || '') : '';
         if (btnAnnualService) {
             btnAnnualService.style.display = (logged && isAnnualActive()) ? '' : 'none';
         }
     }
-    updateAuthUI();
+    window.BaziAuth.syncFromSupabase().then(({ loggedIn, email }) => updateAuthUI(loggedIn, email));
     btnLogin.addEventListener('click', () => { location.href = 'landing.html'; });
     userMenuBtn.addEventListener('click', e => { e.stopPropagation(); userMenu.classList.toggle('open'); });
     if (btnAnnualService) {
@@ -940,11 +932,9 @@
         alert(window.I18N ? window.I18N.t('mock_feature_notice') : '此功能即將推出');
         userMenu.classList.remove('open');
     });
-    document.getElementById('btnLogout').addEventListener('click', () => {
-        localStorage.removeItem(AUTH_KEY);
-        localStorage.removeItem(AUTH_EMAIL_KEY);
-        localStorage.removeItem(AUTH_EMAIL_KEY_LEGACY);
-        updateAuthUI();
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+        await window.BaziAuth.signOut();
+        updateAuthUI(false, '');
         userMenu.classList.remove('open');
     });
     document.addEventListener('click', () => { userMenu.classList.remove('open'); });

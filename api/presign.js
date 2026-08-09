@@ -2,9 +2,7 @@
 // 验证管理员身份，生成 R2 预签名上传 URL
 // 前端直接用这个 URL 上传文件，不经过本函数，绕过 Vercel 4.5MB 请求体限制
 //
-// 支持两种鉴权：
-// 1) Authorization: Bearer <supabase access_token>（真实登录）
-// 2) X-Admin-Email: <admin@email>（模拟登录阶段，校验 profiles / is_admin_email）
+// 鉴权：Authorization: Bearer <supabase access_token>，且 profiles.is_admin = true
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl }               from '@aws-sdk/s3-request-presigner';
@@ -27,21 +25,16 @@ const sb = createClient(
 
 async function assertAdmin(req) {
   const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
-  if (token) {
-    const { data: { user }, error } = await sb.auth.getUser(token);
-    if (error || !user) return { ok: false, status: 401, error: 'Unauthorized' };
-    const { data: profile } = await sb.from('profiles').select('is_admin').eq('id', user.id).single();
-    if (!profile?.is_admin) return { ok: false, status: 403, error: 'Forbidden' };
-    return { ok: true };
+  if (!token) return { ok: false, status: 401, error: 'Unauthorized' };
+  const { data: { user }, error } = await sb.auth.getUser(token);
+  if (error || !user) return { ok: false, status: 401, error: 'Unauthorized' };
+  const { data: profile } = await sb.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
+  if (profile?.is_admin) return { ok: true };
+  if (user.email) {
+    const { data: isAdmin } = await sb.rpc('is_admin_email', { check_email: user.email });
+    if (isAdmin === true) return { ok: true };
   }
-
-  const email = (req.headers['x-admin-email'] || '').trim();
-  if (!email) return { ok: false, status: 401, error: 'Missing auth' };
-
-  const { data, error } = await sb.rpc('is_admin_email', { check_email: email });
-  if (error) return { ok: false, status: 500, error: 'Server error' };
-  if (data !== true) return { ok: false, status: 403, error: 'Forbidden' };
-  return { ok: true };
+  return { ok: false, status: 403, error: 'Forbidden' };
 }
 
 export default async function handler(req, res) {

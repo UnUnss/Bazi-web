@@ -341,14 +341,11 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ════════════════════════════════════════════
-// 登录（模拟）：验证码固定 123456，只校验邮箱是否为管理员
+// 登录：Supabase 邮箱验证码 + profiles.is_admin
 // ════════════════════════════════════════════
-const ADMIN_AUTH_KEY = 'admin_mock_email';
-const MOCK_CODE = '123456';
-let _mockCodeSent = false;
+let _otpSent = false;
 
 async function checkAdminByEmail(email) {
-  // 走 security definer 函数，不依赖真实登录 session
   const { data, error } = await sb.rpc('is_admin_email', { check_email: email });
   if (error) {
     console.error('is_admin_email error:', error);
@@ -359,12 +356,41 @@ async function checkAdminByEmail(email) {
     : { ok: false, reason: '该邮箱不是管理员' };
 }
 
+async function assertAdminSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.access_token || !session.user?.email) {
+    return { ok: false, reason: '未登录' };
+  }
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', session.user.id)
+    .maybeSingle();
+  if (profile?.is_admin) {
+    return { ok: true, email: session.user.email, token: session.access_token };
+  }
+  // 兼容：profiles 行尚未写入 is_admin 时，再用 RPC 校验邮箱
+  const byEmail = await checkAdminByEmail(session.user.email);
+  if (!byEmail.ok) {
+    await sb.auth.signOut().catch(() => {});
+    return { ok: false, reason: byEmail.reason };
+  }
+  return { ok: true, email: session.user.email, token: session.access_token };
+}
+
+async function getAdminAuthHeaders(extra) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.access_token) throw new Error('请先登录');
+  headers['Authorization'] = `Bearer ${session.access_token}`;
+  return headers;
+}
+
 async function checkSession() {
-  const email = localStorage.getItem(ADMIN_AUTH_KEY);
-  if (!email) return;
-  const result = await checkAdminByEmail(email);
-  if (result.ok) enterMain(email);
-  else localStorage.removeItem(ADMIN_AUTH_KEY);
+  // 清掉旧版模拟登录残留
+  localStorage.removeItem('admin_mock_email');
+  const auth = await assertAdminSession();
+  if (auth.ok) enterMain(auth.email);
 }
 
 function enterMain(email) {
@@ -380,35 +406,66 @@ function setMsg(text, ok = false) {
   el.className = 'login-msg' + (ok ? ' login-ok' : '');
 }
 
-document.getElementById('btnSendCode').addEventListener('click', () => {
+document.getElementById('btnSendCode').addEventListener('click', async () => {
   const email = document.getElementById('emailInput').value.trim();
   if (!email) return setMsg('请输入邮箱');
-  _mockCodeSent = true;
-  document.getElementById('stepOtp').style.display = '';
-  setMsg('测试验证码：' + MOCK_CODE + '（模拟登录，不发真实邮件）', true);
+  const btn = document.getElementById('btnSendCode');
+  btn.disabled = true;
+  setMsg('校验管理员权限中…');
+  try {
+    const result = await checkAdminByEmail(email);
+    if (!result.ok) {
+      setMsg(result.reason);
+      return;
+    }
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
+    });
+    if (error) throw error;
+    _otpSent = true;
+    document.getElementById('stepOtp').style.display = '';
+    setMsg('验证码已发送，请查收邮箱', true);
+  } catch (err) {
+    setMsg(err?.message || '发送验证码失败');
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 document.getElementById('btnVerify').addEventListener('click', async () => {
   const email = document.getElementById('emailInput').value.trim();
   const token = document.getElementById('otpInput').value.trim();
   if (!email) return setMsg('请输入邮箱');
-  if (!_mockCodeSent) return setMsg('请先获取验证码');
+  if (!_otpSent) return setMsg('请先获取验证码');
   if (!token) return setMsg('请输入验证码');
-  if (token !== MOCK_CODE) return setMsg('验证码错误');
 
   document.getElementById('btnVerify').disabled = true;
-  setMsg('校验管理员权限中…');
-  const result = await checkAdminByEmail(email);
-  document.getElementById('btnVerify').disabled = false;
-  if (!result.ok) return setMsg(result.reason);
-
-  localStorage.setItem(ADMIN_AUTH_KEY, email);
-  enterMain(email);
+  setMsg('登录中…');
+  try {
+    const { error } = await sb.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    });
+    if (error) throw error;
+    const auth = await assertAdminSession();
+    if (!auth.ok) {
+      setMsg(auth.reason || '该邮箱不是管理员');
+      return;
+    }
+    enterMain(auth.email);
+  } catch (err) {
+    setMsg(err?.message || '验证码错误或已过期');
+  } finally {
+    document.getElementById('btnVerify').disabled = false;
+  }
 });
 
 document.getElementById('btnResend').addEventListener('click', () => document.getElementById('btnSendCode').click());
-document.getElementById('btnLogout').addEventListener('click', () => {
-  localStorage.removeItem(ADMIN_AUTH_KEY);
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  try { await sb.auth.signOut(); } catch (_) {}
+  localStorage.removeItem('admin_mock_email');
   location.reload();
 });
 
@@ -610,13 +667,10 @@ function previewFilename(name) {
   return base + '.jpg';
 }
 
-async function presignAndPut(adminEmail, { filename, folder, contentType, body, variant }) {
+async function presignAndPut({ filename, folder, contentType, body, variant }) {
   const presignRes = await fetch('/api/presign', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Email': adminEmail,
-    },
+    headers: await getAdminAuthHeaders(),
     body: JSON.stringify({ filename, folder, contentType, variant }),
   });
   if (!presignRes.ok) {
@@ -640,8 +694,8 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
   const btn = document.getElementById('btnUpload');
   btn.disabled = true;
 
-  const adminEmail = localStorage.getItem(ADMIN_AUTH_KEY);
-  if (!adminEmail) {
+  const auth = await assertAdminSession();
+  if (!auth.ok) {
     alert('请先登录');
     btn.disabled = false;
     location.reload();
@@ -655,7 +709,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
     updateQCard(i);
     try {
       // 1) 原图
-      const r2_key = await presignAndPut(adminEmail, {
+      const r2_key = await presignAndPut({
         filename: item.file.name,
         folder: item.folderNum,
         contentType: item.file.type || 'image/jpeg',
@@ -665,7 +719,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
       // 2) 压缩预览图（长边 1080 / JPEG 0.72）
       const previewBlob = await makePreviewBlob(item.file);
       const previewName = previewFilename(item.file.name);
-      const preview_key = await presignAndPut(adminEmail, {
+      const preview_key = await presignAndPut({
         filename: previewName,
         folder: item.folderNum,
         contentType: 'image/jpeg',
@@ -676,10 +730,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
       // 3) 元数据入库
       const metaRes = await fetch('/api/wallpaper-meta', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Email': adminEmail,
-        },
+        headers: await getAdminAuthHeaders(),
         body: JSON.stringify({
           folder_number: item.folderNum,
           element:       item.element,
@@ -689,6 +740,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
           filename:      item.file.name,
         }),
       });
+
       if (!metaRes.ok) {
         const err = await metaRes.json().catch(() => ({}));
         throw new Error(err.error || `meta save failed: ${metaRes.status}`);
@@ -823,18 +875,15 @@ document.getElementById('managedGrid').addEventListener('click', async (e) => {
   if (!id) return;
   if (!confirm('确定删除这张壁纸？将同时删除 R2 原图和预览图。')) return;
 
-  const adminEmail = localStorage.getItem(ADMIN_AUTH_KEY);
-  if (!adminEmail) { alert('请先登录'); return; }
+  const auth = await assertAdminSession();
+  if (!auth.ok) { alert('请先登录'); return; }
 
   btn.disabled = true;
   btn.textContent = '删除中…';
   try {
     const res = await fetch('/api/wallpaper-delete', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Admin-Email': adminEmail,
-      },
+      headers: await getAdminAuthHeaders(),
       body: JSON.stringify({ id }),
     });
     if (!res.ok) {
@@ -859,7 +908,7 @@ document.getElementById('filterBar').addEventListener('click', e => {
 });
 
 // ════════════════════════════════════════════
-// 初始化：恢复本地模拟登录状态（并再次校验仍是管理员）
+// 初始化：恢复 Supabase 会话（并再次校验仍是管理员）
 // ════════════════════════════════════════════
 checkSession();
 </script>
