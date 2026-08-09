@@ -4271,11 +4271,13 @@
         try {
             const raw = JSON.parse(localStorage.getItem('ew_download_history') || '[]');
             const list = Array.isArray(raw) ? raw : [];
+            const ganZhi = getCurrentYearMonthGanZhi();
             list.push({
                 img: entry.img || '',
                 name: entry.name || '',
                 date: new Date().toISOString().slice(0, 19).replace('T', ' '),
                 r2key: entry.r2key || '',
+                monthGanZhi: ganZhi ? ganZhi.month : '',
             });
             localStorage.setItem('ew_download_history', JSON.stringify(list.slice(-200)));
         } catch (_) {}

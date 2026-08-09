@@ -7,6 +7,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=4" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=4" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
     <script src="auth-session.js"></script>
     <script src="i18n.js?v=20"></script>
     <style>
@@ -317,8 +318,13 @@
             transition: background 0.2s;
         }
 
-        .btn-redownload:hover {
+        .btn-redownload:hover:not(:disabled) {
             background: rgba(255, 252, 245, 0.95);
+        }
+
+        .btn-redownload:disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
         }
 
         .empty-tip {
@@ -503,6 +509,84 @@
     });
     document.addEventListener('click', () => { userMenu.classList.remove('open'); });
 
+    // 取今日节气月干支（依赖 lunar-javascript）
+    function getCurrentMonthGanZhi() {
+        try {
+            const now = new Date();
+            const ec = Solar.fromYmdHms(
+                now.getFullYear(), now.getMonth() + 1, now.getDate(),
+                now.getHours(), now.getMinutes(), now.getSeconds()
+            ).getLunar().getEightChar();
+            return ec.getMonthGan() + ec.getMonthZhi();
+        } catch (_) { return ''; }
+    }
+
+    // 获取 Supabase access_token
+    async function getAccessToken() {
+        try {
+            const sb = supabase.createClient(
+                'https://yyiecrsibflscgjxmvbn.supabase.co',
+                'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A'
+            );
+            const { data: { session } } = await sb.auth.getSession();
+            return session?.access_token || null;
+        } catch (_) { return null; }
+    }
+
+    async function doRedownload(btn, r2key, name) {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const origText = btn.textContent;
+        btn.textContent = '…';
+        try {
+            const token = await getAccessToken();
+            if (!token) {
+                alert(window.I18N ? window.I18N.t('nav_login') : '請先登入');
+                location.href = 'landing.html';
+                return;
+            }
+            const res = await fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ r2_key: r2key, filename: name }),
+            });
+            if (res.status === 401) { location.href = 'landing.html'; return; }
+            if (res.status === 402) {
+                alert(window.I18N ? window.I18N.t('download_payment_required') : '需要先購買此壁紙');
+                return;
+            }
+            if (!res.ok) {
+                alert(window.I18N ? window.I18N.t('download_failed') : '下載失敗，請稍後重試');
+                return;
+            }
+            const data = await res.json();
+            const fileUrl = data.url;
+            if (!fileUrl) { alert(window.I18N ? window.I18N.t('download_failed') : '下載失敗'); return; }
+
+            const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
+            try {
+                const resp = await fetch(fileUrl, { mode: 'cors', credentials: 'omit' });
+                if (!resp.ok) throw new Error('cors fetch failed');
+                const blob = await resp.blob();
+                const ext = blob.type.includes('png') ? '.png' : blob.type.includes('webp') ? '.webp' : '.jpg';
+                const obj = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = obj; a.download = baseName + ext;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(obj), 2000);
+            } catch (_) {
+                // CORS 失败回退直链（签名 URL 已带 attachment）
+                const a = document.createElement('a');
+                a.href = fileUrl; a.download = baseName + '.jpg';
+                a.rel = 'noopener';
+                document.body.appendChild(a); a.click(); a.remove();
+            }
+        } finally {
+            btn.textContent = origText;
+            btn.disabled = false;
+        }
+    }
+
     function renderHistory() {
         const list = document.getElementById('historyList');
         let records = [];
@@ -514,26 +598,43 @@
             return;
         }
 
-        list.innerHTML = records.slice().reverse().map(r => `
+        const currentMonth = getCurrentMonthGanZhi();
+        const labelMap = {
+            redownload:  { 'zh-TW': '重新下載', 'zh-CN': '重新下载', 'en': 'Re-download' },
+            expired:     { 'zh-TW': '已過期',   'zh-CN': '已过期',   'en': 'Expired' },
+        };
+        const lang = getLang();
+
+        list.innerHTML = records.slice().reverse().map((r, i) => {
+            const isActive = currentMonth && r.monthGanZhi && r.monthGanZhi === currentMonth;
+            // 旧记录没有 monthGanZhi，保守处理：允许重新下载
+            const canDownload = !r.monthGanZhi || isActive;
+            const btnLabel = canDownload ? (labelMap.redownload[lang] || '重新下載') : (labelMap.expired[lang] || '已過期');
+            const btnStyle = canDownload ? '' : 'opacity:0.4;cursor:not-allowed;';
+            return `
             <div class="history-item">
                 <img class="history-thumb" src="${r.img || ''}" alt="${r.name || ''}" onerror="this.style.display='none'">
                 <div class="history-info">
                     <div class="history-name">${r.name || '—'}</div>
                     <div class="history-date">${r.date || ''}</div>
                 </div>
-                <button type="button" class="btn-redownload" data-img="${r.img || ''}" data-name="${r.name || ''}">${{ 'zh-TW': '重新下載', 'zh-CN': '重新下载', 'en': 'Re-download' }[getLang()] || '重新下載'}</button>
-            </div>
-        `).join('');
+                <button type="button" class="btn-redownload"
+                    data-r2key="${r.r2key || ''}"
+                    data-name="${r.name || ''}"
+                    data-can="${canDownload ? '1' : '0'}"
+                    style="${btnStyle}"
+                    ${canDownload ? '' : 'disabled'}
+                >${btnLabel}</button>
+            </div>`;
+        }).join('');
 
         list.addEventListener('click', e => {
             const btn = e.target.closest('.btn-redownload');
-            if (!btn) return;
-            const img = btn.getAttribute('data-img');
+            if (!btn || btn.dataset.can !== '1') return;
+            const r2key = btn.getAttribute('data-r2key');
             const name = btn.getAttribute('data-name');
-            if (!img) return;
-            const a = document.createElement('a');
-            a.href = img; a.download = (name || 'wallpaper') + '.png';
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            if (!r2key) return;
+            doRedownload(btn, r2key, name);
         });
     }
 
