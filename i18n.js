@@ -162,6 +162,7 @@
             lang_menu_en: 'English',
             weekday_sun: '星期日',
             cta_start: '開始',
+            cta_purpose: 'ElementaWall 根據生辰八字，為你定制每月運勢壁紙。支援 Google 與郵箱登入。',
             cta_sub: '基於生辰八字\n定制每月運勢壁紙'
         },
         'zh-CN': {
@@ -322,6 +323,7 @@
             lang_menu_en: 'English',
             weekday_sun: '星期日',
             cta_start: '开始',
+            cta_purpose: 'ElementaWall 根据生辰八字，为你定制每月运势壁纸。支持 Google 与邮箱登录。',
             cta_sub: '基于生辰八字\n定制每月运势壁纸'
         },
         'en': {
@@ -482,6 +484,7 @@
             lang_menu_en: 'English',
             weekday_sun: 'Sunday',
             cta_start: 'Start',
+            cta_purpose: 'ElementaWall creates personalized monthly fortune wallpapers from your BaZi chart. Sign in with Google or email.',
             cta_sub: 'Personalized monthly fortune wallpapers based on your BaZi'
         }
     };
