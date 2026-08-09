@@ -150,6 +150,19 @@
             white-space: pre-line; /* 用真实换行符换行，不用逗号 */
         }
 
+        /* 可抓取品牌文案：对用户不可见，仍留在 HTML 供爬虫读取 */
+        .brand-seo {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         @keyframes spin {
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
@@ -263,6 +276,15 @@
 
 <!-- z-index 10：品牌名 & 按钮，始终在最上 -->
 <img class="brand" src="assets/english.png" alt="ElementaWall" draggable="false" style="mix-blend-mode: multiply;">
+
+<section class="brand-seo">
+    <h1>ElementaWall</h1>
+    <p>ElementaWall is an app that creates personalized monthly fortune wallpapers based on your BaZi (Four Pillars) birth chart. Users can browse, select, and download wallpapers matched to their chart.</p>
+    <p>ElementaWall 根據生辰八字，為你定制每月運勢壁紙，並提供個人化壁紙推薦與下載。</p>
+    <p>Sign in with Google or email to save your profiles, sync wallpaper history, and manage your account. When you use Google Sign-In, ElementaWall requests basic profile and email information only to create and authenticate your account; we do not use Google user data for advertising.</p>
+    <p>使用 Google 或郵箱登入後，可保存八字檔案、同步壁紙記錄並管理帳號。透過 Google 登入時，ElementaWall 僅請求基本資料與電子郵件用於建立與驗證帳號，不會將 Google 用戶資料用於廣告。</p>
+    <p><a href="/policy">Privacy Policy / 用戶服務與隱私協議</a> · <a href="/about">About ElementaWall / 關於我們</a> · <a href="/contact">Contact / 聯絡我們</a></p>
+</section>
 
 <div class="cta-wrap">
     <a class="cta-btn" href="/landing">
