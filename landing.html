@@ -6818,8 +6818,13 @@
         }
 
         // 真實八字四柱與大運由 computeBaziForProfile() 現場排盤
+        // 编辑示例档案：生成新 UUID 写成真实档案（demo- 不上云、不可绑包年）
+        const editingDemo = !!(editingId && String(editingId).startsWith('demo-'));
+        const newId = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : ('p-' + Date.now());
         const profile = {
-            id: editingId || ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-' + Date.now())),
+            id: (editingId && !editingDemo) ? editingId : newId,
             nickname,
             gender,
             birthDate,
