@@ -1,8 +1,10 @@
 // 已登录用户获取原图临时下载链接（Bearer）
 // 授权：有效包年 或 已支付订单包含该 r2_key
+//       或本月（节气月）已有下载记录 → 允许重新下载（包年/单购皆可）
 // 可选：record_history=true 时由服务端写入 download_records（避免浏览器直连 Supabase 失败）
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Solar } from 'lunar-javascript';
 import { assertUser } from './_lib/auth.js';
 import { getServiceSupabase } from './_lib/supabase.js';
 import { userCanDownloadKey } from './_lib/fulfill-order.js';
@@ -17,6 +19,49 @@ const s3 = new S3Client({
 });
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** 与 landing / download-history 一致的当前节气月干支 */
+function getCurrentMonthGanZhi() {
+  try {
+    const now = new Date();
+    const ec = Solar.fromYmdHms(
+      now.getFullYear(), now.getMonth() + 1, now.getDate(),
+      now.getHours(), now.getMinutes(), now.getSeconds()
+    ).getLunar().getEightChar();
+    return ec.getMonthGan() + ec.getMonthZhi();
+  } catch (_) {
+    return '';
+  }
+}
+
+/** 本月已下载过该图 → 允许重新下载（不区分包年/单购） */
+async function userHasCurrentMonthDownload(sb, { userId, email, r2Key }) {
+  const month = getCurrentMonthGanZhi();
+  if (!month || !r2Key) return false;
+  const emailNorm = String(email || '').trim().toLowerCase();
+
+  if (userId) {
+    const { data } = await sb
+      .from('download_records')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('r2_key', r2Key)
+      .eq('month_ganzhi', month)
+      .limit(1);
+    if (data?.length) return true;
+  }
+  if (emailNorm) {
+    const { data } = await sb
+      .from('download_records')
+      .select('id')
+      .eq('owner_email', emailNorm)
+      .eq('r2_key', r2Key)
+      .eq('month_ganzhi', month)
+      .limit(1);
+    if (data?.length) return true;
+  }
+  return false;
+}
 
 function sanitizePreviewUrl(raw) {
   if (typeof raw !== 'string') return null;
@@ -125,12 +170,20 @@ export default async function handler(req, res) {
     }
   }
 
-  const allowed = await userCanDownloadKey({
+  // 首次：包年绑定档案 或 已支付该图；重新下载：本月已有下载记录即可
+  let allowed = await userCanDownloadKey({
     userId: auth.userId,
     email: auth.email,
     r2Key: originalKey,
     profileId: profileId ? String(profileId) : null,
   });
+  if (!allowed) {
+    allowed = await userHasCurrentMonthDownload(sb, {
+      userId: auth.userId,
+      email: auth.email,
+      r2Key: originalKey,
+    });
+  }
   if (!allowed) {
     return res.status(402).json({ error: 'Payment required' });
   }

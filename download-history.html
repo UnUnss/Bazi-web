@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="nav_download_history">下載記錄 · ElementaWall</title>
+    <title data-i18n="nav_download_history">本月下載記錄 · ElementaWall</title>
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=4" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=4" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
     <script src="auth-session.js"></script>
-    <script src="i18n.js?v=20"></script>
+    <script src="i18n.js?v=21"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -318,13 +318,8 @@
             transition: background 0.2s;
         }
 
-        .btn-redownload:hover:not(:disabled) {
+        .btn-redownload:hover {
             background: rgba(255, 252, 245, 0.95);
-        }
-
-        .btn-redownload:disabled {
-            cursor: not-allowed;
-            opacity: 0.4;
         }
 
         .empty-tip {
@@ -411,7 +406,7 @@
                 <div class="user-menu" id="userMenu" role="menu">
                     <div class="user-menu-email" id="userMenuEmail"></div>
                     <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
-                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
+                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">本月下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
                 </div>
@@ -421,7 +416,7 @@
 </nav>
 
 <div class="page-content">
-    <h1 class="page-title" data-i18n="nav_download_history">下載記錄</h1>
+    <h1 class="page-title" data-i18n="nav_download_history">本月下載記錄</h1>
     <div class="history-list" id="historyList"></div>
 </div>
 
@@ -499,8 +494,8 @@
     }
     document.getElementById('btnDownloadHistory').addEventListener('click', () => { location.href = '/download-history'; });
     document.getElementById('btnAccount').addEventListener('click', () => {
-        alert(window.I18N ? window.I18N.t('mock_feature_notice') : '此功能即將推出');
         userMenu.classList.remove('open');
+        location.href = '/landing?account=1';
     });
     document.getElementById('btnLogout').addEventListener('click', async () => {
         await window.BaziAuth.signOut();
@@ -509,15 +504,22 @@
     });
     document.addEventListener('click', () => { userMenu.classList.remove('open'); });
 
-    // 取今日节气月干支（依赖 lunar-javascript）
+    // 取「今天」对应的节气月干支：与 landing 页 getCurrentYearMonthGanZhi 一致，
+    // 月柱只由节气与日期决定，与出生资料无关。
+    let cachedNowKey = '';
+    let cachedNowMonthGanZhi = '';
     function getCurrentMonthGanZhi() {
         try {
             const now = new Date();
+            const key = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}-${now.getHours()}`;
+            if (cachedNowMonthGanZhi && cachedNowKey === key) return cachedNowMonthGanZhi;
             const ec = Solar.fromYmdHms(
                 now.getFullYear(), now.getMonth() + 1, now.getDate(),
                 now.getHours(), now.getMinutes(), now.getSeconds()
             ).getLunar().getEightChar();
-            return ec.getMonthGan() + ec.getMonthZhi();
+            cachedNowKey = key;
+            cachedNowMonthGanZhi = ec.getMonthGan() + ec.getMonthZhi();
+            return cachedNowMonthGanZhi;
         } catch (_) { return ''; }
     }
 
@@ -547,10 +549,13 @@
         const { data: { session } } = await _sb.auth.getSession();
         const user = session?.user;
         if (!user?.id) return null; // null = 未登录
+        const currentMonth = getCurrentMonthGanZhi();
+        if (!currentMonth) return [];
         const { data, error } = await _sb
             .from('download_records')
             .select('r2_key, preview_url, wallpaper_name, month_ganzhi, created_at')
             .eq('user_id', user.id)
+            .eq('month_ganzhi', currentMonth)
             .order('created_at', { ascending: false })
             .limit(200);
         if (error) {
@@ -629,7 +634,7 @@
         try {
             const loaded = await loadDownloadRecordsFromCloud();
             if (loaded === null) {
-                list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '請先登入查看下載記錄', 'zh-CN': '请先登录查看下载记录', 'en': 'Please sign in to view download history' })}</div>`;
+                list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '請先登入查看本月下載記錄', 'zh-CN': '请先登录查看本月下载记录', 'en': "Please sign in to view this month's downloads" })}</div>`;
                 return;
             }
             records = loaded;
@@ -639,25 +644,14 @@
         }
 
         if (!records.length) {
-            list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '尚無下載記錄', 'zh-CN': '暂无下载记录', 'en': 'No download history yet' })}</div>`;
+            list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '本月尚無下載記錄', 'zh-CN': '本月暂无下载记录', 'en': 'No downloads this month yet' })}</div>`;
             return;
         }
 
-        const currentMonth = getCurrentMonthGanZhi();
-        const labelMap = {
-            redownload:  { 'zh-TW': '重新下載', 'zh-CN': '重新下载', 'en': 'Re-download' },
-            expired:     { 'zh-TW': '已過期',   'zh-CN': '已过期',   'en': 'Expired' },
-        };
-        const lang = getLang();
+        const btnLabel = tip({ 'zh-TW': '重新下載', 'zh-CN': '重新下载', 'en': 'Re-download' });
 
-        // 云端已按 created_at desc，直接渲染
-        list.innerHTML = records.map((r) => {
-            const isActive = currentMonth && r.monthGanZhi && r.monthGanZhi === currentMonth;
-            // 旧记录没有 monthGanZhi，保守处理：允许重新下载
-            const canDownload = !r.monthGanZhi || isActive;
-            const btnLabel = canDownload ? (labelMap.redownload[lang] || '重新下載') : (labelMap.expired[lang] || '已過期');
-            const btnStyle = canDownload ? '' : 'opacity:0.4;cursor:not-allowed;';
-            return `
+        // 仅当前节气月记录（查询已按 month_ganzhi 过滤）
+        list.innerHTML = records.map((r) => `
             <div class="history-item">
                 <img class="history-thumb" src="${r.img || ''}" alt="${r.name || ''}" onerror="this.style.display='none'">
                 <div class="history-info">
@@ -667,18 +661,14 @@
                 <button type="button" class="btn-redownload"
                     data-r2key="${r.r2key || ''}"
                     data-name="${r.name || ''}"
-                    data-can="${canDownload ? '1' : '0'}"
-                    style="${btnStyle}"
-                    ${canDownload ? '' : 'disabled'}
                 >${btnLabel}</button>
-            </div>`;
-        }).join('');
+            </div>`).join('');
 
         if (!list._redownloadBound) {
             list._redownloadBound = true;
             list.addEventListener('click', e => {
                 const btn = e.target.closest('.btn-redownload');
-                if (!btn || btn.dataset.can !== '1') return;
+                if (!btn) return;
                 const r2key = btn.getAttribute('data-r2key');
                 const name = btn.getAttribute('data-name');
                 if (!r2key) return;
