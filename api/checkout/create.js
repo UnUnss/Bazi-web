@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { assertUser } from '../_lib/auth.js';
 import { getServiceSupabase } from '../_lib/supabase.js';
 import {
-  PRODUCT_LABELS,
+  productLabel,
   amountCentsForItemCount,
   amountForProduct,
   productTypeFromItemCount,
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
             currency: 'usd',
             unit_amount: amountCents,
             product_data: {
-              name: PRODUCT_LABELS[productType] || 'ElementaWall',
+              name: productLabel(productType, items.length),
             },
           },
         }],
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
             currency_code: 'USD',
             value: amountValue,
           },
-          description: PRODUCT_LABELS[productType] || 'ElementaWall',
+          description: productLabel(productType, items.length),
         }],
         application_context: {
           brand_name: 'ElementaWall',

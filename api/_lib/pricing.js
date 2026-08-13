@@ -7,12 +7,25 @@ export const PRODUCT_PRICES_CENTS = {
 };
 
 export const PRODUCT_LABELS = {
-  single: 'ElementaWall Wallpaper (1)',
-  pack2: 'ElementaWall Wallpaper Pack (2)',
-  pack4: 'ElementaWall Wallpaper Pack (4)',
-  mixed: 'ElementaWall Wallpaper Pack',
-  annual: 'ElementaWall Annual Plan',
+  single: 'Mobile Wallpaper 1 Pack',
+  pack2: 'Mobile Wallpaper 2 Pack',
+  pack3: 'Mobile Wallpaper 3 Pack',
+  pack4: 'Mobile Wallpaper 4 Pack',
+  mixed: 'Mobile Wallpaper Pack',
+  annual: 'Mobile Wallpaper Annual Subscription',
 };
+
+/** Checkout line-item name shown on Stripe/PayPal. */
+export function productLabel(productType, itemCount) {
+  if (productType === 'annual') return PRODUCT_LABELS.annual;
+  const n = Number(itemCount);
+  if (n === 1) return PRODUCT_LABELS.single;
+  if (n === 2) return PRODUCT_LABELS.pack2;
+  if (n === 3) return PRODUCT_LABELS.pack3;
+  if (n === 4) return PRODUCT_LABELS.pack4;
+  if (Number.isInteger(n) && n >= 1) return `Mobile Wallpaper ${n} Pack`;
+  return PRODUCT_LABELS[productType] || 'Mobile Wallpaper Pack';
+}
 
 /** Optimal cart total: packs of 4 → 2 → singles. */
 export function amountCentsForItemCount(count) {
