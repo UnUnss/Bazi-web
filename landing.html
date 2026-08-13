@@ -2976,7 +2976,7 @@
             nickname: '示例',
             gender: 0,
             birthDate: '2026/08/09',
-            birthTime: '10:00',
+            birthTime: '10:55',
             birthplace: '深圳',
             birthplaceLon: 114.06,
             useTrueSolarTime: true,
@@ -3209,6 +3209,11 @@
                         if (p.birthDate === '1984/01/15' || p.nickname === '本人') {
                             migrated = true;
                             return Object.assign({}, defaultProfiles[0]);
+                        }
+                        // 示例出生時間 10:00 → 10:55，與預設壁紙時鐘一致
+                        if (p.birthTime === '10:00' && p.birthDate === '2026/08/09') {
+                            migrated = true;
+                            return Object.assign({}, p, { birthTime: '10:55' });
                         }
                         return p;
                     });
