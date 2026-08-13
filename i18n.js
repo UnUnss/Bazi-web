@@ -5,7 +5,7 @@
 (function (global) {
     const DICTS = {
         'zh-TW': {
-            meta_title: '八字定製每月運勢壁紙',
+            meta_title: '每月定製個性化壁紙',
             nav_user_aria: '用戶',
             nav_home: '首頁',
             nav_back: '返回',
@@ -73,7 +73,7 @@
             auth_toggle_to_login_prefix: '已有帳號？',
             auth_toggle_to_login_action: '直接登入',
             mock_feature_notice: '此功能為演示效果，敬請期待正式上線。',
-            signup_subscribe_label: '訂閱每月換運提示，及時獲取壁紙更新通知',
+            signup_subscribe_label: '訂閱每月換運提示，及時獲取壁紙更新通知，後續功能更新郵箱接收提示',
             pay_per_image: '/ 張',
             pay_per_2_images: '/ 2 張',
             pay_per_4_images: '/ 4 張',
@@ -197,7 +197,7 @@
             cta_sub: '基於生辰八字\n定制每月運勢壁紙'
         },
         'zh-CN': {
-            meta_title: '八字定制每月运势壁纸',
+            meta_title: '每月定制个性化壁纸',
             nav_user_aria: '用户',
             nav_home: '首页',
             nav_back: '返回',
@@ -265,7 +265,7 @@
             auth_toggle_to_login_prefix: '已有账号？',
             auth_toggle_to_login_action: '直接登录',
             mock_feature_notice: '此功能为演示效果，敬请期待正式上线。',
-            signup_subscribe_label: '订阅每月换运提示，及时获取壁纸更新通知',
+            signup_subscribe_label: '订阅每月换运提示，及时获取壁纸更新通知，后续功能更新邮箱接收提示',
             pay_per_image: '/ 张',
             pay_per_2_images: '/ 2 张',
             pay_per_4_images: '/ 4 张',
@@ -389,7 +389,7 @@
             cta_sub: '基于生辰八字\n定制每月运势壁纸'
         },
         'en': {
-            meta_title: 'BaZi Monthly Fortune Wallpaper',
+            meta_title: 'Monthly Custom Personalized Wallpaper',
             nav_user_aria: 'User',
             nav_home: 'Home',
             nav_back: 'Back',
@@ -457,7 +457,7 @@
             auth_toggle_to_login_prefix: 'Already have an account?',
             auth_toggle_to_login_action: 'Log in',
             mock_feature_notice: 'This is a demo feature. Stay tuned for the full launch.',
-            signup_subscribe_label: 'Subscribe to monthly luck-cycle reminders and wallpaper update notifications',
+            signup_subscribe_label: 'Subscribe to monthly luck-cycle reminders and wallpaper update notifications, plus future feature update emails',
             pay_per_image: '/ image',
             pay_per_2_images: '/ 2 images',
             pay_per_4_images: '/ 4 images',
