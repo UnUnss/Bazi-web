@@ -45,11 +45,14 @@ export function moneyMatchesOrder(yuan, amountCents) {
   return got != null && got === Number(amountCents);
 }
 
+/** Routing-only query keys from Vercel rewrites; never part of Z-Pay's MD5. */
+const ZPAY_INTERNAL_KEYS = new Set(['action', 'sign', 'sign_type']);
+
 /** MD5(sign): ASCII-sort keys, skip sign / sign_type / empty, then key. Lowercase. */
 export function zpaySign(params, key = zpayKey()) {
   const keys = Object.keys(params || {})
     .filter((k) => {
-      if (k === 'sign' || k === 'sign_type') return false;
+      if (ZPAY_INTERNAL_KEYS.has(k)) return false;
       const v = params[k];
       return v !== undefined && v !== null && String(v) !== '';
     })
@@ -107,5 +110,13 @@ export async function zpayQueryOrder(outTradeNo) {
 export function zpayCallbackParams(req) {
   const q = req.query && typeof req.query === 'object' ? req.query : {};
   const b = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
-  return { ...q, ...b };
+  const merged = { ...q, ...b };
+  const out = {};
+  for (const [k, raw] of Object.entries(merged)) {
+    if (k === 'action') continue;
+    const v = Array.isArray(raw) ? raw[0] : raw;
+    if (v === undefined || v === null) continue;
+    out[k] = String(v);
+  }
+  return out;
 }

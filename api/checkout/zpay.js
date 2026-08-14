@@ -163,25 +163,36 @@ async function handleReturn(req, res) {
   const params = zpayCallbackParams(req);
   const outTradeNo = String(params.out_trade_no || '');
   const orderId = String(params.param || '') || outTradeNoToOrderId(outTradeNo);
+  const successPath = orderId
+    ? `/landing?checkout=1&provider=alipay&order=${encodeURIComponent(orderId)}`
+    : '/landing';
   const cancelPath = orderId
     ? `/landing?checkout=cancel&order=${encodeURIComponent(orderId)}`
     : '/landing?checkout=cancel';
 
-  if (!zpayConfigured() || !zpaySignValid(params) || !orderId) {
+  const signOk = zpayConfigured() && zpaySignValid(params);
+  const paid = String(params.trade_status || '') === 'TRADE_SUCCESS';
+
+  if (signOk && paid) {
+    try {
+      await fulfillFromZpay(params, 'zpay_return');
+    } catch (err) {
+      console.error('zpay return fulfill', err);
+    }
+    return redirect(res, successPath);
+  }
+
+  if (signOk && !paid) {
     return redirect(res, cancelPath);
   }
 
-  if (String(params.trade_status || '') !== 'TRADE_SUCCESS') {
-    return redirect(res, cancelPath);
+  // Rewrite used to inject ?action= into the callback query and break MD5.
+  // If we still have an order id, let the page poll Z-Pay instead of showing cancel.
+  if (orderId) {
+    console.error('zpay return unverified, polling via status', { orderId });
+    return redirect(res, successPath);
   }
-
-  try {
-    await fulfillFromZpay(params, 'zpay_return');
-  } catch (err) {
-    console.error('zpay return fulfill', err);
-  }
-
-  return redirect(res, `/landing?checkout=1&provider=alipay&order=${encodeURIComponent(orderId)}`);
+  return redirect(res, cancelPath);
 }
 
 export default async function handler(req, res) {
