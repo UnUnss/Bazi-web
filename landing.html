@@ -3194,51 +3194,11 @@
     // 串接 bazi_logic.js：算出這個八字在「當前流月」的喜用五行、以及需要補運的弱勢生活領域，
     // 用於下方壁紙區塊動態選圖選文案，而不是寫死固定內容。
     // v2：傳入完整流月干支（"壬申"2字）和大運/流年 period，啟用六層動態算法。
-    // 破平用的 prev_favors = 該檔案「今年流年內」首次使用以來各流月主喜用（不含本月）。
-    const FAVOR_HIST_KEY = 'ew_favor_history';
-
-    function loadFavorHistoryAll() {
-        try {
-            const raw = JSON.parse(localStorage.getItem(FAVOR_HIST_KEY) || '{}');
-            return (raw && typeof raw === 'object') ? raw : {};
-        } catch (_) {
-            return {};
-        }
-    }
-
-    function saveFavorHistoryAll(all) {
-        localStorage.setItem(FAVOR_HIST_KEY, JSON.stringify(all));
-    }
-
-    // 只取今年流年內的歷史主喜用（排除當前流月，避免本月重算時把自己算進去）
-    function getPrevFavorsForProfile(profileId, currentYmKey, yearGanZhi) {
-        const all = loadFavorHistoryAll();
-        const map = all[profileId] || {};
-        const yearPrefix = `${yearGanZhi}|`;
-        return Object.keys(map)
-            .filter((k) => k !== currentYmKey && k.indexOf(yearPrefix) === 0)
-            .map((k) => map[k])
-            .filter(Boolean);
-    }
-
-    // 寫入／覆蓋本月主喜用；只保留今年流年記錄，其餘年份直接刪除
-    function recordFavorForProfile(profileId, ymKey, wx, yearGanZhi) {
-        if (!profileId || !ymKey || !wx) return;
-        const all = loadFavorHistoryAll();
-        const prev = all[profileId];
-        const next = {};
-        const yearPrefix = `${yearGanZhi}|`;
-        if (prev && typeof prev === 'object') {
-            for (const k of Object.keys(prev)) {
-                if (k.indexOf(yearPrefix) === 0) next[k] = prev[k];
-            }
-        }
-        next[ymKey] = wx;
-        all[profileId] = next;
-        saveFavorHistoryAll(all);
-    }
-
-    const INSIGHT_CACHE_KEY = 'bazi_monthly_insight_v1';
+    const INSIGHT_CACHE_KEY = 'bazi_monthly_insight_v2';
+    try {
+        localStorage.removeItem('ew_favor_history');
+        localStorage.removeItem('bazi_monthly_insight_v1');
+    } catch (_) {}
 
     function readInsightCache(profileId, ymKey) {
         try {
@@ -3274,12 +3234,10 @@
             const bazi = computeBaziForProfile(profile);
             const logicBazi = toLogicBazi(bazi.pillars);
             const gender = profile.gender;
-            const prevFavors = getPrevFavorsForProfile(profileId, ymKey, nowYearMonth.year);
             const result = get_monthly_favorable_element(
-                logicBazi, liuyueGanZhi, gender, bazi.period, prevFavors
+                logicBazi, liuyueGanZhi, gender, bazi.period
             );
             if (result && result.favorable_element) {
-                recordFavorForProfile(profileId, ymKey, result.favorable_element, nowYearMonth.year);
                 writeInsightCache(profileId, ymKey, result);
             }
             return result;

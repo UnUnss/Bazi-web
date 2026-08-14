@@ -623,20 +623,19 @@ function compute_combination_scores(bazi, liuyue_gan, liuyue_zhi, coeffs, bazi_r
 }
 
 // ============================================================
-// Layer 5：多来源候选 + 近并列破平
+// Layer 5：多来源候选
 // ──────────────────────────────────────────────────────────
 // 扶抑 / 通关 / 过旺泄秀 / 调候 各推一个候选，来源加权接近：
 //   提名分 = 该五行扶抑底分 + SOURCE_BONUS（各来源同一常量）
 // 同五行被多来源提名：保留最高底分，并按「额外来源数」加共识分
 //   （共识说明该五行本月优先级更高，不应简单去重抹平）
-// ① 近并列（先）：取「最高提名分 − TIE_DELTA」以内进候选池
-// ② 破平（后）：池内按「今年流年内、首次使用以来出现次数最少」优先，再比提名分 / 来源数
+// 近并列：取「最高提名分 − TIE_DELTA」以内进候选池，按提名分 / 来源数取主喜用
 // ============================================================
 const LAYER5_SOURCE_BONUS    = 6.0;   // 各来源加权对齐
 const LAYER5_CONSENSUS_BONUS = 3.0;   // 每多一个来源共识加分
 const LAYER5_TIE_DELTA       = 6.0;   // 近并列窗口
 
-function run_conflict_detector(final_scores, dyn, coeffs, liuyue_zhi, bazi, period, bazi_raw, prev_favors) {
+function run_conflict_detector(final_scores, dyn, coeffs, liuyue_zhi, bazi, period, bazi_raw) {
     const nominations = [];  // { wx, score, reason }
 
     const nominate = (wx, reason) => {
@@ -717,15 +716,8 @@ function run_conflict_detector(final_scores, dyn, coeffs, liuyue_zhi, bazi, peri
     const maxNom = unique.reduce((m, n) => Math.max(m, n.score), -Infinity);
     const pool = unique.filter(n => n.score >= maxNom - LAYER5_TIE_DELTA);
 
-    // ── 破平：今年流年内出现次数少者优先 ────────────────────
-    const hist = Array.isArray(prev_favors) ? prev_favors : [];
-    const countOf = wx => hist.filter(x => x === wx).length;
-
     pool.sort((a, b) => {
-        const ca = countOf(a.wx), cb = countOf(b.wx);
-        if (ca !== cb) return ca - cb;                 // 今年内出现少的优先
-        if (b.score !== a.score) return b.score - a.score; // 提名分（已含共识加分）
-        // 同分再看来源数：被多方同时点名的更可信
+        if (b.score !== a.score) return b.score - a.score;
         return (b.source_count || 1) - (a.source_count || 1);
     });
 
@@ -759,8 +751,7 @@ function run_conflict_detector(final_scores, dyn, coeffs, liuyue_zhi, bazi, peri
             wx: n.wx,
             score: n.score,
             reason: n.reason,
-            source_count: n.source_count || 1,
-            prior_count: countOf(n.wx)
+            source_count: n.source_count || 1
         }))
     };
 }
@@ -808,9 +799,8 @@ function get_monthly_weak_domain(dm_gan, adjusted_scores, coeffs, gender) {
 // liuyue_raw  : 流月干支字符串（"壬申"2字优先；兼容"申"单字旧接口）
 // gender      : 1/'1'/'male' = 男，其余 = 女
 // period      : { dayun, year, month } 干支字符串，可传null（调试兼容）
-// prev_favors : 今年流年内、首次使用以来已出现的主喜用数组（不含本月；用于近并列池内破平），可省略
 // ============================================================
-function get_monthly_favorable_element(bazi, liuyue_raw, gender, period, prev_favors) {
+function get_monthly_favorable_element(bazi, liuyue_raw, gender, period) {
     // 解析流月干支
     const liuyue_gan = (liuyue_raw && liuyue_raw.length >= 2) ? liuyue_raw[0] : null;
     const liuyue_zhi = (liuyue_raw && liuyue_raw.length >= 2) ? liuyue_raw[1] : (liuyue_raw || '');
@@ -847,11 +837,11 @@ function get_monthly_favorable_element(bazi, liuyue_raw, gender, period, prev_fa
         final_scores[wx] = (base + stem + dyn[wx]) * env_mult * tkdc_mult;
     }
 
-    // ── Layer 5：多候选 + 本年频次破平 ───────────────────────
+    // ── Layer 5：多候选 ──────────────────────────────────────
     const {
         adjusted_scores, conflict_type, favorable_element, secondary_element, candidate_pool
     } = run_conflict_detector(
-        final_scores, dyn, coeffs, liuyue_zhi, bazi, period || null, bazi_raw, prev_favors || []
+        final_scores, dyn, coeffs, liuyue_zhi, bazi, period || null, bazi_raw
     );
 
     const score = Math.round(adjusted_scores[favorable_element] || 0);
@@ -886,15 +876,12 @@ function get_monthly_favorable_element(bazi, liuyue_raw, gender, period, prev_fa
 // ============================================================
 // 按年顺序计算十二流月喜用
 // months: 干支字符串数组，如 ['庚寅','辛卯',...]，按正月→十二月顺序
-// initial_favors: 今年流年内、本批月份之前已出现的主喜用（可省略）
 // ============================================================
-function get_year_monthly_favorable(bazi, months, gender, period, initial_favors) {
+function get_year_monthly_favorable(bazi, months, gender, period) {
     const results = [];
-    const prev_favors = Array.isArray(initial_favors) ? initial_favors.slice() : [];
     for (let gz of months) {
-        const r = get_monthly_favorable_element(bazi, gz, gender, period, prev_favors);
+        const r = get_monthly_favorable_element(bazi, gz, gender, period);
         results.push(Object.assign({ liuyue: gz }, r));
-        prev_favors.push(r.favorable_element);
     }
     return results;
 }
