@@ -1374,12 +1374,6 @@
         .btn-official-alipay {
             background: #1677FF;
             color: #fff;
-            gap: 8px;
-        }
-
-        .btn-official-alipay .alipay-price {
-            font-weight: 700;
-            letter-spacing: 0.02em;
         }
 
         .checkout-provider-modal {
@@ -1399,7 +1393,16 @@
         .cart-modal .btn-pay-confirm {
             display: block;
             width: 100%;
-            margin-top: 14px;
+            margin-top: 0;
+        }
+
+        .cart-checkout-hint {
+            margin: 0 0 12px;
+            font-size: 11px;
+            line-height: 1.65;
+            letter-spacing: 0.04em;
+            color: var(--ink-muted);
+            text-align: center;
         }
 
         /* ─── 購物車（下載列表） ──────────────────────── */
@@ -2805,15 +2808,14 @@
             <button type="button" class="btn-annual-later annual-select-manage-only" id="btnAnnualLater" data-i18n="annual_select_later">稍后再选</button>
             <button type="button" class="btn-annual-confirm annual-select-manage-only" id="btnAnnualConfirm" data-i18n="annual_select_confirm">确认</button>
             <div class="pay-provider-row annual-select-pay-only" id="annualPayRow" style="display:none; width:100%;">
-                <button type="button" class="btn-official-stripe" id="btnAnnualPayStripe" data-provider="stripe" aria-label="Pay with Stripe">
-                    <span>Pay with</span> <span class="brand-mark">stripe</span>
+                <button type="button" class="btn-official-stripe" id="btnAnnualPayStripe" data-provider="stripe" aria-label="Stripe">
+                    <span class="brand-mark">stripe</span>
                 </button>
                 <button type="button" class="btn-official-paypal" id="btnAnnualPayPaypal" data-provider="paypal" aria-label="Pay with PayPal">
                     <span class="brand-mark">Pay<span>Pal</span></span>
                 </button>
                 <button type="button" class="btn-official-alipay" id="btnAnnualPayAlipay" data-provider="alipay" aria-label="支付宝">
                     <span data-i18n="pay_with_alipay">支付宝</span>
-                    <span class="alipay-price">¥1439</span>
                 </button>
             </div>
         </div>
@@ -2841,6 +2843,7 @@
             <span class="cart-total-price" id="cartTotalPrice">US$0.00</span>
         </div>
 
+        <p class="cart-checkout-hint" id="cartCheckoutHint" data-i18n="cart_checkout_hint" style="display:none">支付成功后将会自动下载壁纸，若下载失败可在导航栏“用户——本月下载记录”重新下载</p>
         <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout" style="display:none">結算</button>
     </div>
 </div>
@@ -2852,15 +2855,14 @@
         <h2 data-i18n="pay_choose_provider">選擇支付方式</h2>
         <p class="pay-provider-hint" data-i18n="pay_provider_hint">選擇支付方式，完成後自動解鎖下載</p>
         <div class="pay-provider-row">
-            <button type="button" class="btn-official-stripe" id="btnCheckoutStripe" data-provider="stripe" aria-label="Pay with Stripe">
-                <span>Pay with</span> <span class="brand-mark">stripe</span>
+            <button type="button" class="btn-official-stripe" id="btnCheckoutStripe" data-provider="stripe" aria-label="Stripe">
+                <span class="brand-mark">stripe</span>
             </button>
             <button type="button" class="btn-official-paypal" id="btnCheckoutPaypal" data-provider="paypal" aria-label="Pay with PayPal">
                 <span class="brand-mark">Pay<span>Pal</span></span>
             </button>
             <button type="button" class="btn-official-alipay" id="btnCheckoutAlipay" data-provider="alipay" aria-label="支付宝">
                 <span data-i18n="pay_with_alipay">支付宝</span>
-                <span class="alipay-price" id="checkoutAlipayPrice">¥39</span>
             </button>
         </div>
     </div>
@@ -5204,6 +5206,7 @@
     const cartTotalRow = document.getElementById('cartTotalRow');
     const cartTotalPrice = document.getElementById('cartTotalPrice');
     const btnCartCheckout = document.getElementById('btnCartCheckout');
+    const cartCheckoutHint = document.getElementById('cartCheckoutHint');
     const checkoutProviderModal = document.getElementById('checkoutProviderModal');
     const checkoutProviderClose = document.getElementById('checkoutProviderClose');
 
@@ -5245,6 +5248,7 @@
             cartToolbar.style.display = 'none';
             cartTotalRow.style.display = 'none';
             if (btnCartCheckout) btnCartCheckout.style.display = 'none';
+            if (cartCheckoutHint) cartCheckoutHint.style.display = 'none';
             return;
         }
 
@@ -5267,6 +5271,9 @@
             btnCartCheckout.style.display = 'block';
             btnCartCheckout.disabled = !canCheckout;
         }
+        if (cartCheckoutHint) {
+            cartCheckoutHint.style.display = canCheckout ? 'block' : 'none';
+        }
     }
 
     function openCartModal() {
@@ -5275,24 +5282,7 @@
         cartModal.classList.add('open');
     }
 
-    function cnyYuanForItemCount(count) {
-        let n = Number(count) || 0;
-        let total = 0;
-        total += Math.floor(n / 4) * 139;
-        n %= 4;
-        total += Math.floor(n / 2) * 69;
-        n %= 2;
-        total += n * 39;
-        return total;
-    }
-
     function openCheckoutProviderModal() {
-        const priceEl = document.getElementById('checkoutAlipayPrice');
-        if (priceEl) {
-            const n = pendingCartCheckout?.items?.length || 0;
-            const yuan = cnyYuanForItemCount(n);
-            priceEl.textContent = yuan ? `¥${yuan}` : '';
-        }
         if (checkoutProviderModal) checkoutProviderModal.classList.add('open');
     }
 
