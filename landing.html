@@ -15,7 +15,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=24"></script>
+    <script src="i18n.js?v=28"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -359,18 +359,33 @@
         .period-block {
             display: grid;
             grid-template-columns: auto auto auto auto auto;
+            grid-template-rows: auto auto auto;
             justify-content: center;
-            justify-items: center;
-            align-items: baseline;
-            column-gap: 0;
+            column-gap: 10px;
             row-gap: 6px;
             margin-bottom: 8px;
+        }
+
+        .period-col,
+        .period-sep-col {
+            display: grid;
+            grid-template-rows: subgrid;
+            grid-row: 1 / -1;
+            justify-items: center;
+            align-items: baseline;
         }
 
         .period-col-label {
             font-size: 12px;
             color: var(--ink-muted);
             letter-spacing: 0.16em;
+        }
+
+        .period-col-date {
+            font-size: 11px;
+            color: var(--ink-muted);
+            text-align: center;
+            line-height: 1.4;
         }
 
         .period-col-value {
@@ -384,7 +399,7 @@
             color: var(--ink-muted);
             font-size: 14px;
             letter-spacing: 0.14em;
-            margin: 0 2px;
+            margin: 0;
             line-height: 1;
         }
 
@@ -1292,7 +1307,8 @@
 
         /* Official Stripe / PayPal brand buttons */
         .btn-official-stripe,
-        .btn-official-paypal {
+        .btn-official-paypal,
+        .btn-official-alipay {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1311,17 +1327,20 @@
         }
 
         .btn-official-stripe:hover,
-        .btn-official-paypal:hover {
+        .btn-official-paypal:hover,
+        .btn-official-alipay:hover {
             filter: brightness(0.96);
         }
 
         .btn-official-stripe:active,
-        .btn-official-paypal:active {
+        .btn-official-paypal:active,
+        .btn-official-alipay:active {
             transform: translateY(1px);
         }
 
         .btn-official-stripe:disabled,
-        .btn-official-paypal:disabled {
+        .btn-official-paypal:disabled,
+        .btn-official-alipay:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             filter: none;
@@ -1350,6 +1369,17 @@
 
         .btn-official-paypal .brand-mark span {
             color: #009CDE;
+        }
+
+        .btn-official-alipay {
+            background: #1677FF;
+            color: #fff;
+            gap: 8px;
+        }
+
+        .btn-official-alipay .alipay-price {
+            font-weight: 700;
+            letter-spacing: 0.02em;
         }
 
         .checkout-provider-modal {
@@ -1705,6 +1735,14 @@
             color: var(--ink-soft);
             margin: 0 0 28px;
             letter-spacing: 0.04em;
+        }
+
+        #checkoutReturnModal {
+            z-index: 70;
+        }
+
+        #checkoutReturnModal .confirm-modal p {
+            margin-bottom: 0;
         }
 
         .confirm-actions {
@@ -2530,16 +2568,31 @@
     <div class="tst-hint" id="tstHint" style="display:none"></div>
 
     <div class="period-block" id="periodBlock">
-        <span class="period-col-label" data-i18n="period_label_dayun">大運</span>
-        <span class="period-sep period-sep-label">·</span>
-        <span class="period-col-label" data-i18n="period_label_year">流年</span>
-        <span class="period-sep period-sep-label">·</span>
-        <span class="period-col-label" data-i18n="period_label_month">流月</span>
-        <span class="period-col-value" id="periodDayun"><span class="mu">乙</span><span class="tu">未</span>大運</span>
-        <span class="period-sep">·</span>
-        <span class="period-col-value" id="periodYear"><span class="huo">丙</span><span class="huo">午</span>年</span>
-        <span class="period-sep">·</span>
-        <span class="period-col-value" id="periodMonth"><span class="mu">甲</span><span class="huo">午</span>月</span>
+        <div class="period-col">
+            <span class="period-col-label" data-i18n="period_label_dayun">大運</span>
+            <span class="period-col-date" id="periodDayunDate"></span>
+            <span class="period-col-value" id="periodDayun"><span class="mu">乙</span><span class="tu">未</span>大運</span>
+        </div>
+        <div class="period-sep-col" aria-hidden="true">
+            <span class="period-sep period-sep-label">·</span>
+            <span class="period-sep period-sep-label">·</span>
+            <span class="period-sep">·</span>
+        </div>
+        <div class="period-col">
+            <span class="period-col-label" data-i18n="period_label_year">流年</span>
+            <span class="period-col-date" id="periodYearDate"></span>
+            <span class="period-col-value" id="periodYear"><span class="huo">丙</span><span class="huo">午</span>年</span>
+        </div>
+        <div class="period-sep-col" aria-hidden="true">
+            <span class="period-sep period-sep-label">·</span>
+            <span class="period-sep period-sep-label">·</span>
+            <span class="period-sep">·</span>
+        </div>
+        <div class="period-col">
+            <span class="period-col-label" data-i18n="period_label_month">流月</span>
+            <span class="period-col-date" id="periodMonthDate"></span>
+            <span class="period-col-value" id="periodMonth"><span class="mu">甲</span><span class="huo">午</span>月</span>
+        </div>
     </div>
 
     <!-- 本月喜用 / 本月補運 文字行 -->
@@ -2719,6 +2772,24 @@
     </div>
 </div>
 
+<!-- 支付回跳：页面大脚本执行完之前就先显示，避免空白等待 -->
+<div class="modal-backdrop" id="checkoutReturnModal" role="status" aria-live="polite" aria-modal="true">
+    <div class="modal confirm-modal">
+        <p id="checkoutReturnMsg" data-i18n="pay_confirming">正在确认支付…</p>
+    </div>
+</div>
+<script>
+(function () {
+    try {
+        if (new URLSearchParams(location.search).get('checkout') === '1') {
+            var el = document.getElementById('checkoutReturnModal');
+            var msg = document.getElementById('checkoutReturnMsg');
+            if (msg && window.I18N && window.I18N.t) msg.textContent = window.I18N.t('pay_confirming');
+            if (el) el.classList.add('open');
+        }
+    } catch (_) {}
+})();
+</script>
 
 <!-- 包年提示／档案选择弹窗（下载选包年：仅提示+确认支付；导航管理：选档案） -->
 <div class="modal-backdrop" id="annualSelectModal" role="dialog" aria-modal="true" aria-labelledby="annualSelectTitle">
@@ -2739,6 +2810,10 @@
                 </button>
                 <button type="button" class="btn-official-paypal" id="btnAnnualPayPaypal" data-provider="paypal" aria-label="Pay with PayPal">
                     <span class="brand-mark">Pay<span>Pal</span></span>
+                </button>
+                <button type="button" class="btn-official-alipay" id="btnAnnualPayAlipay" data-provider="alipay" aria-label="支付宝">
+                    <span data-i18n="pay_with_alipay">支付宝</span>
+                    <span class="alipay-price">¥1439</span>
                 </button>
             </div>
         </div>
@@ -2782,6 +2857,10 @@
             </button>
             <button type="button" class="btn-official-paypal" id="btnCheckoutPaypal" data-provider="paypal" aria-label="Pay with PayPal">
                 <span class="brand-mark">Pay<span>Pal</span></span>
+            </button>
+            <button type="button" class="btn-official-alipay" id="btnCheckoutAlipay" data-provider="alipay" aria-label="支付宝">
+                <span data-i18n="pay_with_alipay">支付宝</span>
+                <span class="alipay-price" id="checkoutAlipayPrice">¥39</span>
             </button>
         </div>
     </div>
@@ -3017,12 +3096,16 @@
         const now = new Date();
         const key = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}-${now.getHours()}`;
         if (cachedNowGanZhi && cachedNowKey === key) return cachedNowGanZhi;
-        const nowEightChar = Solar.fromYmdHms(now.getFullYear(), now.getMonth() + 1, now.getDate(),
-            now.getHours(), now.getMinutes(), now.getSeconds()).getLunar().getEightChar();
+        const nowLunar = Solar.fromYmdHms(now.getFullYear(), now.getMonth() + 1, now.getDate(),
+            now.getHours(), now.getMinutes(), now.getSeconds()).getLunar();
+        const nowEightChar = nowLunar.getEightChar();
         cachedNowKey = key;
         cachedNowGanZhi = {
             year: nowEightChar.getYearGan() + nowEightChar.getYearZhi(),
-            month: nowEightChar.getMonthGan() + nowEightChar.getMonthZhi()
+            month: nowEightChar.getMonthGan() + nowEightChar.getMonthZhi(),
+            yearNum: now.getFullYear(),
+            monthStart: nowLunar.getPrevJie().getSolar(),
+            monthEnd: nowLunar.getNextJie().getSolar()
         };
         return cachedNowGanZhi;
     }
@@ -3067,12 +3150,19 @@
             ];
 
             let dayunGanZhi = '';
+            let dayunStartYear = 0;
+            let dayunEndYear = 0;
             try {
                 const yun = eightChar.getYun(profile.gender);
                 const currentYear = new Date().getFullYear();
                 const matched = yun.getDaYun(12).find((dy) =>
+                    dy.getIndex() >= 1 &&
                     currentYear >= dy.getStartYear() && currentYear <= dy.getEndYear());
-                if (matched) dayunGanZhi = matched.getGanZhi();
+                if (matched) {
+                    dayunGanZhi = matched.getGanZhi();
+                    dayunStartYear = matched.getStartYear();
+                    dayunEndYear = matched.getEndYear();
+                }
             } catch (_) {}
 
             const nowYearMonth = getCurrentYearMonthGanZhi();
@@ -3080,9 +3170,11 @@
                 pillars,
                 tstCorrected,
                 period: {
-                    dayun: dayunGanZhi || '——',
+                    dayun: dayunGanZhi,
                     year: nowYearMonth.year,
-                    month: nowYearMonth.month
+                    month: nowYearMonth.month,
+                    dayunStartYear,
+                    dayunEndYear
                 }
             };
         } catch (err) {
@@ -3468,12 +3560,33 @@
 
         const d = bazi.period;
         const t = window.I18N ? window.I18N.t : (k) => k;
+        const lang = (window.I18N && window.I18N.getLanguage) ? window.I18N.getLanguage() : 'zh-CN';
+        const yearSuffix = lang === 'en' ? '' : '年';
+        const mdHm = (s) => {
+            const hm = String(s.getHour()).padStart(2, '0') + ':' + String(s.getMinute()).padStart(2, '0');
+            if (lang === 'en') {
+                const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return mo[s.getMonth() - 1] + ' ' + s.getDay() + ' ' + hm;
+            }
+            return s.getMonth() + '月' + s.getDay() + '日 ' + hm;
+        };
         const gzHtml = (gz, suffix) =>
             `<span class="${wxClass(gz[0])}">${gz[0]}</span>` +
             `<span class="${wxClass(gz[1])}">${gz[1]}</span>${suffix}`;
-        document.getElementById('periodDayun').innerHTML = gzHtml(d.dayun, t('period_dayun'));
+        const dayunStarted = !!(d.dayunStartYear && d.dayunEndYear && d.dayun && d.dayun.length >= 2);
+        document.getElementById('periodDayun').innerHTML = dayunStarted
+            ? gzHtml(d.dayun, t('period_dayun'))
+            : '——';
         document.getElementById('periodYear').innerHTML  = gzHtml(d.year,  t('period_year'));
         document.getElementById('periodMonth').innerHTML = gzHtml(d.month, t('period_month'));
+        document.getElementById('periodDayunDate').textContent = dayunStarted
+            ? d.dayunStartYear + '-' + d.dayunEndYear + yearSuffix
+            : '——';
+        const nowYM = getCurrentYearMonthGanZhi();
+        document.getElementById('periodYearDate').textContent = (nowYM.yearNum || '') + yearSuffix;
+        document.getElementById('periodMonthDate').innerHTML = (nowYM.monthStart && nowYM.monthEnd)
+            ? mdHm(nowYM.monthStart) + '<br>– ' + mdHm(nowYM.monthEnd)
+            : '——';
     }
 
     function renderMenu(list, activeId) {
@@ -4549,7 +4662,7 @@
         return 'ok';
     }
 
-    /** 支付刚成功时 webhook/读库可能略延迟，402 时短重试 */
+    /** 订单已标 paid 后再下载；偶发读库延迟时短重试 */
     async function downloadAfterPayment(item) {
         const args = {
             r2key: item.r2Key,
@@ -4557,11 +4670,11 @@
             previewImg: item.previewUrl || '',
             silentPaymentAlert: true,
         };
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 3; i++) {
             const result = await startOriginalDownload(args);
             if (result === 'ok' || result === 'auth' || result === 'missing') return result;
             if (result === 'payment' || result === 'fail') {
-                await new Promise((r) => setTimeout(r, 1000));
+                if (i < 2) await new Promise((r) => setTimeout(r, 400));
                 continue;
             }
             return result;
@@ -4589,7 +4702,7 @@
     async function startCheckout({ provider, productType, items }) {
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return;
-        if (provider !== 'stripe' && provider !== 'paypal') {
+        if (provider !== 'stripe' && provider !== 'paypal' && provider !== 'alipay') {
             alert(t('pay_provider_required'));
             return;
         }
@@ -4621,18 +4734,34 @@
         }
     }
 
-    async function pollCheckoutStatus(orderId, { attempts = 20, intervalMs = 1500 } = {}) {
+    function showCheckoutReturnMsg(key) {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const el = document.getElementById('checkoutReturnModal');
+        const msg = document.getElementById('checkoutReturnMsg');
+        if (msg) msg.textContent = t(key);
+        if (el) el.classList.add('open');
+    }
+
+    function hideCheckoutReturnModal() {
+        const el = document.getElementById('checkoutReturnModal');
+        if (el) el.classList.remove('open');
+    }
+
+    async function fetchCheckoutStatus(orderId) {
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/checkout/status?orderId=${encodeURIComponent(orderId)}`, {
+            method: 'GET',
+            headers,
+        });
+        if (!res.ok) return null;
+        return res.json().catch(() => null);
+    }
+
+    async function pollCheckoutStatus(orderId, { attempts = 15, intervalMs = 400 } = {}) {
         for (let i = 0; i < attempts; i++) {
-            const headers = await getAuthHeaders();
-            const res = await fetch(`/api/checkout/status?orderId=${encodeURIComponent(orderId)}`, {
-                method: 'GET',
-                headers,
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.status === 'paid') return data;
-            }
-            await new Promise((r) => setTimeout(r, intervalMs));
+            const data = await fetchCheckoutStatus(orderId);
+            if (data?.status === 'paid') return data;
+            if (i < attempts - 1) await new Promise((r) => setTimeout(r, intervalMs));
         }
         return null;
     }
@@ -4653,15 +4782,21 @@
         } catch (_) {}
 
         if (checkout === 'cancel') {
+            hideCheckoutReturnModal();
             alert(t('pay_cancelled'));
             return;
         }
-        if (checkout !== '1' || !orderId) return;
+        if (checkout !== '1' || !orderId) {
+            hideCheckoutReturnModal();
+            return;
+        }
         if (!isLoggedIn()) {
+            hideCheckoutReturnModal();
             requireLogin();
             return;
         }
 
+        showCheckoutReturnMsg('pay_confirming');
         try {
             if (provider === 'paypal') {
                 const headers = await getAuthHeaders();
@@ -4678,23 +4813,26 @@
 
             const status = await pollCheckoutStatus(orderId);
             if (!status || status.status !== 'paid') {
+                hideCheckoutReturnModal();
                 alert(t('pay_pending_notice'));
                 return;
             }
 
             if (status.productType === 'annual') {
+                showCheckoutReturnMsg('annual_pay_success');
                 // 先按履约结果写本地，再拉云端（避免随机 id + PUT 误删云端方案）
                 ensureLocalAnnualFromCheckout(status);
                 await hydrateAnnualFromCloud();
                 if (!isAnnualActive()) ensureLocalAnnualFromCheckout(status);
                 updateAnnualNavBtn();
                 refresh();
-                alert(t('annual_pay_success'));
+                hideCheckoutReturnModal();
                 openAnnualSelectModal('manage');
                 return;
             }
 
             const items = Array.isArray(status.items) ? status.items : [];
+            showCheckoutReturnMsg('pay_success_download');
             for (const it of items) {
                 if (!it?.r2Key) continue;
                 await downloadAfterPayment(it);
@@ -4705,8 +4843,9 @@
                 saveCart(cartItems);
                 updateCartBadge();
             }
-            alert(t('pay_success_download'));
+            setTimeout(hideCheckoutReturnModal, 800);
         } catch (err) {
+            hideCheckoutReturnModal();
             alert(err?.message || t('pay_create_failed'));
         }
     }
@@ -5045,6 +5184,12 @@
         payModal.classList.remove('open');
         await startCheckout({ provider: 'paypal', productType: 'annual', items: [] });
     });
+    document.getElementById('btnAnnualPayAlipay')?.addEventListener('click', async () => {
+        if (!requireLogin()) return;
+        closeAnnualSelectModal();
+        payModal.classList.remove('open');
+        await startCheckout({ provider: 'alipay', productType: 'annual', items: [] });
+    });
 
     // ─── 下載列表（購物車） ─────────────────────────────
     const CART_STORAGE_KEY = 'bazi_cart_items';
@@ -5130,7 +5275,24 @@
         cartModal.classList.add('open');
     }
 
+    function cnyYuanForItemCount(count) {
+        let n = Number(count) || 0;
+        let total = 0;
+        total += Math.floor(n / 4) * 139;
+        n %= 4;
+        total += Math.floor(n / 2) * 69;
+        n %= 2;
+        total += n * 39;
+        return total;
+    }
+
     function openCheckoutProviderModal() {
+        const priceEl = document.getElementById('checkoutAlipayPrice');
+        if (priceEl) {
+            const n = pendingCartCheckout?.items?.length || 0;
+            const yuan = cnyYuanForItemCount(n);
+            priceEl.textContent = yuan ? `¥${yuan}` : '';
+        }
         if (checkoutProviderModal) checkoutProviderModal.classList.add('open');
     }
 
@@ -5224,6 +5386,7 @@
     });
     document.getElementById('btnCheckoutStripe')?.addEventListener('click', () => cartCheckout('stripe'));
     document.getElementById('btnCheckoutPaypal')?.addEventListener('click', () => cartCheckout('paypal'));
+    document.getElementById('btnCheckoutAlipay')?.addEventListener('click', () => cartCheckout('alipay'));
 
     btnAddCart.addEventListener('click', () => {
         if (!requireLogin()) return;

@@ -3,6 +3,7 @@ import { assertUser } from '../_lib/auth.js';
 import { getServiceSupabase } from '../_lib/supabase.js';
 import { markOrderPaidAndFulfill } from '../_lib/fulfill-order.js';
 import { paypalFetch } from '../_lib/paypal.js';
+import { moneyMatchesOrder, zpayConfigured, zpayQueryOrder } from '../_lib/zpay.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
       if (order.provider === 'stripe' && order.provider_session_id && process.env.STRIPE_SECRET_KEY) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
         const session = await stripe.checkout.sessions.retrieve(order.provider_session_id);
-        // payment_status=paid is authoritative; complete+paid covers Checkout return races
+        // 只认已付款。status=complete 只表示 Checkout 结束，延迟支付方式下钱可能还没到。
         if (session.payment_status === 'paid') {
           await markOrderPaidAndFulfill(order.id, {
             provider: 'stripe',
@@ -76,6 +77,28 @@ export default async function handler(req, res) {
               provider: 'paypal',
               providerSessionId: data.id,
               providerPaymentId: captureId,
+              metaExtra: { synced_from: 'status' },
+            });
+          }
+        }
+      }
+      if (order.provider === 'alipay' && zpayConfigured()) {
+        const outTradeNo = order.provider_session_id
+          || String(order.id).replace(/-/g, '');
+        const { ok, data } = await zpayQueryOrder(outTradeNo);
+        if (ok && Number(data.status) === 1) {
+          if (data.money != null && data.money !== ''
+            && !moneyMatchesOrder(data.money, order.amount_cents)) {
+            console.error('zpay status money mismatch', {
+              orderId: order.id,
+              expected: order.amount_cents,
+              got: data.money,
+            });
+          } else {
+            await markOrderPaidAndFulfill(order.id, {
+              provider: 'alipay',
+              providerSessionId: outTradeNo,
+              providerPaymentId: data.trade_no || outTradeNo,
               metaExtra: { synced_from: 'status' },
             });
           }

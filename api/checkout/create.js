@@ -3,12 +3,16 @@ import { assertUser } from '../_lib/auth.js';
 import { getServiceSupabase } from '../_lib/supabase.js';
 import {
   productLabel,
+  productLabelZh,
   amountCentsForItemCount,
+  amountCentsForItemCountCny,
   amountForProduct,
+  amountForProductCny,
   productTypeFromItemCount,
   siteUrl,
 } from '../_lib/pricing.js';
 import { paypalFetch } from '../_lib/paypal.js';
+import { orderIdToOutTradeNo, zpayConfigured } from '../_lib/zpay.js';
 
 function normalizeItems(rawItems) {
   if (!Array.isArray(rawItems)) return [];
@@ -30,23 +34,26 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const provider = String(body.provider || '').toLowerCase();
-  if (provider !== 'stripe' && provider !== 'paypal') {
-    return res.status(400).json({ error: 'provider must be stripe or paypal' });
+  if (provider !== 'stripe' && provider !== 'paypal' && provider !== 'alipay') {
+    return res.status(400).json({ error: 'provider must be stripe, paypal or alipay' });
   }
 
   let productType = body.product_type || body.productType || null;
   const items = normalizeItems(body.items);
+  const useCny = provider === 'alipay';
 
   let amountCents;
   if (productType === 'annual') {
-    amountCents = amountForProduct('annual');
+    amountCents = useCny ? amountForProductCny('annual') : amountForProduct('annual');
   } else {
     // Wallpaper cart: price by item count (4+2+1 packs). Ignore client product_type.
     if (!items.length) {
       return res.status(400).json({ error: 'Cart is empty' });
     }
     productType = productTypeFromItemCount(items.length);
-    amountCents = amountCentsForItemCount(items.length);
+    amountCents = useCny
+      ? amountCentsForItemCountCny(items.length)
+      : amountCentsForItemCount(items.length);
   }
 
   if (!productType || amountCents == null) {
@@ -66,7 +73,7 @@ export default async function handler(req, res) {
       product_type: productType,
       status: 'pending',
       amount_cents: amountCents,
-      currency: 'USD',
+      currency: useCny ? 'CNY' : 'USD',
       provider,
       meta: { source: 'checkout/create' },
     })
@@ -140,6 +147,7 @@ export default async function handler(req, res) {
       });
     }
 
+    if (provider === 'paypal') {
     // PayPal
     const amountValue = (amountCents / 100).toFixed(2);
     const { ok, data, status } = await paypalFetch('/v2/checkout/orders', {
@@ -189,6 +197,33 @@ export default async function handler(req, res) {
       provider: 'paypal',
       paypalOrderId: data.id,
     });
+    }
+
+    if (provider === 'alipay') {
+    // Alipay via Z-Pay. return/notify URLs cannot carry query strings, so
+    // the browser first hits /api/checkout/zpay-go which POSTs to Z-Pay.
+    if (!zpayConfigured()) {
+      await sb.from('payment_orders').update({ status: 'failed' }).eq('id', order.id);
+      return res.status(500).json({ error: 'Alipay not configured' });
+    }
+    const outTradeNo = orderIdToOutTradeNo(order.id);
+    await sb.from('payment_orders').update({
+      provider_session_id: outTradeNo,
+      meta: {
+        ...(order.meta && typeof order.meta === 'object' ? order.meta : {}),
+        zpay_name: productLabelZh(productType, items.length),
+      },
+      updated_at: new Date().toISOString(),
+    }).eq('id', order.id);
+
+    return res.status(200).json({
+      orderId: order.id,
+      checkoutUrl: `${base}/api/checkout/zpay-go?order=${encodeURIComponent(order.id)}`,
+      provider: 'alipay',
+    });
+    }
+
+    return res.status(400).json({ error: 'Unknown provider' });
   } catch (err) {
     console.error('checkout create error', err);
     await sb.from('payment_orders').update({ status: 'failed' }).eq('id', order.id);
