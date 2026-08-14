@@ -3581,8 +3581,8 @@
             : '——';
         document.getElementById('periodYear').innerHTML  = gzHtml(d.year,  t('period_year'));
         document.getElementById('periodMonth').innerHTML = gzHtml(d.month, t('period_month'));
-        document.getElementById('periodDayunDate').textContent = dayunStarted
-            ? d.dayunStartYear + '-' + d.dayunEndYear + yearSuffix
+        document.getElementById('periodDayunDate').innerHTML = dayunStarted
+            ? d.dayunStartYear + yearSuffix + '<br>– ' + d.dayunEndYear + yearSuffix
             : '——';
         const nowYM = getCurrentYearMonthGanZhi();
         document.getElementById('periodYearDate').textContent = (nowYM.yearNum || '') + yearSuffix;
