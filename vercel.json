@@ -1,6 +1,11 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/checkout/zpay-go", "destination": "/api/checkout/zpay?action=go" },
+    { "source": "/api/checkout/zpay-notify", "destination": "/api/checkout/zpay?action=notify" },
+    { "source": "/api/checkout/zpay-return", "destination": "/api/checkout/zpay?action=return" }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
