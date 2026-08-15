@@ -710,20 +710,24 @@ function drawLockscreenWatermark(ctx, width, height, logo) {
   ctx.shadowBlur = Math.max(6, width * 0.018);
   ctx.shadowOffsetY = Math.max(1, width * 0.004);
 
+  // 日期（顶部区域）
+  ctx.font = `300 ${Math.round(width * 0.048)}px system-ui, sans-serif`;
+  ctx.fillText('2026/08/09 Sunday', cx, height * 0.33);
+
+  // 时间（大字居中）
+  ctx.font = `200 ${Math.round(width * 0.224)}px system-ui, sans-serif`;
+  ctx.fillText('10:55', cx, height * 0.44);
+
+  // Logo（时间下方）
   if (logo && logo.width) {
-    const logoW = width * 0.72;
+    const logoW = width * 0.55;
     const logoH = logoW * (logo.height / logo.width);
     ctx.save();
-    ctx.globalAlpha = 0.88;
+    ctx.globalAlpha = 0.75;
     ctx.filter = 'brightness(0) invert(1)';
-    ctx.drawImage(logo, cx - logoW / 2, height * 0.26 - logoH / 2, logoW, logoH);
+    ctx.drawImage(logo, cx - logoW / 2, height * 0.57 - logoH / 2, logoW, logoH);
     ctx.restore();
   }
-
-  ctx.font = `300 ${Math.round(width * 0.048)}px system-ui, sans-serif`;
-  ctx.fillText('2026/08/09 Sunday', cx, height * 0.38);
-  ctx.font = `200 ${Math.round(width * 0.224)}px system-ui, sans-serif`;
-  ctx.fillText('10:55', cx, height * 0.48);
 
   const btn = width * 0.18;
   const btnY = height * 0.92 - btn / 2;
