@@ -9,7 +9,7 @@
     <meta name="application-name" content="ElementaWall">
     <meta name="description" content="ElementaWall 根據生辰八字，為你定制每月運勢壁紙。支援 Google 與郵箱登入，提供個人化壁紙推薦與下載。">
     <!-- 预加载首屏关键资源 -->
-    <link rel="preload" href="assets/disk.webp" as="image">
+    <link rel="preload" href="assets/disk.webp" as="image" media="(min-width: 721px)">
     <link rel="preload" href="assets/bg-paper-opt.jpg" as="image">
     <!-- 楷体字型：自托管 UI 子集，不依赖外部 CDN -->
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=4" as="font" type="font/woff2" crossorigin>
@@ -248,30 +248,60 @@
 
     <!-- 圆盘：darken + 30% 不透明度；龙与圆盘同为2880×1800画布，直接叠在同一个盒子里，圆心自动重合 -->
     <div class="disk-wrap">
-        <img class="disk-img" src="assets/disk.webp" alt="" draggable="false">
+        <img class="disk-img" id="coverDisk" alt="" draggable="false">
         <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
     </div>
 
-    <!-- 卷轴视频：JS 按端动态注入，避免另一端预加载 -->
+    <!-- 卷轴视频：JS 按端动态注入；手机端走混淆文件，避免直链 mp4 被嗅探 -->
     <script>
     (function () {
-        var src = window.innerWidth >= 721
-            ? 'assets/video.mp4'
-            : 'assets/video-2-opt.mp4';
-        var v = document.createElement('video');
-        v.className = 'scroll-video';
-        v.setAttribute('autoplay', '');
-        v.setAttribute('loop', '');
-        v.setAttribute('muted', '');
-        v.setAttribute('playsinline', '');
-        v.muted = true;
-        var s = document.createElement('source');
-        s.src = src;
-        s.type = 'video/mp4';
-        v.appendChild(s);
-        document.currentScript.parentNode.insertBefore(v, document.currentScript.nextSibling);
-        v.load();
-        v.play().catch(function () {});
+        var KEY = [0x5a, 0xe3, 0x91, 0x0c, 0x77, 0xb4, 0x2d, 0xf8];
+        var isDesktop = window.innerWidth >= 721;
+        var diskImg = document.getElementById('coverDisk');
+        var scriptEl = document.currentScript;
+
+        function xorBytes(buf) {
+            var out = new Uint8Array(buf);
+            for (var i = 0; i < out.length; i++) out[i] ^= KEY[i % KEY.length];
+            return out;
+        }
+
+        function loadObf(url, mime) {
+            return fetch(url, { cache: 'force-cache' }).then(function (res) {
+                if (!res.ok) throw new Error('obf ' + res.status);
+                return res.arrayBuffer();
+            }).then(function (buf) {
+                return URL.createObjectURL(new Blob([xorBytes(buf)], { type: mime }));
+            });
+        }
+
+        function mountVideo(src) {
+            var v = document.createElement('video');
+            v.className = 'scroll-video';
+            v.setAttribute('autoplay', '');
+            v.setAttribute('loop', '');
+            v.setAttribute('muted', '');
+            v.setAttribute('playsinline', '');
+            v.setAttribute('webkit-playsinline', '');
+            v.muted = true;
+            v.playsInline = true;
+            v.src = src;
+            scriptEl.parentNode.insertBefore(v, scriptEl.nextSibling);
+            v.play().catch(function () {});
+        }
+
+        if (isDesktop) {
+            if (diskImg) diskImg.src = 'assets/disk.webp';
+            mountVideo('assets/video.mp4');
+            return;
+        }
+
+        if (diskImg) {
+            loadObf('assets/obf/d', 'image/webp').then(function (url) {
+                diskImg.src = url;
+            }).catch(function () {});
+        }
+        loadObf('assets/obf/v', 'video/mp4').then(mountVideo).catch(function () {});
     })();
     </script>
 
