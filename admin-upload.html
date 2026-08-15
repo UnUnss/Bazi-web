@@ -1041,8 +1041,12 @@ function previewDest(w) {
   return { folder, filename, key: `wallpapers/${folder}/preview/${filename}`, existed: false };
 }
 
+function r2Url(key) {
+  return `${R2_PUBLIC_URL}/${String(key).split('/').map(encodeURIComponent).join('/')}`;
+}
+
 async function fetchOriginalBlob(r2Key) {
-  const url = `${R2_PUBLIC_URL}/${r2Key}`;
+  const url = r2Url(r2Key);
   let res;
   try {
     res = await fetch(url, { mode: 'cors', credentials: 'omit' });
@@ -1063,7 +1067,7 @@ async function fetchOriginalBlob(r2Key) {
 async function inspectPreviewStatus(previewKey) {
   if (!previewKey) return { status: 'missing' };
   try {
-    const res = await fetch(`${R2_PUBLIC_URL}/${previewKey}`, {
+    const res = await fetch(r2Url(previewKey), {
       mode: 'cors',
       credentials: 'omit',
       cache: 'no-store',

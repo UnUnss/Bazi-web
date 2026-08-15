@@ -6423,6 +6423,10 @@
         localStorage.removeItem(AUTH_KEY);
         localStorage.removeItem(AUTH_EMAIL_KEY);
         localStorage.removeItem('bazi_logged_in_email');
+        localStorage.removeItem(CART_STORAGE_KEY);
+        localStorage.removeItem('bazi_profiles');
+        cartItems = [];
+        updateCartBadge();
         clearLocalAnnualPlans();
         inviteStatus = null;
         updateAuthUI();
