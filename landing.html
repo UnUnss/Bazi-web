@@ -1397,34 +1397,11 @@
             width: auto;
         }
 
-        .stripe-methods {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-            gap: 4px 6px;
-            font-size: 10px;
-            font-weight: 500;
-            letter-spacing: 0.02em;
-            line-height: 1.4;
-            color: #6b675f;
-        }
-
-        .stripe-method-icons {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .pay-mark {
+        .stripe-methods-img {
             display: block;
-            height: 20px;
-            width: auto;
-            flex-shrink: 0;
-        }
-
-        .pay-mark-link {
-            height: 20px;
+            width: 100%;
+            max-width: 280px;
+            height: auto;
         }
 
         .btn-official-paypal,
@@ -2891,15 +2868,7 @@
                 <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
                 <button type="button" class="btn-official-stripe" id="btnAnnualPayStripe" data-provider="stripe" aria-label="Stripe">
                     <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
-                    <span class="stripe-methods">
-                        <span data-i18n="pay_stripe_methods_before">支持</span>
-                        <span class="stripe-method-icons">
-                            <img class="pay-mark" src="assets/pay/apple-pay-mark.png" alt="Apple Pay">
-                            <img class="pay-mark" src="assets/pay/google-pay-mark.png" alt="Google Pay">
-                            <img class="pay-mark pay-mark-link" src="assets/pay/link-logo.png" alt="Link">
-                        </span>
-                        <span data-i18n="pay_stripe_methods_after">信用卡等多种支付方式</span>
-                    </span>
+                    <img class="stripe-methods-img" src="assets/pay/支付合集logo.png" alt="">
                 </button>
                 <button type="button" class="btn-official-paypal" id="btnAnnualPayPaypal" data-provider="paypal" aria-label="Pay with PayPal">
                     <img src="assets/pay/paypal-logo.png" alt="PayPal">
@@ -2948,15 +2917,7 @@
         <div class="pay-provider-row">
             <button type="button" class="btn-official-stripe" id="btnCheckoutStripe" data-provider="stripe" aria-label="Stripe">
                 <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
-                <span class="stripe-methods">
-                    <span data-i18n="pay_stripe_methods_before">支持</span>
-                    <span class="stripe-method-icons">
-                        <img class="pay-mark" src="assets/pay/apple-pay-mark.png" alt="Apple Pay">
-                        <img class="pay-mark" src="assets/pay/google-pay-mark.png" alt="Google Pay">
-                        <img class="pay-mark pay-mark-link" src="assets/pay/link-logo.png" alt="Link">
-                    </span>
-                    <span data-i18n="pay_stripe_methods_after">信用卡等多种支付方式</span>
-                </span>
+                <img class="stripe-methods-img" src="assets/pay/支付合集logo.png" alt="">
             </button>
             <button type="button" class="btn-official-paypal" id="btnCheckoutPaypal" data-provider="paypal" aria-label="Pay with PayPal">
                 <img src="assets/pay/paypal-logo.png" alt="PayPal">
