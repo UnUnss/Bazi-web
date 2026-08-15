@@ -248,32 +248,16 @@
 
     <!-- 圆盘：darken + 30% 不透明度；龙与圆盘同为2880×1800画布，直接叠在同一个盒子里，圆心自动重合 -->
     <div class="disk-wrap">
-        <img class="disk-img" id="coverDisk" alt="" draggable="false">
+        <img class="disk-img" alt="" draggable="false">
         <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
     </div>
+    <script src="obf-disk.js?v=1"></script>
 
     <!-- 卷轴视频：JS 按端动态注入；手机端走混淆文件，避免直链 mp4 被嗅探 -->
     <script>
     (function () {
-        var KEY = [0x5a, 0xe3, 0x91, 0x0c, 0x77, 0xb4, 0x2d, 0xf8];
         var isDesktop = window.innerWidth >= 721;
-        var diskImg = document.getElementById('coverDisk');
         var scriptEl = document.currentScript;
-
-        function xorBytes(buf) {
-            var out = new Uint8Array(buf);
-            for (var i = 0; i < out.length; i++) out[i] ^= KEY[i % KEY.length];
-            return out;
-        }
-
-        function loadObf(url, mime) {
-            return fetch(url, { cache: 'force-cache' }).then(function (res) {
-                if (!res.ok) throw new Error('obf ' + res.status);
-                return res.arrayBuffer();
-            }).then(function (buf) {
-                return URL.createObjectURL(new Blob([xorBytes(buf)], { type: mime }));
-            });
-        }
 
         function mountVideo(src) {
             var v = document.createElement('video');
@@ -291,17 +275,13 @@
         }
 
         if (isDesktop) {
-            if (diskImg) diskImg.src = 'assets/disk.webp';
             mountVideo('assets/video.mp4');
             return;
         }
 
-        if (diskImg) {
-            loadObf('assets/obf/d', 'image/webp').then(function (url) {
-                diskImg.src = url;
-            }).catch(function () {});
+        if (typeof loadCoverObf === 'function') {
+            loadCoverObf('assets/obf/v', 'video/mp4').then(mountVideo).catch(function () {});
         }
-        loadObf('assets/obf/v', 'video/mp4').then(mountVideo).catch(function () {});
     })();
     </script>
 
