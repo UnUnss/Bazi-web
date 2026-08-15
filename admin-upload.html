@@ -72,7 +72,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
 /* ── 管理标签页 ── */
 .manage-toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
 .manage-filters { display: flex; gap: 10px; flex-wrap: wrap; }
-.btn-regen { margin-left: auto; padding: 6px 14px; font-size: 12px; background: #1c1c1c; color: #fff; border: none; border-radius: 4px; cursor: pointer; letter-spacing: .04em; }
+.manage-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-regen { padding: 6px 14px; font-size: 12px; background: #1c1c1c; color: #fff; border: 1px solid #1c1c1c; border-radius: 4px; cursor: pointer; letter-spacing: .04em; }
+.btn-regen.btn-check { background: #fff; color: #1c1c1c; }
 .btn-regen:disabled { opacity: .45; cursor: default; }
 .filter-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; border: 1px solid #ddd; background: #fff; cursor: pointer; color: #555; }
 .filter-btn.active { background: #1c1c1c; color: #fff; border-color: #1c1c1c; }
@@ -177,7 +179,10 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
       <button class="filter-btn" data-el="土">土</button>
       <button class="filter-btn" data-el="金">金</button>
       </div>
-      <button type="button" class="btn-regen" id="btnRegenPreviews">重新生成全部预览</button>
+      <div class="manage-actions">
+        <button type="button" class="btn-regen btn-check" id="btnCheckPreviews">检查预览</button>
+        <button type="button" class="btn-regen" id="btnRegenPreviews">重新生成全部预览</button>
+      </div>
     </div>
     <div id="manageEmpty" class="empty-hint">暂无已上传壁纸</div>
     <div class="folder-groups" id="managedGrid"></div>
@@ -1060,25 +1065,64 @@ async function fetchOriginalBlob(r2Key) {
   return blob;
 }
 
-// 新预览长边 720；旧预览长边 1080。已是 720 的视为生成过，跳过。
-async function previewAlreadyBaked(previewKey) {
-  if (!previewKey) return false;
+async function inspectPreviewStatus(previewKey) {
+  if (!previewKey) return { status: 'missing' };
   try {
     const res = await fetch(`${R2_PUBLIC_URL}/${previewKey}`, {
       mode: 'cors',
       credentials: 'omit',
       cache: 'no-store',
     });
-    if (!res.ok) return false;
+    if (!res.ok) return { status: 'missing' };
     const blob = await res.blob();
-    if (!blob || !blob.size) return false;
+    if (!blob || !blob.size) return { status: 'missing' };
     const img = await createImageBitmap(blob);
-    const baked = Math.max(img.width, img.height) <= 720;
+    const maxSide = Math.max(img.width, img.height);
     if (typeof img.close === 'function') img.close();
-    return baked;
+    return { status: maxSide <= 720 ? 'baked' : 'old', maxSide };
   } catch (_) {
-    return false;
+    return { status: 'missing' };
   }
+}
+
+function previewAlreadyBaked(previewKey) {
+  return inspectPreviewStatus(previewKey).then((r) => r.status === 'baked');
+}
+
+function previewLabel(w) {
+  return w.filename || w.preview_key || w.r2_key || w.id;
+}
+
+async function scanAllPreviews(list, onProgress) {
+  const baked = [];
+  const old = [];
+  const missing = [];
+  let done = 0;
+  await mapPool(list, 8, async (w) => {
+    let key = w.preview_key;
+    if (!key) {
+      try { key = previewDest(w).key; } catch (_) { key = ''; }
+    }
+    const result = await inspectPreviewStatus(key);
+    const label = previewLabel(w);
+    if (result.status === 'baked') baked.push(label);
+    else if (result.status === 'old') old.push(label);
+    else missing.push(label);
+    done += 1;
+    if (onProgress) onProgress(done, list.length, baked.length, old.length, missing.length);
+  });
+  return { total: list.length, baked, old, missing };
+}
+
+function formatPreviewReport(scan) {
+  let msg = `共 ${scan.total} 张\n已生成（长边 720）：${scan.baked.length}\n仍是旧图（大于 720）：${scan.old.length}\n缺失或打不开：${scan.missing.length}`;
+  if (scan.old.length === 0 && scan.missing.length === 0) {
+    msg += '\n\n全部预览都已生成。';
+    return msg;
+  }
+  const leftover = scan.old.concat(scan.missing).slice(0, 8);
+  if (leftover.length) msg += `\n\n未完成示例：\n${leftover.join('\n')}`;
+  return msg;
 }
 
 async function mapPool(items, limit, worker, shouldStop) {
@@ -1174,7 +1218,44 @@ document.getElementById('btnRegenPreviews').addEventListener('click', async () =
   if (!stopped) {
     let msg = `新生成 ${ok} 张，跳过已生成 ${skipped} 张`;
     if (fail) msg += `，失败 ${fail} 张`;
+    try {
+      btn.disabled = true;
+      btn.textContent = '正在核对预览…';
+      const latest = (allUploaded || []).filter((w) => w.id && w.r2_key);
+      const scan = await scanAllPreviews(latest);
+      msg += `\n\n${formatPreviewReport(scan)}`;
+    } catch (err) {
+      msg += `\n核对失败：${err.message || err}`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '重新生成全部预览';
+    }
     alert(msg);
+  }
+});
+
+document.getElementById('btnCheckPreviews').addEventListener('click', async () => {
+  const btn = document.getElementById('btnCheckPreviews');
+  const regenBtn = document.getElementById('btnRegenPreviews');
+  if (btn.disabled) return;
+  const list = (allUploaded || []).filter((w) => w.id && w.r2_key);
+  if (!list.length) {
+    alert('没有可检查的壁纸');
+    return;
+  }
+  btn.disabled = true;
+  regenBtn.disabled = true;
+  try {
+    const scan = await scanAllPreviews(list, (done, total, baked, old, missing) => {
+      btn.textContent = `正在检查 ${done}/${total}（已生成 ${baked}）…`;
+    });
+    alert(formatPreviewReport(scan));
+  } catch (err) {
+    alert(err.message || String(err));
+  } finally {
+    btn.disabled = false;
+    regenBtn.disabled = false;
+    btn.textContent = '检查预览';
   }
 });
 
