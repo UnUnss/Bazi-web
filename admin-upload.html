@@ -824,9 +824,32 @@ function previewFilename(name) {
 }
 
 async function presignAndPut({ filename, folder, contentType, body, variant, headers }) {
+  const authHeaders = headers || await getAdminAuthHeaders();
+
+  // 预览图走服务端直传（base64），避免浏览器直接 PUT R2 触发 CORS 错误
+  if (variant === 'preview') {
+    const arrayBuf = await (body instanceof Blob ? body.arrayBuffer() : Promise.resolve(body));
+    const bytes = new Uint8Array(arrayBuf);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const bodyBase64 = btoa(binary);
+    const res = await fetch('/api/presign', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ filename, folder, contentType, variant, bodyBase64 }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `preview upload failed: ${res.status}`);
+    }
+    const { key } = await res.json();
+    return key;
+  }
+
+  // 原图：用预签名 URL 直传（绕开 Vercel 4.5MB 限制）
   const presignRes = await fetch('/api/presign', {
     method: 'POST',
-    headers: headers || await getAdminAuthHeaders(),
+    headers: authHeaders,
     body: JSON.stringify({ filename, folder, contentType, variant }),
   });
   if (!presignRes.ok) {

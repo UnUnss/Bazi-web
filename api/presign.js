@@ -45,7 +45,7 @@ export default async function handler(req, res) {
   const auth = await assertAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
-  const { filename, folder, contentType, variant } = req.body;
+  const { filename, folder, contentType, variant, bodyBase64 } = req.body;
   if (!filename || !folder) return res.status(400).json({ error: 'Missing params' });
 
   // Sanitize: folder must be digits only; strip path separators from filename
@@ -60,6 +60,24 @@ export default async function handler(req, res) {
     : `wallpapers/${safeFolder}/${safeName}`;
 
   try {
+    // 预览图很小，由服务端直传，避开浏览器对 R2 PUT 的 CORS
+    if (bodyBase64) {
+      if (variant !== 'preview') {
+        return res.status(400).json({ error: 'direct put is only allowed for preview' });
+      }
+      const buf = Buffer.from(String(bodyBase64), 'base64');
+      if (!buf.length || buf.length > 3.5 * 1024 * 1024) {
+        return res.status(400).json({ error: 'invalid preview body' });
+      }
+      await s3.send(new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: key,
+        Body: buf,
+        ContentType: contentType || 'image/jpeg',
+      }));
+      return res.status(200).json({ key });
+    }
+
     const url = await getSignedUrl(
       s3,
       new PutObjectCommand({
