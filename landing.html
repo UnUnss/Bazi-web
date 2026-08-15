@@ -15,7 +15,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=28"></script>
+    <script src="i18n.js?v=29"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1277,6 +1277,7 @@
 
         .pay-actions {
             display: flex;
+            flex-direction: column;
             gap: 10px;
         }
 
@@ -1296,6 +1297,49 @@
 
         .btn-add-cart:hover {
             background: rgba(255, 252, 245, 0.95);
+        }
+
+        .btn-add-cart:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        /* ─── 邀请码活动（下线时删除本段及 #inviteModal） ─── */
+        .invite-modal {
+            max-width: 360px;
+        }
+
+        .invite-count,
+        .invite-bind-msg,
+        .invite-footer {
+            margin: 8px 0 0;
+            font-size: 12.5px;
+            letter-spacing: 0.04em;
+            line-height: 1.6;
+            color: var(--ink-muted);
+        }
+
+        .invite-bind-msg {
+            min-height: 1.2em;
+        }
+
+        .invite-bind-msg.is-error {
+            color: #8b3a2a;
+        }
+
+        .invite-bind-msg.is-ok {
+            color: var(--ink-soft);
+        }
+
+        .invite-footer {
+            margin-top: 8px;
+            text-align: center;
+            color: var(--ink-soft);
+        }
+
+        #inviteMyCode {
+            letter-spacing: 0.18em;
+            font-variant-numeric: tabular-nums;
         }
 
         .btn-pay-confirm {
@@ -1861,6 +1905,17 @@
 
         .form-group input:focus {
             border-color: rgba(42, 30, 10, 0.5);
+        }
+
+        .form-group input:disabled,
+        .form-group input[readonly] {
+            background: rgba(42, 30, 10, 0.04);
+            color: var(--ink-soft);
+            cursor: default;
+        }
+
+        .form-group input:disabled {
+            cursor: not-allowed;
         }
 
         .gender-row {
@@ -2568,6 +2623,7 @@
                 <div class="user-menu" id="userMenu" role="menu">
                     <div class="user-menu-email" id="userMenuEmail"></div>
                     <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
+                    <button type="button" id="btnInviteReward" data-i18n="nav_invite_reward">邀請碼獎勵</button>
                     <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">本月下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
@@ -2829,7 +2885,39 @@
 
         <div class="pay-actions">
             <button type="button" class="btn-add-cart" id="btnAddCart" data-i18n="pay_add_cart">加入購物車</button>
+            <button type="button" class="btn-add-cart" id="btnInviteRedeem" data-i18n="invite_redeem" style="display:none">使用邀請碼獎勵兌換</button>
         </div>
+    </div>
+</div>
+
+<!-- 邀请码活动弹窗（下线时删除本块及对应 JS） -->
+<div class="modal-backdrop" id="inviteModal" role="dialog" aria-modal="true">
+    <div class="modal invite-modal">
+        <button type="button" class="modal-close" id="inviteModalClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
+        <h2 id="inviteModalTitle" data-i18n="invite_title">限時活動</h2>
+        <div class="form-group">
+            <label for="inviteCodeInput" data-i18n="invite_input_label">輸入邀請碼</label>
+            <div class="code-row">
+                <input type="text" id="inviteCodeInput" name="inviteCodeInput" maxlength="8" autocomplete="off" spellcheck="false" data-i18n-placeholder="invite_input_placeholder" placeholder="請輸入好友的邀請碼" />
+                <button type="button" class="btn-get-code" id="btnInviteBind" data-i18n="invite_submit">確認</button>
+            </div>
+            <p class="invite-bind-msg" id="inviteBindMsg"></p>
+        </div>
+        <div class="form-group">
+            <label for="inviteMyCode" data-i18n="invite_my_code">我的邀請碼</label>
+            <div class="code-row">
+                <input type="text" id="inviteMyCode" readonly tabindex="0" />
+                <button type="button" class="btn-get-code" id="btnInviteCopy" data-i18n="invite_copy">複製</button>
+            </div>
+            <p class="invite-count" id="inviteCount"></p>
+        </div>
+        <p class="invite-footer" id="inviteFooter"></p>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="inviteRedeemModal" role="status" aria-live="polite" aria-modal="true">
+    <div class="modal confirm-modal">
+        <p data-i18n="invite_redeeming">兌換成功，正在下載</p>
     </div>
 </div>
 
@@ -4622,7 +4710,7 @@
     /**
      * @returns {'ok'|'missing'|'auth'|'payment'|'fail'}
      */
-    async function startOriginalDownload({ r2key, name, previewImg, silentPaymentAlert = false }) {
+    async function startOriginalDownload({ r2key, name, previewImg, silentPaymentAlert = false, useInviteReward = false }) {
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return 'auth';
         if (!r2key) {
@@ -4648,6 +4736,7 @@
                     preview_url: previewImg || '',
                     wallpaper_name: name || '',
                     month_ganzhi: ganZhi ? ganZhi.month : '',
+                    use_invite_reward: !!useInviteReward,
                 }),
             });
             lastStatus = res.status;
@@ -5220,7 +5309,9 @@
         payPreviewImg.alt = name;
         payWallpaperName.textContent = name;
         applyTierUI('1');
+        syncInviteRedeemButton();
         payModal.classList.add('open');
+        refreshInviteStatus();
     });
 
     payModalClose.addEventListener('click', () => { payModal.classList.remove('open'); });
@@ -6206,6 +6297,134 @@
     let codeCountdownTimer = null;
     let authSubmitting = false;
 
+    // ─── 邀请码活动（下线时删除本段） ─────────────────────
+    const INVITE_DEVICE_KEY = 'ew_invite_device_id';
+    let inviteStatus = null;
+    let inviteStatusPromise = null;
+    const inviteModal = document.getElementById('inviteModal');
+    const inviteModalTitle = document.getElementById('inviteModalTitle');
+    const inviteCodeInput = document.getElementById('inviteCodeInput');
+    const btnInviteBind = document.getElementById('btnInviteBind');
+    const inviteBindMsg = document.getElementById('inviteBindMsg');
+    const inviteMyCode = document.getElementById('inviteMyCode');
+    const btnInviteCopy = document.getElementById('btnInviteCopy');
+    const inviteCountEl = document.getElementById('inviteCount');
+    const inviteFooter = document.getElementById('inviteFooter');
+    const btnInviteRedeem = document.getElementById('btnInviteRedeem');
+    const inviteRedeemModal = document.getElementById('inviteRedeemModal');
+
+    function getInviteDeviceId() {
+        try {
+            let id = localStorage.getItem(INVITE_DEVICE_KEY) || '';
+            if (/^[a-zA-Z0-9_-]{8,64}$/.test(id)) return id;
+            if (window.crypto && crypto.randomUUID) id = crypto.randomUUID();
+            else id = 'd' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            id = String(id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+            if (id.length < 8) id = (id + 'xxxxxxxx').slice(0, 8);
+            localStorage.setItem(INVITE_DEVICE_KEY, id);
+            return id;
+        } catch (_) {
+            return '';
+        }
+    }
+
+    function inviteT(key, vars) {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        let s = t(key);
+        if (vars) {
+            Object.keys(vars).forEach((k) => {
+                s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), String(vars[k]));
+            });
+        }
+        return s;
+    }
+
+    function syncInviteRedeemButton() {
+        if (!btnInviteRedeem) return;
+        const show = !!(inviteStatus && inviteStatus.enabled !== false && inviteStatus.rewardStatus === 'granted');
+        btnInviteRedeem.style.display = show ? '' : 'none';
+        btnInviteRedeem.disabled = false;
+        btnInviteRedeem.textContent = inviteT('invite_redeem');
+    }
+
+    function renderInviteModal() {
+        if (!inviteModal) return;
+        const st = inviteStatus || {};
+        const bindOpen = !!st.bindOpen && !st.alreadyBound;
+        if (inviteModalTitle) {
+            inviteModalTitle.setAttribute('data-i18n', st.bindOpen === false ? 'invite_title_ended' : 'invite_title');
+            inviteModalTitle.textContent = inviteT(st.bindOpen === false ? 'invite_title_ended' : 'invite_title');
+        }
+        if (inviteMyCode) inviteMyCode.value = st.inviteCode || '';
+        if (inviteCountEl) inviteCountEl.textContent = inviteT('invite_count', { n: Number(st.successCount || 0) });
+        if (inviteCodeInput) {
+            inviteCodeInput.disabled = !bindOpen;
+            if (!bindOpen) inviteCodeInput.value = inviteCodeInput.value;
+        }
+        if (btnInviteBind) btnInviteBind.disabled = !bindOpen;
+        if (inviteFooter) {
+            const reward = st.rewardStatus || 'none';
+            if (reward === 'used') inviteFooter.textContent = inviteT('invite_footer_used');
+            else if (reward === 'granted') inviteFooter.textContent = inviteT('invite_footer_granted');
+            else inviteFooter.textContent = inviteT('invite_footer_goal');
+        }
+        syncInviteRedeemButton();
+    }
+
+    async function refreshInviteStatus() {
+        if (!isLoggedIn()) {
+            inviteStatus = null;
+            syncInviteRedeemButton();
+            return null;
+        }
+        if (inviteStatusPromise) return inviteStatusPromise;
+        inviteStatusPromise = (async () => {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch('/api/invite', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ action: 'status', device_id: getInviteDeviceId() }),
+                });
+                if (res.status === 404) {
+                    inviteStatus = { enabled: false };
+                    const btn = document.getElementById('btnInviteReward');
+                    if (btn) btn.style.display = 'none';
+                    syncInviteRedeemButton();
+                    return inviteStatus;
+                }
+                if (!res.ok) return inviteStatus;
+                const data = await res.json();
+                inviteStatus = data;
+                const btn = document.getElementById('btnInviteReward');
+                if (btn) btn.style.display = data.enabled === false ? 'none' : '';
+                renderInviteModal();
+                return data;
+            } catch (_) {
+                return inviteStatus;
+            } finally {
+                inviteStatusPromise = null;
+            }
+        })();
+        return inviteStatusPromise;
+    }
+
+    function openInviteModal() {
+        if (!requireLogin()) return;
+        userMenu.classList.remove('open');
+        if (inviteBindMsg) {
+            inviteBindMsg.textContent = '';
+            inviteBindMsg.className = 'invite-bind-msg';
+        }
+        renderInviteModal();
+        inviteModal.classList.add('open');
+        refreshInviteStatus().then(() => renderInviteModal());
+    }
+
+    function closeInviteModal() {
+        if (inviteModal) inviteModal.classList.remove('open');
+    }
+
     function isLoggedIn() {
         return localStorage.getItem(AUTH_KEY) === '1';
     }
@@ -6225,6 +6444,7 @@
         try { renderMenu(profiles, activeId); } catch (_) {}
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
+        refreshInviteStatus();
     }
 
     function clearLoggedIn() {
@@ -6232,8 +6452,10 @@
         localStorage.removeItem(AUTH_EMAIL_KEY);
         localStorage.removeItem('bazi_logged_in_email');
         clearLocalAnnualPlans();
+        inviteStatus = null;
         updateAuthUI();
         resetToGuestProfiles();
+        syncInviteRedeemButton();
     }
 
     function updateAuthUI() {
@@ -6335,6 +6557,7 @@
     if (localStorage.getItem(AUTH_KEY) === '1') {
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
+        refreshInviteStatus();
     }
     try { localStorage.removeItem('ew_download_history'); } catch (_) {}
 
@@ -6974,12 +7197,128 @@
         userMenu.classList.remove('open');
         location.href = '/download-history';
     });
+    document.getElementById('btnInviteReward')?.addEventListener('click', () => {
+        openInviteModal();
+    });
+    document.getElementById('inviteModalClose')?.addEventListener('click', () => closeInviteModal());
+    inviteModal?.addEventListener('click', (e) => {
+        if (e.target === inviteModal) closeInviteModal();
+    });
+    inviteCodeInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            btnInviteBind?.click();
+        }
+    });
+    inviteCodeInput?.addEventListener('input', () => {
+        inviteCodeInput.value = inviteCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+        if (inviteBindMsg) {
+            inviteBindMsg.textContent = '';
+            inviteBindMsg.className = 'invite-bind-msg';
+        }
+    });
+    btnInviteBind?.addEventListener('click', async () => {
+        if (!btnInviteBind || btnInviteBind.disabled) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const code = (inviteCodeInput?.value || '').trim();
+        if (!code) {
+            if (inviteBindMsg) {
+                inviteBindMsg.textContent = t('invite_err_empty');
+                inviteBindMsg.className = 'invite-bind-msg is-error';
+            }
+            return;
+        }
+        btnInviteBind.disabled = true;
+        try {
+            const headers = await getAuthHeaders();
+            const res = await fetch('/api/invite', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ action: 'bind', code, device_id: getInviteDeviceId() }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                const errKey = 'invite_err_' + (data.error || 'generic');
+                const msg = t(errKey) === errKey ? t('invite_err_generic') : t(errKey);
+                if (inviteBindMsg) {
+                    inviteBindMsg.textContent = msg;
+                    inviteBindMsg.className = 'invite-bind-msg is-error';
+                }
+                return;
+            }
+            inviteStatus = data;
+            if (inviteBindMsg) {
+                inviteBindMsg.textContent = t('invite_bind_ok');
+                inviteBindMsg.className = 'invite-bind-msg is-ok';
+            }
+            if (inviteCodeInput) inviteCodeInput.value = '';
+            renderInviteModal();
+        } catch (_) {
+            if (inviteBindMsg) {
+                inviteBindMsg.textContent = t('invite_err_generic');
+                inviteBindMsg.className = 'invite-bind-msg is-error';
+            }
+        } finally {
+            renderInviteModal();
+        }
+    });
+    btnInviteCopy?.addEventListener('click', async () => {
+        const code = inviteMyCode?.value || inviteStatus?.inviteCode || '';
+        if (!code) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(code);
+            } else {
+                inviteMyCode.select();
+                document.execCommand('copy');
+            }
+            const prev = btnInviteCopy.textContent;
+            btnInviteCopy.textContent = t('invite_copied');
+            setTimeout(() => { btnInviteCopy.textContent = prev || t('invite_copy'); }, 1200);
+        } catch (_) {
+            if (inviteMyCode) {
+                inviteMyCode.focus();
+                inviteMyCode.select();
+            }
+        }
+    });
+    btnInviteRedeem?.addEventListener('click', async () => {
+        if (!requireLogin()) return;
+        if (!pendingDownloadR2Key && !pendingDownloadKey) return;
+        if (btnInviteRedeem.disabled) return;
+        btnInviteRedeem.disabled = true;
+        if (inviteRedeemModal) inviteRedeemModal.classList.add('open');
+        const result = await startOriginalDownload({
+            r2key: pendingDownloadR2Key || '',
+            name: pendingDownloadName,
+            previewImg: pendingDownloadImg,
+            silentPaymentAlert: true,
+            useInviteReward: true,
+        });
+        if (inviteRedeemModal) inviteRedeemModal.classList.remove('open');
+        if (result === 'ok') {
+            if (inviteStatus) inviteStatus.rewardStatus = 'used';
+            renderInviteModal();
+            payModal.classList.remove('open');
+        } else {
+            btnInviteRedeem.disabled = false;
+            btnInviteRedeem.textContent = inviteT('invite_redeem');
+            if (result !== 'auth') {
+                const t = window.I18N ? window.I18N.t : (k) => k;
+                alert(t(result === 'payment' ? 'download_payment_required' : 'download_failed'));
+            }
+        }
+    });
+    document.addEventListener('i18n:change', () => {
+        renderInviteModal();
+    });
     document.getElementById('btnAccount').addEventListener('click', () => {
         if (!requireLogin()) return;
         openAccountManageModal();
     });
 
-    // 其他页面跳转带 ?account=1 时打开帐号管理
+    // 其他页面跳转带 ?account=1 时打开帐号管理；?invite=1 打开邀请码活动
     try {
         const accountParams = new URLSearchParams(location.search);
         if (accountParams.get('account') === '1' && isLoggedIn()) {
@@ -6987,6 +7326,12 @@
             accountParams.delete('account');
             const next = accountParams.toString();
             history.replaceState({}, '', location.pathname + (next ? `?${next}` : '') + location.hash);
+        } else if (accountParams.get('invite') === '1') {
+            accountParams.delete('invite');
+            const next = accountParams.toString();
+            history.replaceState({}, '', location.pathname + (next ? `?${next}` : '') + location.hash);
+            if (isLoggedIn()) openInviteModal();
+            else requireLogin();
         }
     } catch (_) {}
 

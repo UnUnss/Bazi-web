@@ -406,6 +406,7 @@
                 <div class="user-menu" id="userMenu" role="menu">
                     <div class="user-menu-email" id="userMenuEmail"></div>
                     <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
+                    <button type="button" id="btnInviteReward" data-i18n="nav_invite_reward">邀請碼獎勵</button>
                     <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">本月下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
@@ -710,6 +711,10 @@
             location.href = '/landing#annual';
         });
     }
+    document.getElementById('btnInviteReward')?.addEventListener('click', () => {
+        userMenu.classList.remove('open');
+        location.href = '/landing?invite=1';
+    });
     document.getElementById('btnDownloadHistory').addEventListener('click', () => { location.href = '/download-history'; });
     document.getElementById('btnAccount').addEventListener('click', () => {
         userMenu.classList.remove('open');
