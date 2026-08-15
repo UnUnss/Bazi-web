@@ -15,7 +15,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=29"></script>
+    <script src="i18n.js?v=30"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1316,6 +1316,10 @@
             letter-spacing: 0.06em;
             color: var(--ink-soft);
             margin: 0;
+        }
+
+        .invite-promo-msg + .invite-promo-msg {
+            margin-top: 14px;
         }
 
         .invite-count,
@@ -2934,7 +2938,8 @@
     <div class="modal invite-modal">
         <button type="button" class="modal-close" id="invitePromoClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 data-i18n="invite_title">限時活動</h2>
-        <p class="invite-promo-msg" data-i18n="invite_footer_goal">成功邀請 3 人可獲一張免費壁紙</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p1">即日起至 8 月 31 日，成功邀請 3 位新用戶完成註冊，即可獲贈一張免費專屬壁紙。</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p2">登入後，打開右上角「用戶」→「邀請碼獎勵」，即可複製自己的邀請碼，或填寫好友的邀請碼。</p>
     </div>
 </div>
 
