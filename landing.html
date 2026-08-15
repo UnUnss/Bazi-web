@@ -391,11 +391,15 @@
         }
 
         .period-col-value {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 14px;
             letter-spacing: 0.14em;
             color: var(--ink-soft);
             white-space: nowrap;
             line-height: 1.2;
+            min-height: 1.4em;
         }
 
         .period-sep {
@@ -416,6 +420,24 @@
             min-height: 2.8em;
             display: flex;
             align-items: center;
+        }
+
+        /* 楷体里的 · 贴在基线，单独做成圆点才能和汉字中线对齐 */
+        .period-sep-value {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 1.4em;
+            font-size: 0;
+            letter-spacing: 0;
+        }
+
+        .period-sep-value::before {
+            content: "";
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: currentColor;
         }
 
         .tst-hint {
@@ -1415,11 +1437,27 @@
             border: 1px solid #d8d4cc;
         }
 
-        .btn-official-paypal img,
-        .btn-official-alipay img {
+        .btn-official-paypal img {
             display: block;
             height: 24px;
             width: auto;
+        }
+
+        .btn-official-alipay img {
+            display: block;
+            height: 38px;
+            width: auto;
+        }
+
+        .btn-official-alipay span {
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+
+        .btn-official-alipay[hidden] {
+            display: none;
         }
 
         .checkout-provider-modal {
@@ -2625,7 +2663,7 @@
         <div class="period-sep-col" aria-hidden="true">
             <span class="period-sep period-sep-label">·</span>
             <span class="period-sep period-sep-date">·</span>
-            <span class="period-sep">·</span>
+            <span class="period-sep period-sep-value"></span>
         </div>
         <div class="period-col">
             <span class="period-col-label" data-i18n="period_label_year">流年</span>
@@ -2635,7 +2673,7 @@
         <div class="period-sep-col" aria-hidden="true">
             <span class="period-sep period-sep-label">·</span>
             <span class="period-sep period-sep-date">·</span>
-            <span class="period-sep">·</span>
+            <span class="period-sep period-sep-value"></span>
         </div>
         <div class="period-col">
             <span class="period-col-label" data-i18n="period_label_month">流月</span>
@@ -2871,7 +2909,8 @@
                     <img src="assets/pay/paypal-logo.png" alt="PayPal">
                 </button>
                 <button type="button" class="btn-official-alipay" id="btnAnnualPayAlipay" data-provider="alipay" aria-label="支付宝" hidden>
-                    <img src="assets/pay/支付宝logo.png" alt="支付宝">
+                    <img src="assets/pay/支付宝logo.png" alt="">
+                    <span data-i18n="pay_with_alipay">支付宝</span>
                 </button>
             </div>
         </div>
@@ -2927,7 +2966,8 @@
                 <img src="assets/pay/paypal-logo.png" alt="PayPal">
             </button>
             <button type="button" class="btn-official-alipay" id="btnCheckoutAlipay" data-provider="alipay" aria-label="支付宝" hidden>
-                <img src="assets/pay/支付宝logo.png" alt="支付宝">
+                <img src="assets/pay/支付宝logo.png" alt="">
+                <span data-i18n="pay_with_alipay">支付宝</span>
             </button>
         </div>
     </div>
