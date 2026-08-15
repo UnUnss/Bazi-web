@@ -169,7 +169,16 @@ export async function bindInviteCode({ userId, code: rawCode, deviceId }) {
   }
 
   const { error: addErr } = await sb.rpc('invite_add_success', { p_inviter_id: inviter.user_id });
-  if (addErr) console.error('invite_add_success', addErr);
+  if (addErr) {
+    console.error('invite_add_success', addErr);
+    await sb
+      .from('invite_redemptions')
+      .delete()
+      .eq('invitee_id', userId)
+      .eq('inviter_id', inviter.user_id)
+      .eq('status', 'counted');
+    return { ok: false, error: 'generic' };
+  }
 
   const latest = await getInviteStatus(userId, deviceId);
   return { ok: true, ...latest };

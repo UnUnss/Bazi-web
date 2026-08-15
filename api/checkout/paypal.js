@@ -29,11 +29,11 @@ function parseJsonBody(raw) {
 }
 
 function paypalAction(req) {
-  const q = String(req.query?.action || '').toLowerCase();
-  if (q === 'capture' || q === 'webhook') return q;
   const path = String(req.url || req.headers?.['x-invoke-path'] || '');
   if (path.includes('paypal-webhook')) return 'webhook';
   if (path.includes('paypal-capture')) return 'capture';
+  const q = String(req.query?.action || '').toLowerCase();
+  if (q === 'capture' || q === 'webhook') return q;
   return '';
 }
 
@@ -44,7 +44,6 @@ async function handleCapture(req, res) {
   const rawBody = await readRawBody(req);
   const body = parseJsonBody(rawBody);
   const orderId = body.orderId || body.order;
-  const paypalToken = body.paypalOrderId || body.token;
   if (!orderId) return res.status(400).json({ error: 'Missing orderId' });
 
   const sb = getServiceSupabase();
@@ -65,7 +64,7 @@ async function handleCapture(req, res) {
     return res.status(200).json({ ok: true, status: 'paid', orderId: order.id, alreadyPaid: true });
   }
 
-  const paypalOrderId = order.provider_session_id || paypalToken;
+  const paypalOrderId = order.provider_session_id;
   if (!paypalOrderId) return res.status(400).json({ error: 'Missing PayPal order id' });
 
   const { ok, data, status } = await paypalFetch(`/v2/checkout/orders/${paypalOrderId}/capture`, {

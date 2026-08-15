@@ -25,13 +25,13 @@ function escapeHtml(value) {
 }
 
 function zpayAction(req) {
-  const q = String(req.query?.action || '').toLowerCase();
-  if (q === 'go' || q === 'notify' || q === 'return' || q === 'geo') return q;
   const path = String(req.url || req.headers?.['x-invoke-path'] || '');
   if (path.includes('zpay-notify')) return 'notify';
   if (path.includes('zpay-return')) return 'return';
   if (path.includes('zpay-go')) return 'go';
   if (path.includes('/api/geo')) return 'geo';
+  const q = String(req.query?.action || '').toLowerCase();
+  if (q === 'go' || q === 'notify' || q === 'return' || q === 'geo') return q;
   return '';
 }
 
