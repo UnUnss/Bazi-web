@@ -1309,6 +1309,15 @@
             max-width: 360px;
         }
 
+        .invite-promo-msg {
+            text-align: center;
+            font-size: 14.5px;
+            line-height: 1.75;
+            letter-spacing: 0.06em;
+            color: var(--ink-soft);
+            margin: 0;
+        }
+
         .invite-count,
         .invite-bind-msg,
         .invite-footer {
@@ -2918,6 +2927,14 @@
 <div class="modal-backdrop" id="inviteRedeemModal" role="status" aria-live="polite" aria-modal="true">
     <div class="modal confirm-modal">
         <p data-i18n="invite_redeeming">兌換成功，正在下載</p>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="invitePromoModal" role="dialog" aria-modal="true">
+    <div class="modal invite-modal">
+        <button type="button" class="modal-close" id="invitePromoClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
+        <h2 data-i18n="invite_title">限時活動</h2>
+        <p class="invite-promo-msg" data-i18n="invite_footer_goal">成功邀請 3 人可獲一張免費壁紙</p>
     </div>
 </div>
 
@@ -7313,6 +7330,28 @@
     document.addEventListener('i18n:change', () => {
         renderInviteModal();
     });
+
+    (function setupInvitePromo() {
+        const KEY = 'ew_invite_promo_seen';
+        const END_MS = Date.parse('2026-08-31T15:59:59.999Z');
+        const modal = document.getElementById('invitePromoModal');
+        if (!modal) return;
+        function closePromo() {
+            modal.classList.remove('open');
+            try { localStorage.setItem(KEY, '1'); } catch (_) {}
+        }
+        document.getElementById('invitePromoClose')?.addEventListener('click', closePromo);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closePromo();
+        });
+        try {
+            const q = new URLSearchParams(location.search);
+            if (q.get('checkout') || q.get('login') === '1' || q.get('invite') === '1' || q.get('account') === '1') return;
+            if (Date.now() > END_MS) return;
+            if (localStorage.getItem(KEY) === '1') return;
+        } catch (_) { return; }
+        modal.classList.add('open');
+    })();
     document.getElementById('btnAccount').addEventListener('click', () => {
         if (!requireLogin()) return;
         openAccountManageModal();
