@@ -713,26 +713,29 @@ function drawLockscreenWatermark(ctx, width, height, logo) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.shadowColor = 'rgba(0,0,0,0.35)';
-  ctx.shadowBlur = Math.max(6, width * 0.018);
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = Math.max(8, width * 0.022);
   ctx.shadowOffsetY = Math.max(1, width * 0.004);
 
-  // 日期（顶部区域）
+  // 日期（顶部）
   ctx.font = `300 ${Math.round(width * 0.048)}px system-ui, sans-serif`;
-  ctx.fillText('2026/08/09 Sunday', cx, height * 0.33);
+  ctx.fillText('2026/08/09 Sunday', cx, height * 0.18);
 
-  // 时间（大字居中）
-  ctx.font = `200 ${Math.round(width * 0.224)}px system-ui, sans-serif`;
-  ctx.fillText('10:55', cx, height * 0.44);
+  // 时间（日期下方）
+  ctx.font = `200 ${Math.round(width * 0.20)}px system-ui, sans-serif`;
+  ctx.fillText('10:55', cx, height * 0.30);
 
-  // Logo（时间下方）
+  // Logo（时间下方居中）
   if (logo && logo.width) {
-    const logoW = width * 0.55;
+    const logoW = width * 0.58;
     const logoH = logoW * (logo.height / logo.width);
     ctx.save();
-    ctx.globalAlpha = 0.75;
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = Math.max(10, width * 0.025);
+    ctx.shadowOffsetY = 0;
+    ctx.globalAlpha = 0.92;
     ctx.filter = 'brightness(0) invert(1)';
-    ctx.drawImage(logo, cx - logoW / 2, height * 0.57 - logoH / 2, logoW, logoH);
+    ctx.drawImage(logo, cx - logoW / 2, height * 0.55 - logoH / 2, logoW, logoH);
     ctx.restore();
   }
 
