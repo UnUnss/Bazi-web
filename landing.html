@@ -15,7 +15,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=30"></script>
+    <script src="i18n.js?v=31"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1309,17 +1309,21 @@
             max-width: 360px;
         }
 
+        .invite-promo-modal {
+            max-width: 440px;
+        }
+
         .invite-promo-msg {
-            text-align: center;
-            font-size: 14.5px;
+            text-align: left;
+            font-size: 14px;
             line-height: 1.75;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.04em;
             color: var(--ink-soft);
             margin: 0;
         }
 
         .invite-promo-msg + .invite-promo-msg {
-            margin-top: 14px;
+            margin-top: 10px;
         }
 
         .invite-count,
@@ -1743,6 +1747,11 @@
         .account-manage-modal {
             max-width: 340px;
             text-align: center;
+        }
+
+        .account-manage-modal .subscribe-row {
+            text-align: left;
+            margin: 0 0 16px;
         }
 
         .account-manage-actions {
@@ -2935,11 +2944,13 @@
 </div>
 
 <div class="modal-backdrop" id="invitePromoModal" role="dialog" aria-modal="true">
-    <div class="modal invite-modal">
+    <div class="modal invite-modal invite-promo-modal">
         <button type="button" class="modal-close" id="invitePromoClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
-        <h2 data-i18n="invite_title">限時活動</h2>
-        <p class="invite-promo-msg" data-i18n="invite_promo_p1">即日起至 8 月 31 日，成功邀請 3 位新用戶完成註冊，即可獲贈一張免費專屬壁紙。</p>
-        <p class="invite-promo-msg" data-i18n="invite_promo_p2">登入後，打開右上角「用戶」→「邀請碼獎勵」，即可複製自己的邀請碼，或填寫好友的邀請碼。</p>
+        <h2 data-i18n="invite_promo_title">限時免費活動</h2>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p1">1. 活動時間：即日起至2026年8月31日（含當天）</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p2">2. 參與方式：成功邀請3位新用戶完成註冊，即可免費獲得當月專屬幸運壁紙1張（4張中任選1張）</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p3">3. 活動截止後（9月1日起），邀請機制取消，免費壁紙兌換仍有效</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p4">4. 邀請資格以新用戶註冊成功為準，需為此前未在本平台註冊過的用戶</p>
     </div>
 </div>
 
@@ -3141,6 +3152,12 @@
     <div class="modal account-manage-modal">
         <button type="button" class="modal-close" id="accountManageClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 data-i18n="nav_account">帳號管理</h2>
+        <div class="form-group subscribe-row">
+            <label class="subscribe-label">
+                <input type="checkbox" id="accountSubscribeEmail" name="accountSubscribeEmail" />
+                <span data-i18n="signup_subscribe_label">訂閱每月換運提示，及時獲取壁紙更新通知，後續功能更新郵箱接收提示</span>
+            </label>
+        </div>
         <div class="account-manage-actions">
             <button type="button" class="btn-account-change" id="btnChangePassword" data-i18n="account_change_password">更改密碼</button>
             <button type="button" class="btn-account-delete" id="btnOpenDeleteAccount" data-i18n="account_delete">註銷帳號</button>
@@ -3507,6 +3524,70 @@
             return session?.user || null;
         } catch (_) {
             return null;
+        }
+    }
+
+    const EMAIL_SUBSCRIBE_KEY = 'ew_email_subscribe';
+
+    function stashEmailSubscribePref(subscribed) {
+        try { localStorage.setItem(EMAIL_SUBSCRIBE_KEY, subscribed ? '1' : '0'); } catch (_) {}
+    }
+
+    async function persistEmailSubscribePref(subscribed) {
+        try {
+            const user = await currentSupabaseUser();
+            if (!user?.id) return false;
+            const { error } = await _sb.from('email_prefs').upsert({
+                user_id: user.id,
+                email: user.email || '',
+                subscribed: !!subscribed,
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id' });
+            if (error) {
+                console.warn('email_prefs upsert', error);
+                return false;
+            }
+            try { localStorage.removeItem(EMAIL_SUBSCRIBE_KEY); } catch (_) {}
+            return true;
+        } catch (err) {
+            console.warn('email_prefs upsert', err);
+            return false;
+        }
+    }
+
+    async function flushEmailSubscribePref() {
+        let pending = null;
+        try { pending = localStorage.getItem(EMAIL_SUBSCRIBE_KEY); } catch (_) {}
+        if (pending === '1' || pending === '0') {
+            await persistEmailSubscribePref(pending === '1');
+            return;
+        }
+        try {
+            const user = await currentSupabaseUser();
+            if (!user?.id) return;
+            const meta = user.user_metadata?.email_subscribe;
+            if (typeof meta !== 'boolean') return;
+            const { data } = await _sb
+                .from('email_prefs')
+                .select('user_id')
+                .eq('user_id', user.id)
+                .maybeSingle();
+            if (!data) await persistEmailSubscribePref(meta);
+        } catch (_) {}
+    }
+
+    async function loadEmailSubscribePref() {
+        try {
+            const user = await currentSupabaseUser();
+            if (!user?.id) return false;
+            const { data } = await _sb
+                .from('email_prefs')
+                .select('subscribed')
+                .eq('user_id', user.id)
+                .maybeSingle();
+            return !!data?.subscribed;
+        } catch (_) {
+            return false;
         }
     }
 
@@ -6461,12 +6542,14 @@
         localStorage.setItem(AUTH_KEY, '1');
         localStorage.setItem(AUTH_EMAIL_KEY, email || '');
         localStorage.removeItem('bazi_logged_in_email');
+        document.getElementById('invitePromoModal')?.classList.remove('open');
         updateAuthUI();
         // 先同步刷新档案菜单，去掉「登录后创建」提示；云端数据随后异步覆盖
         try { renderMenu(profiles, activeId); } catch (_) {}
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
         refreshInviteStatus();
+        flushEmailSubscribePref();
     }
 
     function clearLoggedIn() {
@@ -6538,6 +6621,7 @@
             } else {
                 setLoggedIn(user.email);
             }
+            flushEmailSubscribePref();
             // 仅清掉 OAuth 回调残留参数，保留 #annual 等业务 hash
             try {
                 const qs = new URLSearchParams(window.location.search);
@@ -6569,6 +6653,7 @@
                 }
                 if (event === 'SIGNED_IN') {
                     hydrateAnnualFromCloud();
+                    flushEmailSubscribePref();
                 }
             }
         } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
@@ -6580,6 +6665,7 @@
         hydrateProfilesFromCloud();
         hydrateAnnualFromCloud();
         refreshInviteStatus();
+        flushEmailSubscribePref();
     }
     try { localStorage.removeItem('ew_download_history'); } catch (_) {}
 
@@ -6777,8 +6863,7 @@
                 });
                 if (error) throw error;
                 if (authMode === 'signup') {
-                    const subscribed = subscribeEmailCheckbox?.checked;
-                    localStorage.setItem('ew_email_subscribe', subscribed ? '1' : '0');
+                    stashEmailSubscribePref(!!subscribeEmailCheckbox?.checked);
                 }
                 const userEmail = data?.user?.email || data?.session?.user?.email || email;
                 setLoggedIn(userEmail);
@@ -6806,10 +6891,14 @@
                         loginPasswordConfirmInput.focus();
                         throw new Error('password_mismatch');
                     }
-                    const { data, error } = await _sb.auth.signUp({ email, password });
+                    const subscribed = !!subscribeEmailCheckbox?.checked;
+                    const { data, error } = await _sb.auth.signUp({
+                        email,
+                        password,
+                        options: { data: { email_subscribe: subscribed } },
+                    });
                     if (error) throw error;
-                    const subscribed = subscribeEmailCheckbox?.checked;
-                    localStorage.setItem('ew_email_subscribe', subscribed ? '1' : '0');
+                    stashEmailSubscribePref(subscribed);
                     if (data?.session?.user?.email) {
                         setLoggedIn(data.session.user.email);
                     } else {
@@ -6849,6 +6938,9 @@
         const btn = document.getElementById('btnGoogleLogin');
         if (btn) btn.disabled = true;
         try {
+            if (authMode === 'signup') {
+                stashEmailSubscribePref(!!subscribeEmailCheckbox?.checked);
+            }
             const redirectTo = `${window.location.origin}${window.location.pathname}`;
             const { error } = await _sb.auth.signInWithOAuth({
                 provider: 'google',
@@ -7110,6 +7202,14 @@
     function openAccountManageModal() {
         userMenu.classList.remove('open');
         accountManageModal.classList.add('open');
+        const box = document.getElementById('accountSubscribeEmail');
+        if (box) {
+            box.disabled = true;
+            loadEmailSubscribePref().then((on) => {
+                box.checked = on;
+                box.disabled = false;
+            });
+        }
     }
 
     function closeAccountManageModal() {
@@ -7137,6 +7237,14 @@
     accountManageClose.addEventListener('click', closeAccountManageModal);
     accountManageModal.addEventListener('click', (e) => {
         if (e.target === accountManageModal) closeAccountManageModal();
+    });
+
+    document.getElementById('accountSubscribeEmail')?.addEventListener('change', async (e) => {
+        const box = e.target;
+        box.disabled = true;
+        const ok = await persistEmailSubscribePref(!!box.checked);
+        if (!ok) box.checked = !box.checked;
+        box.disabled = false;
     });
 
     btnChangePassword.addEventListener('click', () => {
@@ -7337,13 +7445,11 @@
     });
 
     (function setupInvitePromo() {
-        const KEY = 'ew_invite_promo_seen';
         const END_MS = Date.parse('2026-08-31T15:59:59.999Z');
         const modal = document.getElementById('invitePromoModal');
         if (!modal) return;
         function closePromo() {
             modal.classList.remove('open');
-            try { localStorage.setItem(KEY, '1'); } catch (_) {}
         }
         document.getElementById('invitePromoClose')?.addEventListener('click', closePromo);
         modal.addEventListener('click', (e) => {
@@ -7353,7 +7459,7 @@
             const q = new URLSearchParams(location.search);
             if (q.get('checkout') || q.get('login') === '1' || q.get('invite') === '1' || q.get('account') === '1') return;
             if (Date.now() > END_MS) return;
-            if (localStorage.getItem(KEY) === '1') return;
+            if (isLoggedIn()) return;
         } catch (_) { return; }
         modal.classList.add('open');
     })();
