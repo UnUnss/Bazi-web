@@ -1074,7 +1074,7 @@ async function inspectPreviewStatus(previewKey) {
     const img = await decodeImageBlob(blob, previewKey);
     const maxSide = Math.max(img.width, img.height);
     if (img && typeof img.close === 'function') img.close();
-    return { status: maxSide <= 720 ? 'baked' : 'old', maxSide };
+    return { status: maxSide <= 1080 ? 'baked' : 'old', maxSide };
   } catch (_) {
     return { status: 'missing' };
   }
@@ -1110,7 +1110,7 @@ async function scanAllPreviews(list, onProgress) {
 }
 
 function formatPreviewReport(scan) {
-  let msg = `共 ${scan.total} 张\n已生成（长边 720）：${scan.baked.length}\n仍是旧图（大于 720）：${scan.old.length}\n缺失或打不开：${scan.missing.length}`;
+  let msg = `共 ${scan.total} 张\n已生成（长边 1080）：${scan.baked.length}\n仍是旧图（大于 1080）：${scan.old.length}\n缺失或打不开：${scan.missing.length}`;
   if (scan.old.length === 0 && scan.missing.length === 0) {
     msg += '\n\n全部预览都已生成。';
     return msg;
@@ -1165,7 +1165,7 @@ async function runRegen(forceAll) {
   if (!list.length) { alert('没有可生成的壁纸（需要已有原图）'); return; }
   const confirmMsg = forceAll
     ? `将强制覆盖全部 ${list.length} 张预览（不跳过任何图）。确认继续？`
-    : `只会补还没生成的预览（已是长边 720 的会跳过）。共 ${list.length} 张待检查。`;
+    : `只会补还没生成的预览（已是长边 1080 的会跳过）。共 ${list.length} 张待检查。`;
   if (!confirm(confirmMsg)) return;
 
   const auth = await assertAdminSession();
