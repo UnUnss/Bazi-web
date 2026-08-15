@@ -702,97 +702,15 @@ async function decodeImageBlob(blob, hint) {
 let _watermarkLogoPromise = null;
 function getWatermarkLogo() {
   if (!_watermarkLogoPromise) {
-    _watermarkLogoPromise = loadImageSrc('assets/english.png').catch(() => null);
+    _watermarkLogoPromise = loadImageSrc('assets/lockscreen-watermark.png').catch(() => null);
   }
   return _watermarkLogoPromise;
 }
 
-function drawLockscreenWatermark(ctx, width, height, logo) {
-  const cx = width / 2;
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.shadowColor = 'rgba(0,0,0,0.5)';
-  ctx.shadowBlur = Math.max(8, width * 0.022);
-  ctx.shadowOffsetY = Math.max(1, width * 0.004);
-
-  // 日期（顶部）
-  ctx.font = `300 ${Math.round(width * 0.065)}px system-ui, sans-serif`;
-  ctx.fillText('2026/08/09 Sunday', cx, height * 0.17);
-
-  // 时间（日期下方）
-  ctx.font = `200 ${Math.round(width * 0.27)}px system-ui, sans-serif`;
-  ctx.fillText('10:55', cx, height * 0.31);
-
-  // Logo（时间下方居中，重置阴影避免污染）
-  if (logo && logo.width) {
-    const logoW = width * 0.88;
-    const logoH = logoW * (logo.height / logo.width);
-    ctx.save();
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.drawImage(logo, cx - logoW / 2, height * 0.56 - logoH / 2, logoW, logoH);
-    ctx.restore();
+function drawLockscreenWatermark(ctx, width, height, watermark) {
+  if (watermark && watermark.width) {
+    ctx.drawImage(watermark, 0, 0, width, height);
   }
-
-  const btn = width * 0.18;
-  const btnY = height * 0.92 - btn / 2;
-  const leftX = width * 0.11;
-  const rightX = width * 0.89 - btn;
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
-  ctx.beginPath();
-  ctx.arc(leftX + btn / 2, btnY + btn / 2, btn / 2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(rightX + btn / 2, btnY + btn / 2, btn / 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.92)';
-  ctx.lineWidth = Math.max(1.5, width * 0.006);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  const icon = btn * 0.45;
-  ctx.save();
-  ctx.translate(leftX + btn / 2 - icon / 2, btnY + btn / 2 - icon / 2);
-  ctx.scale(icon / 24, icon / 24);
-  ctx.beginPath();
-  ctx.moveTo(8, 2); ctx.lineTo(16, 2); ctx.lineTo(17, 8); ctx.lineTo(14, 10);
-  ctx.lineTo(14, 12); ctx.lineTo(15, 22); ctx.lineTo(9, 22); ctx.lineTo(10, 12);
-  ctx.lineTo(7, 10); ctx.closePath();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(12, 8); ctx.lineTo(12, 10);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.translate(rightX + btn / 2 - icon / 2, btnY + btn / 2 - icon / 2);
-  ctx.scale(icon / 24, icon / 24);
-  ctx.beginPath();
-  ctx.moveTo(23, 19);
-  ctx.arcTo(23, 21, 21, 21, 2);
-  ctx.lineTo(3, 21);
-  ctx.arcTo(1, 21, 1, 19, 2);
-  ctx.lineTo(1, 8);
-  ctx.arcTo(1, 6, 3, 6, 2);
-  ctx.lineTo(7, 6);
-  ctx.lineTo(9, 3);
-  ctx.lineTo(15, 3);
-  ctx.lineTo(17, 6);
-  ctx.lineTo(21, 6);
-  ctx.arcTo(23, 6, 23, 8, 2);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(12, 13, 4, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-  ctx.restore();
 }
 
 // 生成预览图：长边 1080px，JPEG 质量 0.6，并烧入锁屏水印
@@ -816,8 +734,8 @@ async function makePreviewBlob(file) {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, width, height);
-    const logo = await getWatermarkLogo();
-    drawLockscreenWatermark(ctx, width, height, logo);
+    const watermark = await getWatermarkLogo();
+    drawLockscreenWatermark(ctx, width, height, watermark);
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(
         (b) => b ? resolve(b) : reject(new Error('预览压缩失败')),
