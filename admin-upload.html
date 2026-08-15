@@ -772,10 +772,10 @@ function previewFilename(name) {
   return base + '.jpg';
 }
 
-async function presignAndPut({ filename, folder, contentType, body, variant }) {
+async function presignAndPut({ filename, folder, contentType, body, variant, headers }) {
   const presignRes = await fetch('/api/presign', {
     method: 'POST',
-    headers: await getAdminAuthHeaders(),
+    headers: headers || await getAdminAuthHeaders(),
     body: JSON.stringify({ filename, folder, contentType, variant }),
   });
   if (!presignRes.ok) {
@@ -1036,6 +1036,16 @@ async function fetchOriginalBlob(r2Key) {
   return blob;
 }
 
+async function mapPool(items, limit, worker) {
+  const running = new Set();
+  for (const item of items) {
+    const p = Promise.resolve().then(() => worker(item)).finally(() => running.delete(p));
+    running.add(p);
+    if (running.size >= limit) await Promise.race(running);
+  }
+  await Promise.all(running);
+}
+
 document.getElementById('btnRegenPreviews').addEventListener('click', async () => {
   const btn = document.getElementById('btnRegenPreviews');
   if (btn.disabled) return;
@@ -1044,7 +1054,7 @@ document.getElementById('btnRegenPreviews').addEventListener('click', async () =
     alert('没有可生成的壁纸（需要已有原图）');
     return;
   }
-  if (!confirm(`将用 R2 原图重新生成全部预览（长边 720、水印烧进文件）。\n原图和数据库记录不会删除。共 ${list.length} 张，可能需要几分钟。`)) {
+  if (!confirm(`将用 R2 原图重新生成全部预览（长边 720、水印烧进文件）。\n原图和数据库记录不会删除。共 ${list.length} 张，可并行处理。`)) {
     return;
   }
 
@@ -1054,11 +1064,17 @@ document.getElementById('btnRegenPreviews').addEventListener('click', async () =
   btn.disabled = true;
   let ok = 0;
   let fail = 0;
+  let done = 0;
   const errors = [];
+  const CONCURRENCY = 6;
   try {
-    for (let i = 0; i < list.length; i++) {
-      const w = list[i];
-      btn.textContent = `正在生成 ${i + 1}/${list.length}…`;
+    const headers = await getAdminAuthHeaders();
+    await getWatermarkLogo();
+    const updateProgress = () => {
+      btn.textContent = `正在生成 ${done}/${list.length}…`;
+    };
+    updateProgress();
+    await mapPool(list, CONCURRENCY, async (w) => {
       try {
         const dest = previewDest(w);
         const original = await fetchOriginalBlob(w.r2_key);
@@ -1069,11 +1085,12 @@ document.getElementById('btnRegenPreviews').addEventListener('click', async () =
           contentType: 'image/jpeg',
           body: previewBlob,
           variant: 'preview',
+          headers,
         });
         if (!dest.existed || key !== w.preview_key) {
           const metaRes = await fetch('/api/wallpaper-meta', {
             method: 'POST',
-            headers: await getAdminAuthHeaders(),
+            headers,
             body: JSON.stringify({ action: 'set_preview', id: w.id, preview_key: key }),
           });
           if (!metaRes.ok) {
@@ -1086,8 +1103,11 @@ document.getElementById('btnRegenPreviews').addEventListener('click', async () =
         fail += 1;
         errors.push(`${w.filename || w.r2_key}: ${err.message || err}`);
         console.error('regen preview', w, err);
+      } finally {
+        done += 1;
+        updateProgress();
       }
-    }
+    });
   } finally {
     previewBust = String(Date.now());
     btn.disabled = false;
