@@ -18,6 +18,48 @@
       ]
     },
     {
+      "source": "/assets/disk.png",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive" }
+      ]
+    },
+    {
+      "source": "/assets/disk.webp",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive" }
+      ]
+    },
+    {
+      "source": "/assets/dragon.png",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive" }
+      ]
+    },
+    {
+      "source": "/assets/video.mp4",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive, max-video-preview:0" }
+      ]
+    },
+    {
+      "source": "/assets/video-2.mp4",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive, max-video-preview:0" }
+      ]
+    },
+    {
+      "source": "/assets/video-2-opt.mp4",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive, max-video-preview:0" }
+      ]
+    },
+    {
+      "source": "/assets/video-opt.mp4",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive, max-video-preview:0" }
+      ]
+    },
+    {
       "source": "/api/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },

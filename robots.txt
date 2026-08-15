@@ -8,5 +8,12 @@ Disallow: /download-history
 Disallow: /admin-upload
 Disallow: /bazi-calc-debug
 Disallow: /api/
+Disallow: /assets/disk.png
+Disallow: /assets/disk.webp
+Disallow: /assets/dragon.png
+Disallow: /assets/video.mp4
+Disallow: /assets/video-2.mp4
+Disallow: /assets/video-2-opt.mp4
+Disallow: /assets/video-opt.mp4
 
 Sitemap: https://www.elementawall.com/sitemap.xml
