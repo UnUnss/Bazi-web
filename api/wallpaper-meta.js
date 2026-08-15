@@ -28,7 +28,24 @@ export default async function handler(req, res) {
   const auth = await assertAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
-  const { folder_number, element, tags, r2_key, preview_key, filename } = req.body;
+  const { folder_number, element, tags, r2_key, preview_key, filename, id, action } = req.body || {};
+
+  if (action === 'set_preview') {
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!id || !uuidRe.test(String(id)) || !preview_key) {
+      return res.status(400).json({ error: 'Missing params' });
+    }
+    const { error: updateError } = await sb
+      .from('wallpapers')
+      .update({ preview_key: String(preview_key) })
+      .eq('id', id);
+    if (updateError) {
+      console.error('wallpaper-meta preview update', updateError);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    return res.status(200).json({ ok: true });
+  }
+
   if (!element || !r2_key || !filename) return res.status(400).json({ error: 'Missing params' });
 
   const VALID_ELEMENTS = new Set(['金', '木', '水', '火', '土']);

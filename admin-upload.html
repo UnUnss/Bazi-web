@@ -70,7 +70,10 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
 .card-status.error     { color: #dc2626; }
 
 /* ── 管理标签页 ── */
-.manage-toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.manage-toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+.manage-filters { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-regen { margin-left: auto; padding: 6px 14px; font-size: 12px; background: #1c1c1c; color: #fff; border: none; border-radius: 4px; cursor: pointer; letter-spacing: .04em; }
+.btn-regen:disabled { opacity: .45; cursor: default; }
 .filter-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; border: 1px solid #ddd; background: #fff; cursor: pointer; color: #555; }
 .filter-btn.active { background: #1c1c1c; color: #fff; border-color: #1c1c1c; }
 #managedGrid .wp-card .thumb { cursor: default; }
@@ -165,13 +168,16 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
 
   <!-- ── 管理 Tab ── -->
   <div class="tab-content" id="tab-manage">
-    <div class="manage-toolbar" id="filterBar">
+    <div class="manage-toolbar">
+      <div class="manage-filters" id="filterBar">
       <button class="filter-btn active" data-el="全部">全部</button>
       <button class="filter-btn" data-el="水">水</button>
       <button class="filter-btn" data-el="木">木</button>
       <button class="filter-btn" data-el="火">火</button>
       <button class="filter-btn" data-el="土">土</button>
       <button class="filter-btn" data-el="金">金</button>
+      </div>
+      <button type="button" class="btn-regen" id="btnRegenPreviews">重新生成全部预览</button>
     </div>
     <div id="manageEmpty" class="empty-hint">暂无已上传壁纸</div>
     <div class="folder-groups" id="managedGrid"></div>
@@ -626,41 +632,139 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// 生成预览图：长边 1080px，JPEG 质量 0.72
-function makePreviewBlob(file) {
+function loadImageSrc(src) {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const maxSide = 1080;
-      let { width, height } = img;
-      if (width > maxSide || height > maxSide) {
-        if (width >= height) {
-          height = Math.round(height * maxSide / width);
-          width = maxSide;
-        } else {
-          width = Math.round(width * maxSide / height);
-          height = maxSide;
-        }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => blob ? resolve(blob) : reject(new Error('preview compress failed')),
-        'image/jpeg',
-        0.72
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('preview image load failed'));
-    };
-    img.src = url;
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('image load failed'));
+    img.src = src;
   });
+}
+
+let _watermarkLogoPromise = null;
+function getWatermarkLogo() {
+  if (!_watermarkLogoPromise) {
+    _watermarkLogoPromise = loadImageSrc('assets/english.png').catch(() => null);
+  }
+  return _watermarkLogoPromise;
+}
+
+function drawLockscreenWatermark(ctx, width, height, logo) {
+  const cx = width / 2;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = Math.max(6, width * 0.018);
+  ctx.shadowOffsetY = Math.max(1, width * 0.004);
+
+  if (logo && logo.width) {
+    const logoW = width * 0.72;
+    const logoH = logoW * (logo.height / logo.width);
+    ctx.save();
+    ctx.globalAlpha = 0.88;
+    ctx.filter = 'brightness(0) invert(1)';
+    ctx.drawImage(logo, cx - logoW / 2, height * 0.26 - logoH / 2, logoW, logoH);
+    ctx.restore();
+  }
+
+  ctx.font = `300 ${Math.round(width * 0.048)}px system-ui, sans-serif`;
+  ctx.fillText('2026/08/09 Sunday', cx, height * 0.38);
+  ctx.font = `200 ${Math.round(width * 0.224)}px system-ui, sans-serif`;
+  ctx.fillText('10:55', cx, height * 0.48);
+
+  const btn = width * 0.18;
+  const btnY = height * 0.92 - btn / 2;
+  const leftX = width * 0.11;
+  const rightX = width * 0.89 - btn;
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.beginPath();
+  ctx.arc(leftX + btn / 2, btnY + btn / 2, btn / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(rightX + btn / 2, btnY + btn / 2, btn / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+  ctx.lineWidth = Math.max(1.5, width * 0.006);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const icon = btn * 0.45;
+  ctx.save();
+  ctx.translate(leftX + btn / 2 - icon / 2, btnY + btn / 2 - icon / 2);
+  ctx.scale(icon / 24, icon / 24);
+  ctx.beginPath();
+  ctx.moveTo(8, 2); ctx.lineTo(16, 2); ctx.lineTo(17, 8); ctx.lineTo(14, 10);
+  ctx.lineTo(14, 12); ctx.lineTo(15, 22); ctx.lineTo(9, 22); ctx.lineTo(10, 12);
+  ctx.lineTo(7, 10); ctx.closePath();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(12, 8); ctx.lineTo(12, 10);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(rightX + btn / 2 - icon / 2, btnY + btn / 2 - icon / 2);
+  ctx.scale(icon / 24, icon / 24);
+  ctx.beginPath();
+  ctx.moveTo(23, 19);
+  ctx.arcTo(23, 21, 21, 21, 2);
+  ctx.lineTo(3, 21);
+  ctx.arcTo(1, 21, 1, 19, 2);
+  ctx.lineTo(1, 8);
+  ctx.arcTo(1, 6, 3, 6, 2);
+  ctx.lineTo(7, 6);
+  ctx.lineTo(9, 3);
+  ctx.lineTo(15, 3);
+  ctx.lineTo(17, 6);
+  ctx.lineTo(21, 6);
+  ctx.arcTo(23, 6, 23, 8, 2);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(12, 13, 4, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+}
+
+// 生成预览图：长边 720px，JPEG 质量 0.5，并烧入锁屏水印
+async function makePreviewBlob(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImageSrc(url);
+    const maxSide = 720;
+    let { width, height } = img;
+    if (width > maxSide || height > maxSide) {
+      if (width >= height) {
+        height = Math.round(height * maxSide / width);
+        width = maxSide;
+      } else {
+        width = Math.round(width * maxSide / height);
+        height = maxSide;
+      }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    const logo = await getWatermarkLogo();
+    drawLockscreenWatermark(ctx, width, height, logo);
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => b ? resolve(b) : reject(new Error('preview compress failed')),
+        'image/jpeg',
+        0.5
+      );
+    });
+    return blob;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function previewFilename(name) {
@@ -717,7 +821,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
         body: item.file,
       });
 
-      // 2) 压缩预览图（长边 1080 / JPEG 0.72）
+      // 2) 压缩预览图（长边 720 / JPEG 0.5，锁屏水印烧进像素）
       const previewBlob = await makePreviewBlob(item.file);
       const previewName = previewFilename(item.file.name);
       const preview_key = await presignAndPut({
@@ -771,10 +875,13 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
 // ════════════════════════════════════════════
 let allUploaded = [];
 let activeFilter = '全部';
+let previewBust = '';
 
 function wallpaperDisplayUrl(w) {
   const key = w.preview_key || w.r2_key || '';
-  return key ? `${R2_PUBLIC_URL}/${key}` : (w.preview_url || w.previewUrl || '');
+  if (!key) return w.preview_url || w.previewUrl || '';
+  const url = `${R2_PUBLIC_URL}/${key}`;
+  return previewBust ? `${url}?v=${previewBust}` : url;
 }
 
 async function loadUploaded() {
@@ -906,6 +1013,91 @@ document.getElementById('filterBar').addEventListener('click', e => {
   activeFilter = btn.dataset.el;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.el === activeFilter));
   renderManaged();
+});
+
+function previewDest(w) {
+  const folder = resolveFolderNum(w);
+  if (folder == null) throw new Error('无法解析文件夹编号');
+  if (w.preview_key) {
+    const filename = String(w.preview_key).split('/').pop();
+    if (!filename) throw new Error('预览路径无效');
+    return { folder, filename, key: w.preview_key, existed: true };
+  }
+  const filename = previewFilename(w.filename || 'preview.jpg');
+  return { folder, filename, key: `wallpapers/${folder}/preview/${filename}`, existed: false };
+}
+
+async function fetchOriginalBlob(r2Key) {
+  const url = `${R2_PUBLIC_URL}/${r2Key}`;
+  const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+  if (!res.ok) throw new Error(`原图下载失败 ${res.status}`);
+  const blob = await res.blob();
+  if (!blob || !blob.size) throw new Error('原图为空');
+  return blob;
+}
+
+document.getElementById('btnRegenPreviews').addEventListener('click', async () => {
+  const btn = document.getElementById('btnRegenPreviews');
+  if (btn.disabled) return;
+  const list = (allUploaded || []).filter((w) => w.id && w.r2_key);
+  if (!list.length) {
+    alert('没有可生成的壁纸（需要已有原图）');
+    return;
+  }
+  if (!confirm(`将用 R2 原图重新生成全部预览（长边 720、水印烧进文件）。\n原图和数据库记录不会删除。共 ${list.length} 张，可能需要几分钟。`)) {
+    return;
+  }
+
+  const auth = await assertAdminSession();
+  if (!auth.ok) { alert('请先登录'); return; }
+
+  btn.disabled = true;
+  let ok = 0;
+  let fail = 0;
+  const errors = [];
+  try {
+    for (let i = 0; i < list.length; i++) {
+      const w = list[i];
+      btn.textContent = `正在生成 ${i + 1}/${list.length}…`;
+      try {
+        const dest = previewDest(w);
+        const original = await fetchOriginalBlob(w.r2_key);
+        const previewBlob = await makePreviewBlob(original);
+        const key = await presignAndPut({
+          filename: dest.filename,
+          folder: dest.folder,
+          contentType: 'image/jpeg',
+          body: previewBlob,
+          variant: 'preview',
+        });
+        if (!dest.existed || key !== w.preview_key) {
+          const metaRes = await fetch('/api/wallpaper-meta', {
+            method: 'POST',
+            headers: await getAdminAuthHeaders(),
+            body: JSON.stringify({ action: 'set_preview', id: w.id, preview_key: key }),
+          });
+          if (!metaRes.ok) {
+            const err = await metaRes.json().catch(() => ({}));
+            throw new Error(err.error || `写入预览路径失败: ${metaRes.status}`);
+          }
+        }
+        ok += 1;
+      } catch (err) {
+        fail += 1;
+        errors.push(`${w.filename || w.r2_key}: ${err.message || err}`);
+        console.error('regen preview', w, err);
+      }
+    }
+  } finally {
+    previewBust = String(Date.now());
+    btn.disabled = false;
+    btn.textContent = '重新生成全部预览';
+    await loadUploaded();
+  }
+  let msg = `完成 ${ok} 张`;
+  if (fail) msg += `，失败 ${fail} 张`;
+  if (errors[0]) msg += `\n${errors.slice(0, 5).join('\n')}`;
+  alert(msg);
 });
 
 // ════════════════════════════════════════════

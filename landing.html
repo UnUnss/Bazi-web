@@ -707,96 +707,6 @@
             display: block;
         }
 
-        /* ─── 手機鎖屏模擬遮層 ─────────────────────────── */
-
-        .phone-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .phone-overlay-top {
-            height: 22%;
-            position: relative;
-            z-index: 2;
-        }
-
-        /* 与原来相同的绝对定位；略下移并放大，与时钟拉开间距 */
-        .wallpaper-preview .phone-overlay-logo,
-        .pay-wallpaper-preview .phone-overlay-logo {
-            position: absolute;
-            width: 360cqw;
-            height: auto;
-            left: 50%;
-            top: 138%;
-            transform: translateX(-50%);
-            filter: brightness(0) invert(1);
-            opacity: 0.88;
-            z-index: 2;
-        }
-
-        .phone-overlay-clock {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: 0;
-            position: relative;
-            z-index: 1;
-        }
-
-        .phone-clock-date {
-            font-size: 4.8cqw;
-            font-weight: 300;
-            color: rgba(255,255,255,0.88);
-            text-shadow: 0 1px 6px rgba(0,0,0,0.3);
-            letter-spacing: 0.08em;
-            line-height: 1;
-            position: relative;
-            top: -24cqw;
-        }
-
-        .phone-clock-time {
-            font-size: 22.4cqw;
-            font-weight: 200;
-            color: rgba(255,255,255,0.95);
-            text-shadow: 0 1px 10px rgba(0,0,0,0.35);
-            line-height: 1;
-            letter-spacing: 0.02em;
-            position: relative;
-            top: -26cqw;
-            margin-top: 1.6cqw;
-        }
-
-        .phone-overlay-bottom {
-            padding: 0 11% 8%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative;
-            z-index: 1;
-        }
-
-        .phone-icon-btn {
-            width: 18%;
-            aspect-ratio: 1;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.22);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .phone-icon-btn svg {
-            width: 45%;
-            height: 45%;
-            color: rgba(255,255,255,0.92);
-        }
-
         /* ─── 左上角转动圆盘（坐标与动效跟 index.html 封面页保持一致） ─── */
 
         /* 圆盘与龙：与 index.html 保持完全一致的位置/尺寸/分层方式 */
@@ -2861,29 +2771,6 @@
         <button type="button" class="modal-close" id="payModalClose" aria-label="關閉">×</button>
         <div class="pay-wallpaper-preview">
             <img id="payPreviewImg" src="" alt="" draggable="false">
-            <div class="phone-overlay">
-                <div class="phone-overlay-top">
-                    <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" />
-                </div>
-                <div class="phone-overlay-clock">
-                    <div class="phone-clock-date">2026/08/09 Sunday</div>
-                    <div class="phone-clock-time">10:55</div>
-                </div>
-                <div class="phone-overlay-bottom">
-                    <div class="phone-icon-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M8 2h8l1 6-3 2v2l1 10H9L10 12 7 10z"/>
-                            <line x1="12" y1="8" x2="12" y2="10"/>
-                        </svg>
-                    </div>
-                    <div class="phone-icon-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                            <circle cx="12" cy="13" r="4"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
         </div>
         <p class="pay-wallpaper-name" id="payWallpaperName"></p>
         <div class="pay-price-row">
@@ -4092,7 +3979,7 @@
     const WP_META_TTL_MS = 24 * 60 * 60 * 1000; // 24h
     // 方案B锁定后新壁纸不影响当月，revalidate 与 TTL 对齐，等缓存自然过期再拉取
     const WP_META_REVALIDATE_MS = WP_META_TTL_MS; // 24h，等同于禁用后台 revalidate
-    const WP_IMG_CACHE = 'bazi-wp-preview-v1';
+    const WP_IMG_CACHE = 'bazi-wp-preview-v2';
     let _wpBlobUrls = [];
 
 
@@ -4421,29 +4308,6 @@
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" ${fallbackAttrs} />
-                    <div class="phone-overlay">
-                        <div class="phone-overlay-top">
-                            <img class="phone-overlay-logo" src="assets/english.png" alt="ElementaWall" draggable="false" loading="lazy" decoding="async" />
-                        </div>
-                        <div class="phone-overlay-clock">
-                            <div class="phone-clock-date"></div>
-                            <div class="phone-clock-time">--:--</div>
-                        </div>
-                        <div class="phone-overlay-bottom">
-                            <div class="phone-icon-btn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M8 2h8l1 6-3 2v2l1 10H9L10 12 7 10z"/>
-                                    <line x1="12" y1="8" x2="12" y2="10"/>
-                                </svg>
-                            </div>
-                            <div class="phone-icon-btn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                                    <circle cx="12" cy="13" r="4"/>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="wallpaper-meta">
                     <p class="name">${nameHtml}</p>
@@ -4462,19 +4326,6 @@
                 <div class="wallpaper-row">${cardHtmls.slice(2, 4).join('')}</div>
             </div>
         `;
-        // 固定顯示示例時間與日期（2026/08/09 為星期日）
-        wallpaperGrid.querySelectorAll('.phone-clock-time').forEach((el) => { el.textContent = '10:55'; });
-        wallpaperGrid.querySelectorAll('.phone-clock-date').forEach((el) => {
-            el.style.display = '';
-            const weekday = window.I18N ? window.I18N.t('weekday_sun') : 'Sunday';
-            el.textContent = '2026/08/09 ' + weekday;
-        });
-        const payDate = document.querySelector('#payModal .phone-clock-date');
-        if (payDate) {
-            const weekday = window.I18N ? window.I18N.t('weekday_sun') : 'Sunday';
-            payDate.textContent = '2026/08/09 ' + weekday;
-        }
-
         // 后台把预览图写入 Cache API，成功后再替换 src；失败不影响已展示的卡片
         const paintedSeq = renderSeq;
         const imgs = wallpaperGrid.querySelectorAll('.wallpaper-preview > img');
