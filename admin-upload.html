@@ -725,16 +725,14 @@ function drawLockscreenWatermark(ctx, width, height, logo) {
   ctx.font = `200 ${Math.round(width * 0.27)}px system-ui, sans-serif`;
   ctx.fillText('10:55', cx, height * 0.31);
 
-  // Logo（时间下方居中）
+  // Logo（时间下方居中，保持原色）
   if (logo && logo.width) {
     const logoW = width * 0.88;
     const logoH = logoW * (logo.height / logo.width);
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.7)';
-    ctx.shadowBlur = Math.max(12, width * 0.03);
-    ctx.shadowOffsetY = 0;
-    ctx.globalAlpha = 0.95;
-    ctx.filter = 'brightness(0) invert(1)';
+    ctx.globalAlpha = 0.55;
+    ctx.shadowColor = 'rgba(255,255,255,0.8)';
+    ctx.shadowBlur = Math.max(8, width * 0.02);
     ctx.drawImage(logo, cx - logoW / 2, height * 0.56 - logoH / 2, logoW, logoH);
     ctx.restore();
   }
