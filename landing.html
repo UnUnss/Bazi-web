@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#F1ECDF">
     <title data-i18n="meta_title">每月定製個性化壁紙</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <link rel="apple-touch-icon" href="/assets/favicon.png">
@@ -61,6 +62,7 @@
         html {
             font-family: var(--font-kai);
             overflow-x: hidden;
+            background-color: #F1ECDF;
         }
 
         body {
@@ -357,28 +359,27 @@
         }
 
         .period-block {
-            display: grid;
-            grid-template-columns: auto auto auto auto auto;
-            grid-template-rows: auto auto auto;
+            display: flex;
             justify-content: center;
+            align-items: flex-start;
             column-gap: 10px;
-            row-gap: 6px;
             margin-bottom: 8px;
         }
 
         .period-col,
         .period-sep-col {
-            display: grid;
-            grid-template-rows: subgrid;
-            grid-row: 1 / -1;
-            justify-items: center;
-            align-items: baseline;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            row-gap: 6px;
         }
 
         .period-col-label {
             font-size: 12px;
             color: var(--ink-muted);
             letter-spacing: 0.16em;
+            line-height: 1.2;
+            min-height: 1.2em;
         }
 
         .period-col-date {
@@ -386,6 +387,7 @@
             color: var(--ink-muted);
             text-align: center;
             line-height: 1.4;
+            min-height: 2.8em;
         }
 
         .period-col-value {
@@ -393,6 +395,7 @@
             letter-spacing: 0.14em;
             color: var(--ink-soft);
             white-space: nowrap;
+            line-height: 1.2;
         }
 
         .period-sep {
@@ -405,6 +408,14 @@
 
         .period-sep-label {
             font-size: 12px;
+            min-height: 1.2em;
+            line-height: 1.2;
+        }
+
+        .period-sep-date {
+            min-height: 2.8em;
+            display: flex;
+            align-items: center;
         }
 
         .tst-hint {
@@ -451,6 +462,7 @@
             font-size: 14px;
             letter-spacing: 0.14em;
             color: var(--ink-soft);
+            text-align: center;
         }
 
         .insight-label {
@@ -1349,11 +1361,18 @@
         }
 
         .btn-official-stripe {
-            background: #635BFF;
-            color: #fff;
+            background: #fff;
+            color: #3c3a36;
+            border: 1px solid #d8d4cc;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             padding: 12px 12px 10px;
+        }
+
+        .stripe-wordmark {
+            display: block;
+            height: 22px;
+            width: auto;
         }
 
         .stripe-methods {
@@ -1361,60 +1380,46 @@
             flex-wrap: wrap;
             align-items: center;
             justify-content: center;
-            gap: 4px 5px;
+            gap: 4px 6px;
             font-size: 10px;
             font-weight: 500;
             letter-spacing: 0.02em;
             line-height: 1.4;
-            opacity: 0.95;
+            color: #6b675f;
         }
 
         .stripe-method-icons {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
 
-        .pay-ico {
+        .pay-mark {
             display: block;
-            height: 14px;
-            width: 14px;
+            height: 20px;
+            width: auto;
             flex-shrink: 0;
         }
 
-        .pay-ico-apple {
-            fill: #fff;
-        }
-
         .pay-ico-link {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
             letter-spacing: 0.02em;
             line-height: 1;
+            color: #1a1a1a;
         }
 
-        .btn-official-paypal {
-            background: #FFC439;
-            color: #003087;
-        }
-
-        .btn-official-stripe .brand-mark,
-        .btn-official-paypal .brand-mark {
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .btn-official-paypal .brand-mark {
-            color: #003087;
-        }
-
-        .btn-official-paypal .brand-mark span {
-            color: #009CDE;
-        }
-
+        .btn-official-paypal,
         .btn-official-alipay {
-            background: #1677FF;
-            color: #fff;
+            background: #fff;
+            border: 1px solid #d8d4cc;
+        }
+
+        .btn-official-paypal img,
+        .btn-official-alipay img {
+            display: block;
+            height: 24px;
+            width: auto;
         }
 
         .checkout-provider-modal {
@@ -2619,7 +2624,7 @@
         </div>
         <div class="period-sep-col" aria-hidden="true">
             <span class="period-sep period-sep-label">·</span>
-            <span class="period-sep period-sep-label">·</span>
+            <span class="period-sep period-sep-date">·</span>
             <span class="period-sep">·</span>
         </div>
         <div class="period-col">
@@ -2629,7 +2634,7 @@
         </div>
         <div class="period-sep-col" aria-hidden="true">
             <span class="period-sep period-sep-label">·</span>
-            <span class="period-sep period-sep-label">·</span>
+            <span class="period-sep period-sep-date">·</span>
             <span class="period-sep">·</span>
         </div>
         <div class="period-col">
@@ -2849,24 +2854,24 @@
             <button type="button" class="btn-annual-later annual-select-manage-only" id="btnAnnualLater" data-i18n="annual_select_later">稍后再选</button>
             <button type="button" class="btn-annual-confirm annual-select-manage-only" id="btnAnnualConfirm" data-i18n="annual_select_confirm">确认</button>
             <div class="pay-provider-row annual-select-pay-only" id="annualPayRow" style="display:none; width:100%;">
-                <p class="pay-provider-hint" data-i18n="pay_provider_hint">使用支付宝支付前请关闭 VPN，在大陆境内网络使用；境外请用 Stripe / PayPal</p>
+                <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
                 <button type="button" class="btn-official-stripe" id="btnAnnualPayStripe" data-provider="stripe" aria-label="Stripe">
-                    <span class="brand-mark">Stripe</span>
+                    <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
                     <span class="stripe-methods">
                         <span data-i18n="pay_stripe_methods_before">支持</span>
                         <span class="stripe-method-icons">
-                            <svg class="pay-ico pay-ico-apple" viewBox="0 0 24 24" role="img" aria-label="Apple Pay"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                            <svg class="pay-ico" viewBox="0 0 24 24" role="img" aria-label="Google Pay"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                            <img class="pay-mark" src="assets/pay/apple-pay-mark.png" alt="Apple Pay">
+                            <img class="pay-mark" src="assets/pay/google-pay-mark.png" alt="Google Pay">
                             <span class="pay-ico-link" aria-label="Link">Link</span>
                         </span>
                         <span data-i18n="pay_stripe_methods_after">信用卡等多种支付方式</span>
                     </span>
                 </button>
                 <button type="button" class="btn-official-paypal" id="btnAnnualPayPaypal" data-provider="paypal" aria-label="Pay with PayPal">
-                    <span class="brand-mark">Pay<span>Pal</span></span>
+                    <img src="assets/pay/paypal-logo.png" alt="PayPal">
                 </button>
-                <button type="button" class="btn-official-alipay" id="btnAnnualPayAlipay" data-provider="alipay" aria-label="支付宝">
-                    <span data-i18n="pay_with_alipay">支付宝</span>
+                <button type="button" class="btn-official-alipay" id="btnAnnualPayAlipay" data-provider="alipay" aria-label="支付宝" hidden>
+                    <img src="assets/pay/支付宝logo.png" alt="支付宝">
                 </button>
             </div>
         </div>
@@ -2904,25 +2909,25 @@
     <div class="modal checkout-provider-modal">
         <button type="button" class="modal-close" id="checkoutProviderClose" aria-label="關閉">×</button>
         <h2 data-i18n="pay_choose_provider">選擇支付方式</h2>
-        <p class="pay-provider-hint" data-i18n="pay_provider_hint">使用支付宝支付前请关闭 VPN，在大陆境内网络使用；境外请用 Stripe / PayPal</p>
+        <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
         <div class="pay-provider-row">
             <button type="button" class="btn-official-stripe" id="btnCheckoutStripe" data-provider="stripe" aria-label="Stripe">
-                <span class="brand-mark">Stripe</span>
+                <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
                 <span class="stripe-methods">
                     <span data-i18n="pay_stripe_methods_before">支持</span>
                     <span class="stripe-method-icons">
-                        <svg class="pay-ico pay-ico-apple" viewBox="0 0 24 24" role="img" aria-label="Apple Pay"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-                        <svg class="pay-ico" viewBox="0 0 24 24" role="img" aria-label="Google Pay"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                        <img class="pay-mark" src="assets/pay/apple-pay-mark.png" alt="Apple Pay">
+                        <img class="pay-mark" src="assets/pay/google-pay-mark.png" alt="Google Pay">
                         <span class="pay-ico-link" aria-label="Link">Link</span>
                     </span>
                     <span data-i18n="pay_stripe_methods_after">信用卡等多种支付方式</span>
                 </span>
             </button>
             <button type="button" class="btn-official-paypal" id="btnCheckoutPaypal" data-provider="paypal" aria-label="Pay with PayPal">
-                <span class="brand-mark">Pay<span>Pal</span></span>
+                <img src="assets/pay/paypal-logo.png" alt="PayPal">
             </button>
-            <button type="button" class="btn-official-alipay" id="btnCheckoutAlipay" data-provider="alipay" aria-label="支付宝">
-                <span data-i18n="pay_with_alipay">支付宝</span>
+            <button type="button" class="btn-official-alipay" id="btnCheckoutAlipay" data-provider="alipay" aria-label="支付宝" hidden>
+                <img src="assets/pay/支付宝logo.png" alt="支付宝">
             </button>
         </div>
     </div>
@@ -3731,8 +3736,9 @@
             return lang === 'en' ? `(${label})` : `（${label}）`;
         };
         const itemSep = lang === 'en' ? ', ' : '、';
+        const favorSep = lang === 'en' ? '<br>' : ' · ';
         favorLine.innerHTML =
-            `<span class="insight-label">${t('wallpaper_favor_group_title')}</span> · ` +
+            `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>${favorSep}` +
             `<span class="${favorCls}">${escapeHtml(favorElName)}</span>${mark('wallpaper_primary_mark')}` +
             `${itemSep}<span class="${secondaryCls}">${escapeHtml(secondaryElName)}</span>${mark('wallpaper_secondary_mark')}`;
 
@@ -4719,9 +4725,35 @@
         return null;
     }
 
+    let alipayAvailable = false;
+
+    function setAlipayVisible(show) {
+        alipayAvailable = !!show;
+        ['btnCheckoutAlipay', 'btnAnnualPayAlipay'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.hidden = !show;
+        });
+    }
+
+    async function detectMainlandChina() {
+        const local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        try {
+            const res = await fetch('/api/geo', { cache: 'no-store' });
+            if (!res.ok) return local;
+            const data = await res.json().catch(() => ({}));
+            return data && data.mainland === true;
+        } catch (_) {
+            return local;
+        }
+    }
+
+    setAlipayVisible(false);
+    detectMainlandChina().then(setAlipayVisible);
+
     async function startCheckout({ provider, productType, items }) {
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return;
+        if (provider === 'alipay' && !alipayAvailable) return;
         if (provider !== 'stripe' && provider !== 'paypal' && provider !== 'alipay') {
             alert(t('pay_provider_required'));
             return;
@@ -5205,7 +5237,7 @@
         await startCheckout({ provider: 'paypal', productType: 'annual', items: [] });
     });
     document.getElementById('btnAnnualPayAlipay')?.addEventListener('click', async () => {
-        if (!requireLogin()) return;
+        if (!alipayAvailable || !requireLogin()) return;
         closeAnnualSelectModal();
         payModal.classList.remove('open');
         await startCheckout({ provider: 'alipay', productType: 'annual', items: [] });
@@ -5394,7 +5426,10 @@
     });
     document.getElementById('btnCheckoutStripe')?.addEventListener('click', () => cartCheckout('stripe'));
     document.getElementById('btnCheckoutPaypal')?.addEventListener('click', () => cartCheckout('paypal'));
-    document.getElementById('btnCheckoutAlipay')?.addEventListener('click', () => cartCheckout('alipay'));
+    document.getElementById('btnCheckoutAlipay')?.addEventListener('click', () => {
+        if (!alipayAvailable) return;
+        cartCheckout('alipay');
+    });
 
     btnAddCart.addEventListener('click', () => {
         if (!requireLogin()) return;
