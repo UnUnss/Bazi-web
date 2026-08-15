@@ -637,6 +637,11 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function isSafariBrowser() {
+  const ua = navigator.userAgent || '';
+  return /Safari/i.test(ua) && !/Chrome|Chromium|Android|Edg/i.test(ua);
+}
+
 function loadImageSrc(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -646,23 +651,45 @@ function loadImageSrc(src) {
   });
 }
 
-async function decodeImageBlob(blob) {
-  const kb = Math.max(1, Math.round((blob && blob.size ? blob.size : 0) / 1024));
-  if (typeof createImageBitmap === 'function') {
+function asImageBlob(blob, hint) {
+  const t = String((blob && blob.type) || '').toLowerCase();
+  if (t.indexOf('image/') === 0) return blob;
+  const mime = /\.png(\?|$)/i.test(hint || '') ? 'image/png' : 'image/jpeg';
+  return new Blob([blob], { type: mime });
+}
+
+async function decodeImageBlob(blob, hint) {
+  const typed = asImageBlob(blob, hint);
+  const kb = Math.max(1, Math.round((typed && typed.size ? typed.size : 0) / 1024));
+  const tryBitmap = async () => {
+    if (typeof createImageBitmap !== 'function') return null;
     try {
-      return await createImageBitmap(blob);
+      return await createImageBitmap(typed);
     } catch (_) {
-      throw new Error(`图片解码失败（已下载 ${kb}KB）`);
+      return null;
+    }
+  };
+  const tryElement = async () => {
+    const url = URL.createObjectURL(typed);
+    try {
+      return await loadImageSrc(url);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // Safari 的 createImageBitmap 对 R2 的 octet-stream 经常报 Load failed
+  const order = isSafariBrowser() ? [tryElement, tryBitmap] : [tryBitmap, tryElement];
+  let lastErr = null;
+  for (let i = 0; i < order.length; i++) {
+    try {
+      const img = await order[i]();
+      if (img) return img;
+    } catch (err) {
+      lastErr = err;
     }
   }
-  const url = URL.createObjectURL(blob);
-  try {
-    return await loadImageSrc(url);
-  } catch (_) {
-    throw new Error(`图片解码失败（已下载 ${kb}KB）`);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+  throw new Error(`图片解码失败（已下载 ${kb}KB${lastErr && lastErr.message ? '，' + lastErr.message : ''}）`);
 }
 
 let _watermarkLogoPromise = null;
@@ -757,7 +784,7 @@ function drawLockscreenWatermark(ctx, width, height, logo) {
 
 // 生成预览图：长边 720px，JPEG 质量 0.5，并烧入锁屏水印
 async function makePreviewBlob(file) {
-  const img = await decodeImageBlob(file);
+  const img = await decodeImageBlob(file, file && file.name);
   try {
     const maxSide = 720;
     let width = img.width;
@@ -807,11 +834,16 @@ async function presignAndPut({ filename, folder, contentType, body, variant, hea
     throw new Error(err.error || `presign failed: ${presignRes.status}`);
   }
   const { url, key } = await presignRes.json();
-  const uploadRes = await fetch(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': contentType },
-    body,
-  });
+  let uploadRes;
+  try {
+    uploadRes = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body,
+    });
+  } catch (err) {
+    throw new Error(`R2 上传失败（网络）：${err && err.message ? err.message : err}`);
+  }
   if (!uploadRes.ok) throw new Error(`R2 upload failed (${variant || 'original'}): ${uploadRes.status}`);
   return key;
 }
@@ -1060,9 +1092,14 @@ async function fetchOriginalBlob(r2Key) {
     throw new Error(`原图下载失败（网络/CORS）：${err && err.message ? err.message : err}`);
   }
   if (!res.ok) throw new Error(`原图下载失败 ${res.status}`);
-  const blob = await res.blob();
+  let blob;
+  try {
+    blob = await res.blob();
+  } catch (err) {
+    throw new Error(`原图读取失败：${err && err.message ? err.message : err}`);
+  }
   if (!blob || !blob.size) throw new Error('原图为空');
-  return blob;
+  return asImageBlob(blob, r2Key);
 }
 
 async function inspectPreviewStatus(previewKey) {
@@ -1076,9 +1113,9 @@ async function inspectPreviewStatus(previewKey) {
     if (!res.ok) return { status: 'missing' };
     const blob = await res.blob();
     if (!blob || !blob.size) return { status: 'missing' };
-    const img = await createImageBitmap(blob);
+    const img = await decodeImageBlob(blob, previewKey);
     const maxSide = Math.max(img.width, img.height);
-    if (typeof img.close === 'function') img.close();
+    if (img && typeof img.close === 'function') img.close();
     return { status: maxSide <= 720 ? 'baked' : 'old', maxSide };
   } catch (_) {
     return { status: 'missing' };
