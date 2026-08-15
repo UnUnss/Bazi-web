@@ -1,3 +1,4 @@
+// 限时邀请码：读取自己的码/人数/奖励状态，或绑定别人的码
 import { assertUser } from './_lib/auth.js';
 import {
   isInviteFeatureOn,
@@ -6,17 +7,8 @@ import {
   bindInviteCode,
 } from './_lib/invite-campaign.js';
 
-function handleGeo(req, res) {
-  const country = String(req.headers['x-vercel-ip-country'] || '').toUpperCase();
-  const host = String(req.headers.host || '');
-  const local = host.startsWith('localhost') || host.startsWith('127.0.0.1');
-  const mainland = country === 'CN' || (local && !country);
-
-  res.setHeader('Cache-Control', 'no-store');
-  res.status(200).json({ country, mainland });
-}
-
-async function handleInvite(req, res) {
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
   if (!isInviteFeatureOn()) return res.status(404).json({ error: 'ended' });
 
   const auth = await assertUser(req);
@@ -46,10 +38,4 @@ async function handleInvite(req, res) {
     console.error('invite api', err);
     return res.status(500).json({ error: 'generic' });
   }
-}
-
-export default async function handler(req, res) {
-  if (req.method === 'GET') return handleGeo(req, res);
-  if (req.method === 'POST') return handleInvite(req, res);
-  return res.status(405).end();
 }

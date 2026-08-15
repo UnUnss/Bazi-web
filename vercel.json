@@ -6,7 +6,9 @@
     { "source": "/api/checkout/zpay-go", "destination": "/api/checkout/zpay?action=go" },
     { "source": "/api/checkout/zpay-notify", "destination": "/api/checkout/zpay?action=notify" },
     { "source": "/api/checkout/zpay-return", "destination": "/api/checkout/zpay?action=return" },
-    { "source": "/api/invite", "destination": "/api/geo" }
+    { "source": "/api/geo", "destination": "/api/checkout/zpay?action=geo" },
+    { "source": "/api/checkout/paypal-capture", "destination": "/api/checkout/paypal?action=capture" },
+    { "source": "/api/checkout/paypal-webhook", "destination": "/api/checkout/paypal?action=webhook" }
   ],
   "headers": [
     {

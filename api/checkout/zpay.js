@@ -26,11 +26,12 @@ function escapeHtml(value) {
 
 function zpayAction(req) {
   const q = String(req.query?.action || '').toLowerCase();
-  if (q === 'go' || q === 'notify' || q === 'return') return q;
+  if (q === 'go' || q === 'notify' || q === 'return' || q === 'geo') return q;
   const path = String(req.url || req.headers?.['x-invoke-path'] || '');
   if (path.includes('zpay-notify')) return 'notify';
   if (path.includes('zpay-return')) return 'return';
   if (path.includes('zpay-go')) return 'go';
+  if (path.includes('/api/geo')) return 'geo';
   return '';
 }
 
@@ -195,8 +196,21 @@ async function handleReturn(req, res) {
   return redirect(res, cancelPath);
 }
 
+function handleGeo(req, res) {
+  if (req.method !== 'GET') return res.status(405).end();
+
+  const country = String(req.headers['x-vercel-ip-country'] || '').toUpperCase();
+  const host = String(req.headers.host || '');
+  const local = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+  const mainland = country === 'CN' || (local && !country);
+
+  res.setHeader('Cache-Control', 'no-store');
+  res.status(200).json({ country, mainland });
+}
+
 export default async function handler(req, res) {
   const action = zpayAction(req);
+  if (action === 'geo') return handleGeo(req, res);
   if (action === 'go') return handleGo(req, res);
   if (action === 'notify') return handleNotify(req, res);
   if (action === 'return') return handleReturn(req, res);
