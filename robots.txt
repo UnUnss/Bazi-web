@@ -10,3 +10,4 @@ Disallow: /bazi-calc-debug.html
 Disallow: /api/
 
 Sitemap: https://www.elementawall.com/sitemap.xml
+Sitemap: https://www.elementawall.com/sitemaps/sitemap.xml
