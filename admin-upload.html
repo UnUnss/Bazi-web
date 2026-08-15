@@ -830,8 +830,12 @@ async function presignAndPut({ filename, folder, contentType, body, variant, hea
   if (variant === 'preview') {
     const arrayBuf = await (body instanceof Blob ? body.arrayBuffer() : Promise.resolve(body));
     const bytes = new Uint8Array(arrayBuf);
+    // 分块拼接避免 O(n²) 字符串拼接
     let binary = '';
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const CHUNK = 8192;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
     const bodyBase64 = btoa(binary);
     const res = await fetch('/api/presign', {
       method: 'POST',
@@ -1216,8 +1220,6 @@ document.getElementById('btnRegenPreviews').addEventListener('click', async () =
   let skipped = 0;
   let fail = 0;
   let done = 0;
-  let stopped = false;
-  let firstError = '';
   const CONCURRENCY = 4;
   try {
     const headers = await getAdminAuthHeaders();
@@ -1227,7 +1229,6 @@ document.getElementById('btnRegenPreviews').addEventListener('click', async () =
     };
     updateProgress();
     await mapPool(list, CONCURRENCY, async (w) => {
-      if (stopped) return;
       try {
         const dest = previewDest(w);
         if (await previewAlreadyBaked(w.preview_key || dest.key)) {
