@@ -795,11 +795,11 @@ function drawLockscreenWatermark(ctx, width, height, logo) {
   ctx.restore();
 }
 
-// 生成预览图：长边 720px，JPEG 质量 0.5，并烧入锁屏水印
+// 生成预览图：长边 1080px，JPEG 质量 0.6，并烧入锁屏水印
 async function makePreviewBlob(file) {
   const img = await decodeImageBlob(file, file && file.name);
   try {
-    const maxSide = 720;
+    const maxSide = 1080;
     let width = img.width;
     let height = img.height;
     if (width > maxSide || height > maxSide) {
@@ -822,7 +822,7 @@ async function makePreviewBlob(file) {
       canvas.toBlob(
         (b) => b ? resolve(b) : reject(new Error('预览压缩失败')),
         'image/jpeg',
-        0.5
+        0.6
       );
     });
     return blob;
