@@ -15,7 +15,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=6" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=6" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=32"></script>
+    <script src="i18n.js?v=35"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1522,6 +1522,7 @@
             letter-spacing: 0.04em;
             color: var(--ink-muted);
             text-align: center;
+            white-space: pre-line;
         }
 
         /* ─── 購物車（下載列表） ──────────────────────── */
@@ -1868,8 +1869,14 @@
             z-index: 70;
         }
 
-        #checkoutReturnModal .confirm-modal p {
+        #checkoutReturnModal .confirm-modal p,
+        #inviteRedeemModal .confirm-modal p {
             margin-bottom: 0;
+        }
+
+        #inviteRedeemModal .confirm-modal p + p {
+            margin-top: 10px;
+            font-size: 13px;
         }
 
         .confirm-actions {
@@ -2940,6 +2947,7 @@
 <div class="modal-backdrop" id="inviteRedeemModal" role="status" aria-live="polite" aria-modal="true">
     <div class="modal confirm-modal">
         <p data-i18n="invite_redeeming">兌換成功，正在下載</p>
+        <p data-i18n="invite_redeeming_hint">若下載失敗可在右上角「用戶」→「本月下載記錄」重新下載</p>
     </div>
 </div>
 
@@ -3029,7 +3037,8 @@
             <span class="cart-total-price" id="cartTotalPrice">US$0.00</span>
         </div>
 
-        <p class="cart-checkout-hint" id="cartCheckoutHint" data-i18n="cart_checkout_hint" style="display:none">支付成功后将会自动下载壁纸，若下载失败可在导航栏“用户——本月下载记录”重新下载</p>
+        <p class="cart-checkout-hint" id="cartCheckoutHint" data-i18n="cart_checkout_hint" style="display:none">支付成功后将会自动下载壁纸，
+若下载失败可在导航栏「用户——本月下载记录」重新下载</p>
         <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout" style="display:none">結算</button>
     </div>
 </div>
@@ -6465,7 +6474,12 @@
             inviteCodeInput.disabled = !bindOpen;
             if (!bindOpen) inviteCodeInput.value = inviteCodeInput.value;
         }
-        if (btnInviteBind) btnInviteBind.disabled = !bindOpen;
+        if (btnInviteBind) {
+            const used = !!st.alreadyBound;
+            btnInviteBind.disabled = !bindOpen;
+            btnInviteBind.setAttribute('data-i18n', used ? 'invite_submit_used' : 'invite_submit');
+            btnInviteBind.textContent = inviteT(used ? 'invite_submit_used' : 'invite_submit');
+        }
         if (inviteFooter) {
             const reward = st.rewardStatus || 'none';
             if (reward === 'used') inviteFooter.textContent = inviteT('invite_footer_used');
