@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /landing.html
+Allow: /about.html
+Allow: /contact.html
+Disallow: /policy.html
+Disallow: /download-history.html
+Disallow: /admin-upload.html
+Disallow: /bazi-calc-debug.html
+Disallow: /api/
+
+Sitemap: https://www.elementawall.com/sitemap.xml
