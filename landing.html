@@ -1397,11 +1397,24 @@
             width: auto;
         }
 
+        .stripe-methods {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 4px 6px;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            line-height: 1.4;
+            color: #6b675f;
+        }
+
         .stripe-methods-img {
             display: block;
-            width: 100%;
-            max-width: 280px;
-            height: auto;
+            height: 28px;
+            width: auto;
+            max-width: 72%;
         }
 
         .btn-official-paypal,
@@ -2868,7 +2881,11 @@
                 <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
                 <button type="button" class="btn-official-stripe" id="btnAnnualPayStripe" data-provider="stripe" aria-label="Stripe">
                     <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
-                    <img class="stripe-methods-img" src="assets/pay/支付合集logo.png" alt="">
+                    <span class="stripe-methods">
+                        <span data-i18n="pay_stripe_methods_before">支持</span>
+                        <img class="stripe-methods-img" src="assets/pay/支付合集logo.png" alt="">
+                        <span data-i18n="pay_stripe_methods_after">等多种方式</span>
+                    </span>
                 </button>
                 <button type="button" class="btn-official-paypal" id="btnAnnualPayPaypal" data-provider="paypal" aria-label="Pay with PayPal">
                     <img src="assets/pay/paypal-logo.png" alt="PayPal">
@@ -2917,7 +2934,11 @@
         <div class="pay-provider-row">
             <button type="button" class="btn-official-stripe" id="btnCheckoutStripe" data-provider="stripe" aria-label="Stripe">
                 <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
-                <img class="stripe-methods-img" src="assets/pay/支付合集logo.png" alt="">
+                <span class="stripe-methods">
+                    <span data-i18n="pay_stripe_methods_before">支持</span>
+                    <img class="stripe-methods-img" src="assets/pay/支付合集logo.png" alt="">
+                    <span data-i18n="pay_stripe_methods_after">等多种方式</span>
+                </span>
             </button>
             <button type="button" class="btn-official-paypal" id="btnCheckoutPaypal" data-provider="paypal" aria-label="Pay with PayPal">
                 <img src="assets/pay/paypal-logo.png" alt="PayPal">
