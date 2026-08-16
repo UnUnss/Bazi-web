@@ -3331,6 +3331,7 @@
     try {
         localStorage.removeItem('ew_favor_history');
         localStorage.removeItem('bazi_monthly_insight_v1');
+        localStorage.removeItem('bazi_wallpaper_meta_v1');
     } catch (_) {}
 
     function readInsightCache(profileId, ymKey) {
@@ -4015,12 +4016,21 @@
     // 壁纸缓存：内存 + localStorage（跨刷新）+ Cache API（预览图）
     const _wallpaperCache = {};
     const _wallpaperInflight = {};
-    const WP_META_LS_KEY = 'bazi_wallpaper_meta_v1';
+    const WP_META_LS_KEY = 'bazi_wallpaper_meta_v2';
     const WP_META_TTL_MS = 24 * 60 * 60 * 1000; // 24h
     // 方案B锁定后新壁纸不影响当月，revalidate 与 TTL 对齐，等缓存自然过期再拉取
     const WP_META_REVALIDATE_MS = WP_META_TTL_MS; // 24h，等同于禁用后台 revalidate
-    const WP_IMG_CACHE = 'bazi-wp-preview-v2';
+    const WP_IMG_CACHE = 'bazi-wp-preview-v3';
     let _wpBlobUrls = [];
+    if ('caches' in window) {
+        caches.keys().then((names) => {
+            names.forEach((name) => {
+                if (name.startsWith('bazi-wp-preview-') && name !== WP_IMG_CACHE) {
+                    caches.delete(name).catch(() => {});
+                }
+            });
+        }).catch(() => {});
+    }
 
 
     function readWallpaperMetaCache(element) {
