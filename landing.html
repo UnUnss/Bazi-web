@@ -3,6 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <!-- 微信内置浏览器拦截：必须最早执行，避免页面内容渲染后再跳转 -->
+    <script>
+    (function() {
+        var ua = navigator.userAgent || '';
+        var isWeChat = /MicroMessenger/i.test(ua);
+        if (!isWeChat) return;
+
+        var isIOS = /iPhone|iPad|iPod/i.test(ua);
+        var hint = isIOS
+            ? '点击右上角 <strong>···</strong>，选择「在浏览器中打开」'
+            : '点击右上角 <strong>⋮</strong> 菜单，选择「在默认浏览器打开」或「用其他浏览器打开」';
+
+        document.write(
+            '<!DOCTYPE html><html><head>' +
+            '<meta charset="UTF-8">' +
+            '<meta name="viewport" content="width=device-width,initial-scale=1.0">' +
+            '<title>请在浏览器中打开</title>' +
+            '<style>' +
+            'html,body{margin:0;padding:0;height:100%;background:#F5ECD6;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;}' +
+            '.wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;text-align:center;box-sizing:border-box;}' +
+            '.arrow{position:fixed;top:12px;right:20px;font-size:48px;color:#c05220;animation:bounce 1s ease-in-out infinite alternate;}' +
+            '@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-10px)}}' +
+            '.icon{font-size:64px;margin-bottom:24px;}' +
+            'h1{font-size:22px;font-weight:700;color:#2a1e0a;margin-bottom:16px;line-height:1.4;}' +
+            'p{font-size:15px;color:#5a4a28;line-height:1.8;margin-bottom:12px;}' +
+            '.tip{background:rgba(192,82,32,0.08);border:1px solid rgba(192,82,32,0.25);border-radius:12px;padding:14px 18px;margin-top:20px;font-size:14px;color:#c05220;line-height:1.7;}' +
+            '</style>' +
+            '</head><body>' +
+            '<div class="arrow">↗</div>' +
+            '<div class="wrap">' +
+            '<div class="icon">🌐</div>' +
+            '<h1>请在外部浏览器中打开</h1>' +
+            '<p>微信内置浏览器对支付宝支付存在限制，<br>支付后可能无法正常返回，导致订单无法完成。</p>' +
+            '<div class="tip">' + hint + '</div>' +
+            '</div>' +
+            '</body></html>'
+        );
+        document.close();
+    })();
+    </script>
     <meta name="theme-color" content="#F1ECDF">
     <title data-i18n="meta_title">每月定製個性化壁紙</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png">
