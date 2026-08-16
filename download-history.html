@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
     <script src="auth-session.js"></script>
-    <script src="i18n.js?v=21"></script>
+    <script src="i18n.js?v=22"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -603,7 +603,7 @@
             });
             if (res.status === 401) { location.href = '/landing?login=1'; return; }
             if (res.status === 402) {
-                alert(window.I18N ? window.I18N.t('download_payment_required') : '需要先購買此壁紙');
+                alert(window.I18N ? window.I18N.t('download_payment_required') : '需要先購買此背景圖');
                 return;
             }
             if (!res.ok) {
