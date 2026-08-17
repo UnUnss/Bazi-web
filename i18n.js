@@ -169,6 +169,7 @@
             cart_checkout: '結算',
             cart_checkout_hint: '支付成功後將會自動下載背景圖，\n若下載失敗可在導航欄「用戶——本月下載記錄」重新下載',
             bazi_board_title: '八字排盤',
+            bazi_board_example: '（示例）',
             pillar_year: '年柱',
             pillar_month: '月柱',
             pillar_day: '日柱',
@@ -231,9 +232,9 @@
             lang_menu_zh_cn: '简体中文',
             lang_menu_en: 'English',
             weekday_sun: '星期日',
-            cta_start: '開始',
+            cta_start: '點擊開始生成專屬背景圖',
             cta_purpose: 'ElementaWall 根據生辰八字，為你定制每月運勢背景圖。支援 Google 與郵箱登入。',
-            cta_sub: '基於生辰八字\n定制每月運勢背景圖'
+            cta_sub: '依八字排盤 推演本月大運流轉\n以喜用為補 定制專屬運勢背景圖'
         },
         'zh-CN': {
             meta_title: '每月定制个性化壁纸',
@@ -400,6 +401,7 @@
             cart_checkout: '结算',
             cart_checkout_hint: '支付成功后将会自动下载壁纸，\n若下载失败可在导航栏「用户——本月下载记录」重新下载',
             bazi_board_title: '八字排盘',
+            bazi_board_example: '（示例）',
             pillar_year: '年柱',
             pillar_month: '月柱',
             pillar_day: '日柱',
@@ -462,9 +464,9 @@
             lang_menu_zh_cn: '简体中文',
             lang_menu_en: 'English',
             weekday_sun: '星期日',
-            cta_start: '开始',
+            cta_start: '点击开始生成专属壁纸',
             cta_purpose: 'ElementaWall 根据生辰八字，为你定制每月运势壁纸。支持 Google 与邮箱登录。',
-            cta_sub: '基于生辰八字\n定制每月运势壁纸'
+            cta_sub: '依八字排盘 推演本月大运流转\n以喜用为补 定制专属运势壁纸'
         },
         'en': {
             meta_title: 'Monthly Custom Personalized Wallpaper',
@@ -631,6 +633,7 @@
             cart_checkout: 'Checkout',
             cart_checkout_hint: 'After payment, wallpapers download automatically.\nIf a download fails, go to User → This Month\'s Downloads in the navigation to retry.',
             bazi_board_title: 'BaZi Chart',
+            bazi_board_example: '(Example)',
             pillar_year: 'Year Pillar',
             pillar_month: 'Month Pillar',
             pillar_day: 'Day Pillar',
@@ -693,9 +696,9 @@
             lang_menu_zh_cn: '简体中文',
             lang_menu_en: 'English',
             weekday_sun: 'Sunday',
-            cta_start: 'Start',
+            cta_start: 'Click to generate your exclusive wallpaper',
             cta_purpose: 'ElementaWall creates personalized monthly fortune wallpapers from your BaZi chart. Sign in with Google or email.',
-            cta_sub: 'Personalized monthly fortune wallpapers based on your BaZi'
+            cta_sub: 'Map this month\'s luck cycle from your BaZi chart\nCraft an exclusive fortune wallpaper with favorable elements'
         }
     };
 
