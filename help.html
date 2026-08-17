@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#F1ECDF">
+    <title data-i18n="nav_help">使用幫助 · ElementaWall</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=8" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=8" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="auth-session.js"></script>
+    <script src="i18n.js?v=39"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ink: #2a1e0a;
+            --ink-soft: #5a4a28;
+            --ink-muted: #8a7a58;
+            --line: rgba(42, 30, 10, 0.28);
+            --font-kai: "CooperZhengKai", "CooperZhengKaiFull", "Kaiti SC", "Kaiti TC", "STKaiti", "KaiTi", "楷体", "Songti SC", "SimSun", serif;
+        }
+
+        html, body {
+            font-family: var(--font-kai);
+            color: var(--ink);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        html {
+            background-color: #F1ECDF;
+        }
+
+        .bg-paper {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: url('assets/bg-paper-opt.jpg') center / cover no-repeat;
+            pointer-events: none;
+        }
+
+        .disk-wrap {
+            position: fixed;
+            left: -51.16vw;
+            top: 1.92vh;
+            width: 145.83vw;
+            height: auto;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .disk-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+            animation: spin 90s linear infinite;
+            transform-origin: 51.77% 49.9%;
+        }
+
+        .disk-wrap .disk-img {
+            position: relative;
+            mix-blend-mode: darken;
+            opacity: 0.15;
+        }
+
+        .disk-wrap .dragon-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0.5;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* ─── 導航 ─── */
+        nav {
+            position: relative;
+            z-index: 6;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: calc(84px - 2vh) 52px 20px;
+            min-height: 22px;
+        }
+
+        .nav-logo-wrap {
+            position: absolute;
+            top: calc(4px - 3vh);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100vw;
+            pointer-events: none;
+        }
+
+        /* 透明热区：只覆盖 logo 文字中心，不撑满整张图 */
+        .nav-logo-link {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(260px, 55vw);
+            height: 72px;
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 7;
+            display: block;
+        }
+
+        .nav-logo-wrap img {
+            display: block;
+            width: 100%;
+            pointer-events: none;
+            height: auto;
+        }
+
+        .nav-user {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-link-item,
+        .lang-switch-btn,
+        .btn-login {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+            padding: 6px 16px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: rgba(255, 252, 245, 0.6);
+            color: var(--ink);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .nav-link-item:hover,
+        .lang-switch-btn:hover,
+        .btn-login:hover {
+            background: rgba(255, 252, 245, 0.9);
+        }
+
+        .lang-switch-wrap,
+        .about-switch-wrap { position: relative; }
+
+        .lang-switch-btn .caret,
+        .about-switch-btn .caret {
+            font-size: 9px;
+            opacity: 0.7;
+        }
+
+        .lang-menu,
+        .about-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 160px;
+            background: rgba(255, 252, 245, 0.96);
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08);
+            overflow: hidden;
+        }
+
+        .about-menu {
+            /* 关于我们靠左：左对齐向右展开，避免英文长文案向左溢出裁切 */
+            left: 0;
+            right: auto;
+            min-width: 130px;
+            width: max-content;
+            max-width: calc(100vw - 32px);
+        }
+
+        .lang-menu.open,
+        .about-menu.open { display: block; }
+
+        .lang-menu button,
+        .about-menu a {
+            display: block;
+            width: 100%;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            padding: 9px 14px;
+            border: none;
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+            text-align: left;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+
+        .lang-menu button:last-child,
+        .about-menu a:last-child { border-bottom: none; }
+        .lang-menu button:hover,
+        .lang-menu button.active,
+        .about-menu a:hover { background: rgba(42, 30, 10, 0.05); }
+        .about-menu a { text-decoration: none; }
+
+        .auth-area { position: relative; display: flex; align-items: center; }
+        .user-menu-wrap { position: relative; }
+        .nav-user-icon {
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--line); border-radius: 50%;
+            background: rgba(255, 252, 245, 0.6);
+            cursor: pointer; color: var(--ink);
+        }
+        .nav-user-icon:hover { background: rgba(255, 252, 245, 0.9); }
+        .user-menu {
+            display: none; position: absolute; top: calc(100% + 6px); right: 0;
+            min-width: 160px; background: rgba(255, 252, 245, 0.96);
+            border: 1px solid var(--line); border-radius: 2px;
+            z-index: 20; box-shadow: 0 8px 24px rgba(42, 30, 10, 0.08); overflow: hidden;
+        }
+        .user-menu.open { display: block; }
+        .user-menu-email {
+            padding: 9px 14px; font-size: 12px; color: var(--ink-soft);
+            letter-spacing: 0.02em; border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .user-menu-email:empty { display: none; }
+        .user-menu button {
+            display: block; width: 100%; font-family: inherit; font-size: 13px;
+            letter-spacing: 0.04em; padding: 9px 14px; border: none;
+            background: transparent; color: var(--ink); cursor: pointer;
+            text-align: left; border-bottom: 1px solid rgba(42, 30, 10, 0.08);
+        }
+        .user-menu button:last-child { border-bottom: none; }
+        .user-menu button:hover { background: rgba(42, 30, 10, 0.05); }
+
+        /* ─── 內容 ─── */
+        .page-content {
+            position: relative;
+            z-index: 2;
+            max-width: 760px;
+            width: calc(100% - 48px);
+            margin: 40px auto 80px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            padding: 48px 52px;
+            text-align: left;
+        }
+
+        .page-title {
+            font-size: 24px;
+            letter-spacing: 0.14em;
+            color: var(--ink);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .help-lead {
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.9;
+            color: var(--ink-soft);
+            margin-bottom: 28px;
+            letter-spacing: 0.04em;
+        }
+
+        .page-content h2 {
+            font-size: 16px;
+            letter-spacing: 0.1em;
+            color: var(--ink);
+            margin-top: 32px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(42, 30, 10, 0.12);
+        }
+
+        .page-content p {
+            font-size: 14px;
+            line-height: 1.9;
+            color: var(--ink-soft);
+            letter-spacing: 0.03em;
+            margin-bottom: 10px;
+        }
+
+        .page-content ul {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .page-content li {
+            font-size: 14px;
+            line-height: 1.9;
+            color: var(--ink-soft);
+            letter-spacing: 0.03em;
+            margin-bottom: 6px;
+        }
+
+        .contact-card {
+            background: rgba(255, 252, 245, 0.72);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 36px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .contact-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .contact-label {
+            font-size: 12px;
+            letter-spacing: 0.18em;
+            color: var(--ink-muted);
+        }
+
+        .contact-value {
+            font-size: 15px;
+            letter-spacing: 0.08em;
+            color: var(--ink);
+        }
+
+        .contact-value a {
+            color: var(--ink);
+            text-decoration: none;
+        }
+
+        .contact-value a:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--line);
+            opacity: 0.5;
+        }
+
+        /* ─── 社交账号 ─── */
+        .social-list {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .social-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .social-platform {
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            color: var(--ink-muted);
+            width: 4.5em;
+            flex-shrink: 0;
+        }
+
+        .social-handle {
+            font-size: 14px;
+            letter-spacing: 0.06em;
+            color: var(--ink);
+        }
+
+        .copy-btn {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: transparent;
+            color: var(--ink-muted);
+            cursor: pointer;
+            font-family: inherit;
+            padding: 0;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(42, 30, 10, 0.06);
+            color: var(--ink);
+            border-color: rgba(42, 30, 10, 0.45);
+        }
+
+        .copy-btn.copied {
+            color: #2a7a4a;
+            border-color: #2a7a4a;
+        }
+
+        .copy-btn svg {
+            width: 8px;
+            height: 8px;
+        }
+
+        .social-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .social-icon svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+
+        @media (max-width: 720px) {
+            nav {
+                padding: 96px 20px 16px;
+                justify-content: center;
+            }
+            .nav-logo-wrap {
+                position: absolute;
+                top: 0;
+                left: -50vw;
+                width: 200vw;
+                transform: none;
+            }
+            .disk-wrap {
+                left: -116.80vw;
+                top: 11.62vh;
+                width: 263.65vw;
+            }
+            .nav-user { gap: 8px; }
+            .nav-link-item,
+            .lang-switch-btn,
+            .btn-login {
+                font-size: 12px;
+                padding: 5px 10px;
+            }
+            .page-content {
+                width: calc(100% - 24px);
+                padding: 32px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-paper"></div>
+<div class="disk-wrap" aria-hidden="true">
+    <img class="disk-img" alt="" draggable="false">
+    <img class="dragon-img" src="assets/dragon.png" alt="" draggable="false">
+</div>
+<script src="obf-disk.js?v=1"></script>
+
+<nav>
+    <div class="nav-logo-wrap" aria-hidden="true">
+        <img src="assets/english.png" alt="" draggable="false">
+    </div>
+    <a href="/" class="nav-logo-link" aria-label="ElementaWall 首頁"></a>
+    <div class="nav-user">
+        <a href="javascript:void(0)" class="nav-link-item" data-i18n="nav_back" onclick="history.length>1?history.back():location.href='/landing'">返回</a>
+        <div class="about-switch-wrap" id="aboutSwitchWrap">
+            <button type="button" class="nav-link-item about-switch-btn" id="aboutSwitchBtn">
+                <span data-i18n="nav_about">關於我們</span><span class="caret">▼</span>
+            </button>
+            <div class="about-menu" id="aboutMenu" role="menu">
+                <a href="/about" data-i18n="nav_about">關於我們</a>
+                <a href="/help" data-i18n="nav_help">使用幫助</a>
+                <a href="/contact" data-i18n="nav_contact">聯絡我們</a>
+                <a href="/policy" data-i18n="nav_policy">用戶服務與隱私協議</a>
+            </div>
+        </div>
+        <div class="lang-switch-wrap" id="langSwitchWrap">
+            <button type="button" class="lang-switch-btn" id="langSwitchBtn">
+                <span id="langSwitchLabel">语言</span><span class="caret">▼</span>
+            </button>
+            <div class="lang-menu" id="langMenu" role="menu">
+                <button type="button" data-lang-option="zh-TW" data-i18n="lang_menu_zh_tw">繁體中文</button>
+                <button type="button" data-lang-option="zh-CN" data-i18n="lang_menu_zh_cn">简体中文</button>
+                <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
+            </div>
+        </div>
+        <div class="auth-area" id="authArea">
+            <button type="button" class="btn-login" id="btnLogin" data-i18n="nav_login">登入 / 註冊</button>
+            <div class="user-menu-wrap" id="userMenuWrap" style="display:none;">
+                <div class="nav-user-icon" id="userMenuBtn" aria-label="用戶">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="user-menu" id="userMenu" role="menu">
+                    <div class="user-menu-email" id="userMenuEmail"></div>
+                    <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
+                    <button type="button" id="btnInviteReward" data-i18n="nav_invite_reward">邀請碼獎勵</button>
+                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">本月下載記錄</button>
+                    <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
+                    <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="page-content">
+    <h1 class="page-title" data-i18n="nav_help">使用幫助</h1>
+
+    <div class="help-lang" data-help-lang="zh-TW">
+        <p class="help-lead">ElementaWall 根據生辰八字，每月為你定制運勢背景圖。以下是本站的主要操作說明。</p>
+
+        <h2>1. 開始使用</h2>
+        <p>在首頁點擊「點擊開始生成專屬背景圖」，進入排盤頁。</p>
+        <p>未登入時會先顯示一份示例八字，標題旁帶有「（示例）」，方便你先瀏覽效果。右上角可切換繁體中文、简体中文與 English。</p>
+
+        <h2>2. 登入與註冊</h2>
+        <p>保存八字檔案、下載背景圖、完成支付前，需要先登入。支援郵箱驗證碼登入／註冊，或使用 Google 登入。</p>
+        <p>若在微信內開啟本站，請先點擊右上角選單，選擇「在瀏覽器中打開」後再使用。</p>
+
+        <h2>3. 八字檔案</h2>
+        <p>登入後點擊「+ 新增檔案」，填寫暱稱、性別、公曆出生日期與時間，並依序選擇出生國家／地區、省／州、城市。</p>
+        <p>建議開啟「真太陽時」，使時柱更準確；若出生時當地實行夏令時（時鐘撥快 1 小時），請同時開啟「夏令時」。</p>
+        <ul>
+            <li>保存後，四柱排盤、本月喜用與專屬背景圖會依該檔案更新。</li>
+            <li>用「切換檔案」可在多份檔案間切換，也可編輯或刪除。</li>
+            <li>登入後若編輯並保存了示例檔案，它會成為你的真實檔案，「（示例）」標記會消失。</li>
+            <li>已綁定包年的檔案不可修改或刪除。</li>
+        </ul>
+
+        <h2>4. 閱讀排盤</h2>
+        <p>頁面中部為年柱、月柱、日柱、時柱。下方為大運、流年、流月。</p>
+        <p>若開啟真太陽時，會同時顯示校正後的時間與時鐘時間。</p>
+        <p>「本月最佳喜用」以原局四柱日主的旺衰格局為根基，綜合大運、流年的走勢與本月地支的刑沖合害，運用「扶抑、調候、通關、泄秀」等八字技法，選出最能疏通本月氣場、令命局動向最順遂的喜用五行。</p>
+        <p>「本月最佳補運」基於同一套月運推演，將喜用五行與忌神分別對應所主的生活領域，定位出本月氣場最宜補充、相對較弱的板塊，作為重點滋補與主動調和的方向。</p>
+
+        <h2>5. 下載本月背景圖</h2>
+        <p>「本月專屬背景圖」會依喜用與補運給出對應圖。點擊「下載背景圖」後，可單張購買，或加入下載列表打包 2 張—4 張，也可選擇包年無限下載。</p>
+        <ul>
+            <li>支付成功後會自動開始下載；若失敗，可到右上角「用戶」→「本月下載記錄」重新下載。</li>
+            <li>虛擬商品購買後不支持退款。</li>
+            <li>大陸境內用戶關閉 VPN 並重新整理頁面後，可選擇支付寶人民幣結算；境外可使用 Stripe、PayPal 等。</li>
+        </ul>
+
+        <h2>6. 包年服務</h2>
+        <p>包年可解鎖全站付費下載。購買後到「用戶」→「包年服務」，最多指定兩個八字檔案；綁定後這些檔案不可修改、不可刪除，也可稍後再選。</p>
+
+        <h2>7. 邀請碼獎勵（限時）</h2>
+        <p>即日起至 2026 年 8 月 31 日，成功邀請 3 位新用戶完成註冊，可免費獲得當月專屬背景圖 1 張（4 張中任選）。</p>
+        <p>登入後打開「用戶」→「邀請碼獎勵」，可填寫好友的邀請碼，或複製自己的邀請碼分享。活動截止後邀請機制取消，已獲得的免費兌換仍然有效。</p>
+
+        <h2>8. 帳號管理</h2>
+        <p>在「用戶」→「帳號管理」可更改密碼或註銷帳號。註銷後帳號與雲端檔案無法恢復。其他問題可到「聯絡我們」寫信至 support@elementawall.com。</p>
+    </div>
+
+    <div class="help-lang" data-help-lang="zh-CN" hidden>
+        <p class="help-lead">ElementaWall 根据生辰八字，每月为你定制运势壁纸。以下是本站的主要操作说明。</p>
+
+        <h2>1. 开始使用</h2>
+        <p>在首页点击「点击开始生成专属壁纸」，进入排盘页。</p>
+        <p>未登录时会先显示一份示例八字，标题旁带有「（示例）」，方便你先浏览效果。右上角可切换繁體中文、简体中文与 English。</p>
+
+        <h2>2. 登录与注册</h2>
+        <p>保存八字档案、下载壁纸、完成支付前，需要先登录。支持邮箱验证码登录／注册，或使用 Google 登录。</p>
+        <p>若在微信内打开本站，请先点击右上角菜单，选择「在浏览器中打开」后再使用。</p>
+
+        <h2>3. 八字档案</h2>
+        <p>登录后点击「+ 新增档案」，填写昵称、性别、公历出生日期与时间，并依次选择出生国家／地区、省／州、城市。</p>
+        <p>建议开启「真太阳时」，使时柱更准确；若出生时当地实行夏令时（时钟拨快 1 小时），请同时开启「夏令时」。</p>
+        <ul>
+            <li>保存后，四柱排盘、本月喜用与专属壁纸会按该档案更新。</li>
+            <li>用「切换档案」可在多份档案间切换，也可编辑或删除。</li>
+            <li>登录后若编辑并保存了示例档案，它会成为你的真实档案，「（示例）」标记会消失。</li>
+            <li>已绑定包年的档案不可修改或删除。</li>
+        </ul>
+
+        <h2>4. 阅读排盘</h2>
+        <p>页面中部为年柱、月柱、日柱、时柱。下方为大运、流年、流月。</p>
+        <p>若开启真太阳时，会同时显示校正后的时间与时钟时间。</p>
+        <p>「本月最佳喜用」以原局四柱日主的旺衰格局为根基，综合大运、流年的走势与本月地支的刑冲合害，运用「扶抑、调候、通关、泄秀」等八字技法，选出最能疏通本月气场、令命局动向最顺遂的喜用五行。</p>
+        <p>「本月最佳补运」基于同一套月运推演，将喜用五行与忌神分别对应所主的生活领域，定位出本月气场最宜补充、相对较弱的板块，作为重点滋补与主动调和的方向。</p>
+
+        <h2>5. 下载本月壁纸</h2>
+        <p>「本月专属壁纸」会按喜用与补运给出对应图。点击「下载壁纸」后，可单张购买，或加入下载列表打包 2 张—4 张，也可选择包年无限下载。</p>
+        <ul>
+            <li>支付成功后会自动开始下载；若失败，可到右上角「用户」→「本月下载记录」重新下载。</li>
+            <li>虚拟商品购买后不支持退款。</li>
+            <li>大陆境内用户关闭 VPN 并刷新页面后，可选择支付宝人民币结算；境外可使用 Stripe、PayPal 等。</li>
+        </ul>
+
+        <h2>6. 包年服务</h2>
+        <p>包年可解锁全站付费下载。购买后到「用户」→「包年服务」，最多指定两个八字档案；绑定后这些档案不可修改、不可删除，也可稍后再选。</p>
+
+        <h2>7. 邀请码奖励（限时）</h2>
+        <p>即日起至 2026 年 8 月 31 日，成功邀请 3 位新用户完成注册，可免费获得当月专属壁纸 1 张（4 张中任选）。</p>
+        <p>登录后打开「用户」→「邀请码奖励」，可填写好友的邀请码，或复制自己的邀请码分享。活动截止后邀请机制取消，已获得的免费兑换仍然有效。</p>
+
+        <h2>8. 账号管理</h2>
+        <p>在「用户」→「账号管理」可更改密码或注销账号。注销后账号与云端档案无法恢复。其他问题可到「联系我们」写信至 support@elementawall.com。</p>
+    </div>
+
+    <div class="help-lang" data-help-lang="en" hidden>
+        <p class="help-lead">ElementaWall creates monthly fortune wallpapers from your BaZi chart. Here is how to use the site.</p>
+
+        <h2>1. Getting started</h2>
+        <p>On the home page, tap “Click to generate your exclusive wallpaper” to open the chart page.</p>
+        <p>When you are not signed in, an example chart is shown with “(Example)” next to the title so you can preview the experience. Use the top-right menu to switch among Traditional Chinese, Simplified Chinese, and English.</p>
+
+        <h2>2. Sign in</h2>
+        <p>You need to sign in before saving profiles, downloading wallpapers, or paying. Use an email verification code or Google Sign-In.</p>
+        <p>If you opened the site inside WeChat, use the top-right menu to open it in your system browser first.</p>
+
+        <h2>3. BaZi profiles</h2>
+        <p>After signing in, tap “+ Add Profile” and enter a nickname, gender, Gregorian birth date and time, then choose country/region, province/state, and city.</p>
+        <p>We recommend turning on True Solar Time for a more accurate hour pillar. If daylight saving time was in effect at birth (clocks set 1 hour ahead), also turn on DST.</p>
+        <ul>
+            <li>After saving, the four pillars, this month’s favorable elements, and wallpapers update for that profile.</li>
+            <li>Use “Switch Profile” to move between profiles, or to edit or delete one.</li>
+            <li>If you sign in and edit the example profile, it becomes your real profile and the “(Example)” label disappears.</li>
+            <li>Profiles bound to an annual plan cannot be edited or deleted.</li>
+        </ul>
+
+        <h2>4. Reading the chart</h2>
+        <p>The middle of the page shows the Year, Month, Day, and Hour pillars, then Luck Cycle, Annual, and Monthly luck.</p>
+        <p>With True Solar Time on, you will see both the corrected time and clock time.</p>
+        <p>“Best Favorable Element” is rooted in the day-master’s strength and balance across the natal Four Pillars. It then weighs the current Luck Cycle and Annual luck against this month’s earthly-branch interactions—clashes, combinations, harms, and punishments—and applies classical BaZi techniques (supporting the weak, balancing climate, unblocking stagnation, and channeling excess) to identify the primary and secondary Five Elements that best clear this month’s energy and put the chart’s momentum in the most favorable direction.</p>
+        <p>“Best Supportive Boost” draws from the same monthly reading and maps each favorable and unfavorable element to its corresponding Ten God, then to the life affairs each Ten God governs. This pinpoints the domains where the chart’s energy is most depleted or under pressure from clashes and drains this month—the areas that benefit most from proactive reinforcement and intentional adjustment.</p>
+
+        <h2>5. Download this month’s wallpapers</h2>
+        <p>This Month’s Wallpapers are matched to your favorable elements and boosts. Tap Download, then buy one image, add items to the download list for a 2- or 4-pack, or choose the annual plan for unlimited downloads.</p>
+        <ul>
+            <li>Downloads start automatically after payment. If one fails, go to User → This Month’s Downloads to retry.</li>
+            <li>Digital goods are non-refundable after purchase.</li>
+            <li>Users in mainland China can turn off VPN and refresh to pay with Alipay in CNY. Elsewhere you can use Stripe, PayPal, and similar methods.</li>
+        </ul>
+
+        <h2>6. Annual plan</h2>
+        <p>The annual plan unlocks paid downloads site-wide. After purchase, open User → Annual Plan and bind up to two BaZi profiles. Bound profiles cannot be edited or deleted. You can also choose them later.</p>
+
+        <h2>7. Invite rewards (limited time)</h2>
+        <p>Through August 31, 2026, invite 3 new users who complete sign-up to receive 1 free wallpaper for the current month (choose any 1 of 4).</p>
+        <p>After signing in, open User → Invite Rewards to enter a friend’s code or copy yours. When the campaign ends, inviting stops, but unused free redemptions remain valid.</p>
+
+        <h2>8. Account</h2>
+        <p>Under User → Account you can change your password or delete your account. Deletion cannot be undone. For other questions, go to Contact Us or email support@elementawall.com.</p>
+    </div>
+</div>
+
+<script>
+(function () {
+    function getLang() {
+        return (window.I18N && window.I18N.getLanguage()) || localStorage.getItem('ew_lang') || 'zh-TW';
+    }
+
+    const langSwitchBtn   = document.getElementById('langSwitchBtn');
+    const langMenu        = document.getElementById('langMenu');
+    const langSwitchLabel = document.getElementById('langSwitchLabel');
+    const aboutSwitchBtn  = document.getElementById('aboutSwitchBtn');
+    const aboutMenu       = document.getElementById('aboutMenu');
+
+    function updateLangLabel() {
+        const lang = getLang();
+        langSwitchLabel.textContent = lang === 'zh-TW' ? '語言' : (lang === 'en' ? 'Language' : '语言');
+    }
+
+    function updateHelpLang() {
+        const lang = getLang();
+        document.querySelectorAll('[data-help-lang]').forEach((el) => {
+            el.hidden = el.getAttribute('data-help-lang') !== lang;
+        });
+    }
+
+    updateLangLabel();
+    updateHelpLang();
+    document.addEventListener('i18n:change', () => {
+        updateLangLabel();
+        updateHelpLang();
+    });
+
+    langSwitchBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        aboutMenu.classList.remove('open');
+        langMenu.classList.toggle('open');
+    });
+    langMenu.addEventListener('click', e => {
+        const btn = e.target.closest('[data-lang-option]');
+        if (!btn) return;
+        if (window.I18N) window.I18N.setLanguage(btn.getAttribute('data-lang-option'));
+        langMenu.classList.remove('open');
+    });
+    aboutSwitchBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        langMenu.classList.remove('open');
+        aboutMenu.classList.toggle('open');
+    });
+    aboutMenu.addEventListener('click', () => { aboutMenu.classList.remove('open'); });
+    document.addEventListener('click', () => { langMenu.classList.remove('open'); aboutMenu.classList.remove('open'); });
+})();
+
+(function () {
+    const ANNUAL_PLANS_KEY = 'bazi_annual_plans';
+    const ANNUAL_ACTIVE_KEY = 'bazi_annual_active';
+    const btnLogin = document.getElementById('btnLogin');
+    const userMenuWrap = document.getElementById('userMenuWrap');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenu = document.getElementById('userMenu');
+    const userMenuEmail = document.getElementById('userMenuEmail');
+    const btnAnnualService = document.getElementById('btnAnnualService');
+
+    function isAnnualActive() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(ANNUAL_PLANS_KEY) || 'null');
+            if (Array.isArray(raw) && raw.length > 0) return true;
+        } catch (_) {}
+        return localStorage.getItem(ANNUAL_ACTIVE_KEY) === '1';
+    }
+    function updateAuthUI(logged, email) {
+        btnLogin.style.display = logged ? 'none' : '';
+        userMenuWrap.style.display = logged ? '' : 'none';
+        userMenuEmail.textContent = logged ? (email || '') : '';
+        if (btnAnnualService) {
+            btnAnnualService.style.display = (logged && isAnnualActive()) ? '' : 'none';
+        }
+    }
+    window.BaziAuth.syncFromSupabase().then(({ loggedIn, email }) => updateAuthUI(loggedIn, email));
+    btnLogin.addEventListener('click', () => { location.href = '/landing?login=1'; });
+    userMenuBtn.addEventListener('click', e => { e.stopPropagation(); userMenu.classList.toggle('open'); });
+    if (btnAnnualService) {
+        btnAnnualService.addEventListener('click', (e) => {
+            e.stopPropagation();
+            location.href = '/landing#annual';
+        });
+    }
+    document.getElementById('btnInviteReward')?.addEventListener('click', () => {
+        userMenu.classList.remove('open');
+        location.href = '/landing?invite=1';
+    });
+    document.getElementById('btnDownloadHistory').addEventListener('click', () => { location.href = '/download-history'; });
+    document.getElementById('btnAccount').addEventListener('click', () => {
+        userMenu.classList.remove('open');
+        location.href = '/landing?account=1';
+    });
+    document.getElementById('btnLogout').addEventListener('click', async () => {
+        await window.BaziAuth.signOut();
+        window.location.href = '/';
+    });
+    document.addEventListener('click', () => { userMenu.classList.remove('open'); });
+})();
+</script>
+<!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "57fc207237434b458f89cfa53b7eabcc"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
