@@ -51,7 +51,7 @@
         汇迹正楷 CooperZhengKai：UI 子集优先；子集没有的字回退到完整 CooperZhengKai。
         城市名等地点文案仍可走系统字体（见 .loc-select）。
     -->
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=8" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=9" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=8" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
     <script src="i18n.js?v=39"></script>
@@ -354,6 +354,7 @@
             width: calc(100% - 48px);
             margin: 0 auto;
             border-radius: 8px;
+            position: relative;
         }
 
         .hero {
@@ -493,6 +494,48 @@
         .shui { color: var(--shui); }
 
         /* ─── 操作按鈕 ─────────────────────────────────── */
+
+        .help-book-wrap {
+            position: absolute;
+            left: 50%;
+            top: 6px;
+            transform: translateX(-50%);
+            z-index: 3;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: var(--ink-soft);
+        }
+
+        .help-book-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid var(--line);
+            background: rgba(255, 252, 245, 0.6);
+            color: var(--ink);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .help-book-label {
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+            line-height: 1;
+        }
+
+        .help-book-wrap:hover .help-book-btn {
+            background: rgba(255, 252, 245, 0.9);
+        }
+
+        .help-book-wrap:hover .help-book-label {
+            color: var(--ink);
+        }
 
         .action-row {
             display: flex;
@@ -2580,7 +2623,6 @@
             </button>
             <div class="about-menu" id="aboutMenu" role="menu">
                 <a href="/about" data-i18n="nav_about">關於我們</a>
-                <a href="/help" data-i18n="nav_help">使用幫助</a>
                 <a href="/contact" data-i18n="nav_contact">聯絡我們</a>
                 <a href="/policy" data-i18n="nav_policy">用戶服務與隱私協議</a>
             </div>
@@ -2632,6 +2674,17 @@
 </nav>
 
 <div class="content-wrap">
+<a href="/help" class="help-book-wrap" data-i18n-aria-label="nav_help" aria-label="使用幫助">
+    <span class="help-book-btn" aria-hidden="true">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.7">
+            <path d="M4 5.4c2.4-1.15 5-.9 8 .5 3-1.4 5.6-1.65 8-.5v13.2c-2.4-1.15-5-.9-8 .5-3-1.4-5.6-1.65-8-.5V5.4z"
+                  stroke-linejoin="round" />
+            <path d="M12 5.9v13.2" stroke-linecap="round" />
+        </svg>
+    </span>
+    <span class="help-book-label" data-i18n="nav_help">使用幫助</span>
+</a>
 <main class="hero">
     <section class="brand-seo">
         <h1>ElementaWall</h1>
