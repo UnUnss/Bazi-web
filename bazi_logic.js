@@ -807,7 +807,7 @@ function get_monthly_favorable_element(bazi, liuyue_raw, gender, period) {
 
     // ── Layer 1：旺衰积分 ────────────────────────────────────
     const str = determine_strength_v2(bazi);
-    const { dm_gan, status } = str;
+    const { dm_gan, status, yin_wuxing } = str;
 
     // 原局五行基础分（用于Layer2覆盖规则）
     const bazi_raw = get_base_element_scores(bazi);
@@ -869,7 +869,11 @@ function get_monthly_favorable_element(bazi, liuyue_raw, gender, period) {
         conflict_type,
         strength_score: str.score,
         all_scores:     adjusted_scores,
-        candidate_pool: candidate_pool || []
+        candidate_pool: candidate_pool || [],
+        // 文案生成所需：日主天干/五行、印星五行
+        dm_gan,
+        dm_wuxing: GAN_TO_WUXING[dm_gan] || '',
+        yin_wuxing: yin_wuxing || ''
     };
 }
 

@@ -530,8 +530,21 @@
             text-align: center;
         }
 
+        .insight-line + .insight-line {
+            margin-top: 14px;
+        }
+
         .insight-label {
             color: var(--ink-soft);
+        }
+
+        .insight-reason {
+            display: block;
+            margin-top: 8px;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            color: var(--ink-soft);
+            opacity: 0.75;
         }
 
         .btn-outline {
@@ -3335,7 +3348,7 @@
     // 串接 bazi_logic.js：算出這個八字在「當前流月」的喜用五行、以及需要補運的弱勢生活領域，
     // 用於下方壁紙區塊動態選圖選文案，而不是寫死固定內容。
     // v2：傳入完整流月干支（"壬申"2字）和大運/流年 period，啟用六層動態算法。
-    const INSIGHT_CACHE_KEY = 'bazi_monthly_insight_v2';
+    const INSIGHT_CACHE_KEY = 'bazi_monthly_insight_v3';
     try {
         localStorage.removeItem('ew_favor_history');
         localStorage.removeItem('bazi_monthly_insight_v1');
@@ -3854,7 +3867,180 @@
     };
     const WX_CLASS = { '木': 'mu', '火': 'huo', '土': 'tu', '金': 'jin', '水': 'shui' };
 
-    function renderInsight(insight) {
+    // ── 十神类型码 → 展示名（主喜用文案用） ──────────────────
+    const SHISHEN_TYPE_DISPLAY = {
+        'bj': { 'zh-TW': '比劫', 'zh-CN': '比劫', 'en': 'Peer' },
+        'yx': { 'zh-TW': '印星', 'zh-CN': '印星', 'en': 'Resource' },
+        'ss': { 'zh-TW': '食傷', 'zh-CN': '食伤', 'en': 'Output' },
+        'cc': { 'zh-TW': '財才', 'zh-CN': '财才', 'en': 'Wealth' },
+        'gs': { 'zh-TW': '官殺', 'zh-CN': '官杀', 'en': 'Authority' },
+    };
+    // ── 弱势域十神 key → 展示名 ────────────────────────────
+    const DOMAIN_KEY_DISPLAY = {
+        '比劫': { 'zh-TW': '比劫', 'zh-CN': '比劫', 'en': 'Peer' },
+        '食伤': { 'zh-TW': '食傷', 'zh-CN': '食伤', 'en': 'Output' },
+        '财才': { 'zh-TW': '財才', 'zh-CN': '财才', 'en': 'Wealth' },
+        '官杀': { 'zh-TW': '官殺', 'zh-CN': '官杀', 'en': 'Authority' },
+        '印枭': { 'zh-TW': '印星', 'zh-CN': '印星', 'en': 'Resource' },
+    };
+    // ── weak_domains 存的是域值字符串（"才华灵感"、"感情与桃花"…）
+    //    需反查回十神 key 才能拿到五行和展示名 ──────────────────
+    const DOMAIN_VALUE_TO_SHISHEN = {
+        '人际关系、合伙': '比劫',
+        '才华灵感':       '食伤',
+        '财富与感情':     '财才',
+        '财富与事业':     '财才',
+        '事业':           '官杀',
+        '感情与桃花':     '官杀',
+        '健康与贵人运':   '印枭',
+    };
+
+    function _ssTypeName(type, lang) {
+        const m = SHISHEN_TYPE_DISPLAY[type];
+        return m ? (m[lang] || m['zh-TW']) : '';
+    }
+    // 接受域值字符串或十神 key，统一返回展示名
+    function _domainName(key, lang) {
+        const shishen = DOMAIN_VALUE_TO_SHISHEN[key] || key;
+        const m = DOMAIN_KEY_DISPLAY[shishen];
+        return m ? (m[lang] || m['zh-TW']) : shishen;
+    }
+    // 接受域值字符串或十神 key，返回对应五行
+    function _domainWx(key, dmWx, yinWx) {
+        const shishen = DOMAIN_VALUE_TO_SHISHEN[key] || key;
+        if (shishen === '比劫') return dmWx || '';
+        if (shishen === '食伤') return WUXING_SHENG[dmWx] || '';
+        if (shishen === '财才') return WUXING_KE[dmWx] || '';
+        if (shishen === '官杀') {
+            for (const k in WUXING_KE) if (WUXING_KE[k] === dmWx) return k;
+            return '';
+        }
+        if (shishen === '印枭') return yinWx || '';
+        return '';
+    }
+
+    // ── 本月喜用解释文案 ──────────────────────────────────────
+    function generateFavorExplain(insight, liuyueGanZhi, lang) {
+        if (!insight) return '';
+        const status      = insight.shen_qiang_ruo || '';
+        const conflictType = insight.conflict_type || '';
+        const favEl       = insight.favorable_element || '';
+        const secEl       = insight.secondary_element || favEl;
+        const dmWx        = insight.dm_wuxing || '';
+        const yinWx       = insight.yin_wuxing || '';
+
+        const wxMap   = WX_NAME[lang] || WX_NAME['zh-TW'];
+        const favName = wxMap[favEl] || favEl;
+        const secName = wxMap[secEl] || secEl;
+        const isZh    = lang !== 'en';
+        const sep     = isZh ? '、' : ' & ';
+        const elStr   = favEl === secEl ? favName : `${favName}${sep}${secName}`;
+
+        // 主喜用对应的十神名
+        const favType   = (dmWx && typeof get_shishen_type === 'function')
+            ? get_shishen_type(favEl, dmWx, yinWx) : '';
+        const favSsName = _ssTypeName(favType, lang);
+        // 有十神名：显示"印星（水）"；无十神名（缓存不全）：只显示"水"
+        const ssLabel   = favSsName ? `${favSsName}（${favName}）` : favName;
+
+        const reasons    = conflictType.split('+').map(r => r.trim());
+        const mainReason = reasons[0];
+        const isWeak     = ['身弱', '中和偏弱', '极弱'].includes(status);
+        const isStrong   = ['身强', '中和偏强', '极旺'].includes(status);
+
+        if (!isZh) {
+            const enLabel = favSsName ? `${favSsName} (${favName})` : favName;
+            if (isWeak)   return `Your day master is relatively weak. ${enLabel} energy boosts this month's fortune—${elStr} are your best picks.`;
+            if (isStrong) return `Your day master is relatively strong. Channeling ${enLabel} energy this month helps balance and smooth your fortune.`;
+            return `Based on your BaZi and this month's flow, ${elStr} are your most favorable elements.`;
+        }
+
+        const isTW = lang === 'zh-TW';
+
+        // 调候
+        if (mainReason === '调候') {
+            const lyZhi  = liuyueGanZhi && liuyueGanZhi.length >= 2 ? liuyueGanZhi[1] : null;
+            const tiahou = lyZhi ? (TIAHOU_TABLE[lyZhi] || null) : null;
+            if (tiahou && tiahou.need === '火') {
+                return isTW
+                    ? `本月寒氣較重，以${ssLabel}調候為先，暖局則氣機順暢，諸事更易推動。`
+                    : `本月寒气较重，以${ssLabel}调候为先，暖局则气机顺畅，诸事更易推动。`;
+            }
+            return isTW
+                ? `本月燥熱較盛，以${ssLabel}調候為先，涼潤則氣場穩健，運勢更順。`
+                : `本月燥热较盛，以${ssLabel}调候为先，凉润则气场稳健，运势更顺。`;
+        }
+
+        // 通关
+        if (mainReason === '通关') {
+            return isTW
+                ? `原局兩行對峙，本月取${ssLabel}通關化解，變衝突為順勢，運勢趨穩。`
+                : `原局两行对峙，本月取${ssLabel}通关化解，变冲突为顺势，运势趋稳。`;
+        }
+
+        // 过旺泄秀
+        if (mainReason === '过旺泄秀') {
+            return isTW
+                ? `本月某行氣過旺，以${ssLabel}泄秀引導，防過滿則溢，運勢更順。`
+                : `本月某行气过旺，以${ssLabel}泄秀引导，防过满则溢，运势更顺。`;
+        }
+
+        // 正格扶抑（默认）
+        if (isWeak) {
+            return isTW
+                ? `日主偏弱，${ssLabel}本月得力，取${elStr}旺運最宜。`
+                : `日主偏弱，${ssLabel}本月得力，取${elStr}旺运最宜。`;
+        }
+        if (isStrong) {
+            return isTW
+                ? `日主偏強，本月宜泄宜耗，取${ssLabel}疏通氣機，以${elStr}調順氣場。`
+                : `日主偏强，本月宜泄宜耗，取${ssLabel}疏通气机，以${elStr}调顺气场。`;
+        }
+        return isTW
+            ? `八字中和，${ssLabel}為本月最宜取用五行，有助氣場調順。`
+            : `八字中和，${ssLabel}为本月最宜取用五行，有助气场调顺。`;
+    }
+
+    // ── 本月补运解释文案 ──────────────────────────────────────
+    function generateBoostExplain(insight, lang) {
+        if (!insight) return '';
+        const weakDomains = insight.weak_domains || [];
+        const labels      = insight.weak_domain_labels || [];
+        const dmWx        = insight.dm_wuxing || '';
+        const yinWx       = insight.yin_wuxing || '';
+        if (weakDomains.length < 2) return '';
+
+        const wxMap   = WX_NAME[lang] || WX_NAME['zh-TW'];
+        const isZh    = lang !== 'en';
+        const isTW    = lang === 'zh-TW';
+
+        const ssNameA = _domainName(weakDomains[0], lang);
+        const ssNameB = _domainName(weakDomains[1], lang);
+        const wxA     = _domainWx(weakDomains[0], dmWx, yinWx);
+        const wxB     = _domainWx(weakDomains[1], dmWx, yinWx);
+        const wxNameA = wxMap[wxA] || wxA;
+        const wxNameB = wxMap[wxB] || wxB;
+
+        // 用壁纸实际展示的 A、B 运名（与壁纸完全对齐）
+        const yunACN = (labels[0] && labels[0][0]) || '';
+        const yunBCN = (labels[1] && labels[1][0]) || '';
+        const yunA   = yunLabel(yunACN, lang);
+        const yunB   = yunLabel(yunBCN, lang);
+
+        if (!isZh) {
+            const domainStr = ssNameA === ssNameB ? ssNameA : `${ssNameA} and ${ssNameB}`;
+            const yunStr = yunA === yunB ? yunA : `${yunA} and ${yunB}`;
+            return `Your ${domainStr} energy is relatively weak this month—${yunStr} wallpapers are here to help.`;
+        }
+
+        const domainStr = ssNameA === ssNameB ? ssNameA : (isTW ? `${ssNameA}與${ssNameB}` : `${ssNameA}与${ssNameB}`);
+        const yunStr = yunA === yunB ? yunA : (isTW ? `${yunA}與${yunB}` : `${yunA}与${yunB}`);
+        return isTW
+            ? `本月${domainStr}力量偏弱，${yunStr}相對低迷。`
+            : `本月${domainStr}力量偏弱，${yunStr}相对低迷。`;
+    }
+
+    function renderInsight(insight, liuyueGanZhi) {
         const el = document.getElementById('monthlyInsight');
         const favorLine = document.getElementById('insightFavorLine');
         const boostLine = document.getElementById('insightBoostLine');
@@ -3878,18 +4064,22 @@
         };
         const itemSep = lang === 'en' ? ', ' : '、';
         const favorSep = lang === 'en' ? '<br>' : ' · ';
+        const favorExplain = generateFavorExplain(insight, liuyueGanZhi, lang);
         favorLine.innerHTML =
             `<span class="insight-label">${t('wallpaper_favor_group_title')}</span>${favorSep}` +
             `<span class="${favorCls}">${escapeHtml(favorElName)}</span>${mark('wallpaper_primary_mark')}` +
-            `${itemSep}<span class="${secondaryCls}">${escapeHtml(secondaryElName)}</span>${mark('wallpaper_secondary_mark')}`;
+            `${itemSep}<span class="${secondaryCls}">${escapeHtml(secondaryElName)}</span>${mark('wallpaper_secondary_mark')}` +
+            (favorExplain ? `<span class="insight-reason">${escapeHtml(favorExplain)}</span>` : '');
 
         const [yunA, yunB] = (() => {
             const p = getBoostYunPair(insight, lang);
             return [p.a, p.b];
         })();
+        const boostExplain = generateBoostExplain(insight, lang);
         boostLine.innerHTML =
             `<span class="insight-label">${t('wallpaper_boost_group_title')}</span> · ` +
-            `${escapeHtml(yunA)}${escapeHtml(itemSep)}${escapeHtml(yunB)}`;
+            `${escapeHtml(yunA)}${escapeHtml(itemSep)}${escapeHtml(yunB)}` +
+            (boostExplain ? `<span class="insight-reason">${escapeHtml(boostExplain)}</span>` : '');
 
         el.style.display = '';
     }
@@ -4175,8 +4365,10 @@
     let _wallpaperRenderSeq = 0;
     async function renderWallpapers(profile) {
         const renderSeq = ++_wallpaperRenderSeq;
+        const nowYMForInsight = getCurrentYearMonthGanZhi();
+        const liuyueGanZhiForInsight = nowYMForInsight.month;
         const insight = computeMonthlyInsight(profile);
-        renderInsight(insight);
+        renderInsight(insight, liuyueGanZhiForInsight);
         const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
         const t = window.I18N ? window.I18N.t : (k) => k;
 
@@ -4222,8 +4414,8 @@
 
         let cards;
         if (hasDb) {
-            const nowYearMonth = getCurrentYearMonthGanZhi();
-            const liuyueGanZhi = nowYearMonth.month;
+            const nowYearMonth = nowYMForInsight;
+            const liuyueGanZhi = liuyueGanZhiForInsight;
             const ymKey = `${nowYearMonth.year}|${liuyueGanZhi}`;
 
             // ── 方案B核心：仅登录用户读取 wallpaper_history 月度锁定 ──
