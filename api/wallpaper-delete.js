@@ -59,9 +59,21 @@ export default async function handler(req, res) {
       .single();
     if (fetchErr || !row) return res.status(404).json({ error: 'Not found' });
 
+    let previewFreeKey = '';
+    if (row.preview_key && String(row.preview_key).includes('/preview/')) {
+      previewFreeKey = String(row.preview_key).replace('/preview/', '/preview-free/');
+    } else if (row.r2_key) {
+      const m = String(row.r2_key).match(/^wallpapers\/(\d+)\/(.+)$/);
+      if (m) {
+        const base = m[2].replace(/\.[^.]+$/, '') + '.jpg';
+        previewFreeKey = `wallpapers/${m[1]}/preview-free/${base}`;
+      }
+    }
+
     // 先删 R2，再删库（R2 删失败不阻断库删除，避免脏数据残留为主）
     try { await deleteR2Key(row.r2_key); } catch (e) { console.error('R2 delete original', e); }
     try { await deleteR2Key(row.preview_key); } catch (e) { console.error('R2 delete preview', e); }
+    try { await deleteR2Key(previewFreeKey); } catch (e) { console.error('R2 delete preview-free', e); }
 
     const { error: delErr } = await sb.from('wallpapers').delete().eq('id', id);
     if (delErr) {

@@ -54,15 +54,18 @@ export default async function handler(req, res) {
   const safeName = String(filename).replace(/^.*[\\/]/, '');
 
   // variant=preview → wallpapers/{folder}/preview/{name}
+  // variant=preview-free → wallpapers/{folder}/preview-free/{name}
   // 默认原图 → wallpapers/{folder}/{name}
   const key = variant === 'preview'
     ? `wallpapers/${safeFolder}/preview/${safeName}`
+    : variant === 'preview-free'
+    ? `wallpapers/${safeFolder}/preview-free/${safeName}`
     : `wallpapers/${safeFolder}/${safeName}`;
 
   try {
     // 预览图很小，由服务端直传，避开浏览器对 R2 PUT 的 CORS
     if (bodyBase64) {
-      if (variant !== 'preview') {
+      if (variant !== 'preview' && variant !== 'preview-free') {
         return res.status(400).json({ error: 'direct put is only allowed for preview' });
       }
       const buf = Buffer.from(String(bodyBase64), 'base64');

@@ -185,6 +185,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
       <button class="filter-btn" data-el="金">金</button>
       </div>
       <div class="manage-actions">
+        <button type="button" class="btn-regen btn-check" id="btnTestFreePreview">测试生成一张免费水印</button>
+        <button type="button" class="btn-regen btn-check" id="btnCheckFreePreviews">检查免费水印</button>
+        <button type="button" class="btn-regen" id="btnForceFreeRegen">强制生成全部免费水印</button>
       </div>
     </div>
     <div id="manageEmpty" class="empty-hint">暂无已上传壁纸</div>
@@ -698,9 +701,23 @@ async function decodeImageBlob(blob, hint) {
 let _watermarkLogoPromise = null;
 function getWatermarkLogo() {
   if (!_watermarkLogoPromise) {
-    _watermarkLogoPromise = loadImageSrc('assets/lockscreen-watermark.png').catch(() => null);
+    _watermarkLogoPromise = loadImageSrc('assets/lockscreen-watermark.png').catch((err) => {
+      _watermarkLogoPromise = null;
+      throw new Error('锁屏水印图加载失败，请确认 assets/lockscreen-watermark.png 存在：' + (err && err.message ? err.message : err));
+    });
   }
   return _watermarkLogoPromise;
+}
+
+let _freeWatermarkPromise = null;
+function getFreeWatermarkLogo() {
+  if (!_freeWatermarkPromise) {
+    _freeWatermarkPromise = loadImageSrc('assets/' + encodeURIComponent('免费水印.png')).catch((err) => {
+      _freeWatermarkPromise = null; // 清除缓存，允许下次重试
+      throw new Error('免费水印图加载失败，请确认 assets/免费水印.png 存在：' + (err && err.message ? err.message : err));
+    });
+  }
+  return _freeWatermarkPromise;
 }
 
 function drawLockscreenWatermark(ctx, width, height, watermark) {
@@ -709,8 +726,7 @@ function drawLockscreenWatermark(ctx, width, height, watermark) {
   }
 }
 
-// 生成预览图：长边 1080px，JPEG 质量 0.6，并烧入锁屏水印
-async function makePreviewBlob(file) {
+async function bakePreviewBlob(file, getWatermark) {
   const img = await decodeImageBlob(file, file && file.name);
   try {
     const maxSide = 1080;
@@ -730,7 +746,7 @@ async function makePreviewBlob(file) {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, width, height);
-    const watermark = await getWatermarkLogo();
+    const watermark = await getWatermark();
     drawLockscreenWatermark(ctx, width, height, watermark);
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(
@@ -745,6 +761,16 @@ async function makePreviewBlob(file) {
   }
 }
 
+// 生成预览图：长边 1080px，JPEG 质量 0.6，并烧入锁屏水印
+async function makePreviewBlob(file) {
+  return bakePreviewBlob(file, getWatermarkLogo);
+}
+
+// 生成免费下载图：长边 1080px，只叠 logo 水印
+async function makeFreePreviewBlob(file) {
+  return bakePreviewBlob(file, getFreeWatermarkLogo);
+}
+
 function previewFilename(name) {
   const base = String(name).replace(/\.[^.]+$/, '') || 'preview';
   return base + '.jpg';
@@ -754,7 +780,7 @@ async function presignAndPut({ filename, folder, contentType, body, variant, hea
   const authHeaders = headers || await getAdminAuthHeaders();
 
   // 预览图走服务端直传（base64），避免浏览器直接 PUT R2 触发 CORS 错误
-  if (variant === 'preview') {
+  if (variant === 'preview' || variant === 'preview-free') {
     const arrayBuf = await (body instanceof Blob ? body.arrayBuffer() : Promise.resolve(body));
     const bytes = new Uint8Array(arrayBuf);
     // 分块拼接避免 O(n²) 字符串拼接
@@ -817,6 +843,15 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
     return;
   }
 
+  // 预检水印，确保上传过程中不会静默跳过水印
+  try {
+    await getWatermarkLogo();
+  } catch (err) {
+    alert(err.message || '水印文件加载失败，请检查后再上传');
+    btn.disabled = false;
+    return;
+  }
+
   for (let i = 0; i < pendingFiles.length; i++) {
     const item = pendingFiles[i];
     if (item.status === 'done') continue;
@@ -831,7 +866,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
         body: item.file,
       });
 
-      // 2) 压缩预览图（长边 720 / JPEG 0.5，锁屏水印烧进像素）
+      // 2) 压缩预览图（长边 1080 / JPEG 0.6，锁屏水印烧进像素）
       const previewBlob = await makePreviewBlob(item.file);
       const previewName = previewFilename(item.file.name);
       const preview_key = await presignAndPut({
@@ -1037,6 +1072,27 @@ function previewDest(w) {
   return { folder, filename, key: `wallpapers/${folder}/preview/${filename}`, existed: false };
 }
 
+// 只按文件夹映射判断「补一个运」，不看数据库 tags，避免把补两个运误生成。
+// 单运文件夹：水 1–7、木 29–35、火 57–63、土 85–91、金 113–119
+function isSingleYunWallpaper(w) {
+  const folder = resolveFolderNum(w);
+  const meta = folder != null ? FOLDER_MAP[folder] : null;
+  return !!(meta && Array.isArray(meta.tags) && meta.tags.length === 1);
+}
+
+function previewFreeDest(w) {
+  const folder = resolveFolderNum(w);
+  if (folder == null) throw new Error('无法解析文件夹编号');
+  let filename = '';
+  if (w.preview_key) filename = String(w.preview_key).split('/').pop();
+  if (!filename) filename = previewFilename(w.filename || 'preview.jpg');
+  return { folder, filename, key: `wallpapers/${folder}/preview-free/${filename}` };
+}
+
+function singleYunList() {
+  return (allUploaded || []).filter((w) => w.id && w.r2_key && isSingleYunWallpaper(w));
+}
+
 function r2Url(key) {
   return `${R2_PUBLIC_URL}/${String(key).split('/').map(encodeURIComponent).join('/')}`;
 }
@@ -1132,92 +1188,78 @@ async function mapPool(items, limit, worker, shouldStop) {
 }
 
 
-document.getElementById('btnCheckPreviews').addEventListener('click', async () => {
-  const btn = document.getElementById('btnCheckPreviews');
-  const regenBtn = document.getElementById('btnRegenPreviews');
+document.getElementById('btnCheckFreePreviews').addEventListener('click', async () => {
+  const btn = document.getElementById('btnCheckFreePreviews');
+  const forceBtn = document.getElementById('btnForceFreeRegen');
   if (btn.disabled) return;
-  const list = (allUploaded || []).filter((w) => w.id && w.r2_key);
+  const list = singleYunList();
   if (!list.length) {
-    alert('没有可检查的壁纸');
+    alert('没有「补一个运」的壁纸可检查');
     return;
   }
   btn.disabled = true;
-  regenBtn.disabled = true;
+  forceBtn.disabled = true;
   try {
-    const scan = await scanAllPreviews(list, (done, total, baked, old, missing) => {
+    const scan = await scanAllPreviews(list.map((w) => {
+      try { return { ...w, preview_key: previewFreeDest(w).key }; }
+      catch (_) { return { ...w, preview_key: '' }; }
+    }), (done, total, baked) => {
       btn.textContent = `正在检查 ${done}/${total}（已生成 ${baked}）…`;
     });
-    alert(formatPreviewReport(scan));
+    alert(formatPreviewReport(scan).replace('全部预览都已生成。', '全部免费水印都已生成。'));
   } catch (err) {
     alert(err.message || String(err));
   } finally {
     btn.disabled = false;
-    regenBtn.disabled = false;
-    btn.textContent = '检查预览';
+    forceBtn.disabled = false;
+    btn.textContent = '检查免费水印';
   }
 });
 
-// ════════════════════════════════════════════
-// 初始化：恢复 Supabase 会话（并再次校验仍是管理员）
-// ════════════════════════════════════════════
-async function runRegen(forceAll) {
-  const list = (allUploaded || []).filter((w) => w.id && w.r2_key);
-  if (!list.length) { alert('没有可生成的壁纸（需要已有原图）'); return; }
+async function runFreeRegen(forceAll) {
+  const list = singleYunList();
+  if (!list.length) { alert('没有可生成的「补一个运」壁纸（需要已有原图）'); return; }
   const confirmMsg = forceAll
-    ? `将强制覆盖全部 ${list.length} 张预览（不跳过任何图）。确认继续？`
-    : `只会补还没生成的预览（已是长边 1080 的会跳过）。共 ${list.length} 张待检查。`;
+    ? `将为全部 ${list.length} 张「补一个运」壁纸生成免费水印。\n仅文件夹 1–7、29–35、57–63、85–91、113–119（每个五行的前 7 个单运文件夹）。\n补两个运的文件夹不会生成。确认继续？`
+    : `只会补还没生成的免费水印。共 ${list.length} 张待检查。`;
   if (!confirm(confirmMsg)) return;
 
   const auth = await assertAdminSession();
   if (!auth.ok) { alert('请先登录'); return; }
 
-  const regenBtn = document.getElementById('btnRegenPreviews');
-  const forceBtn = document.getElementById('btnForceRegen');
-  regenBtn.disabled = true;
+  const forceBtn = document.getElementById('btnForceFreeRegen');
   forceBtn.disabled = true;
-  const activeBtn = forceAll ? forceBtn : regenBtn;
 
   let ok = 0, skipped = 0, fail = 0, done = 0;
   const CONCURRENCY = 4;
   try {
     const headers = await getAdminAuthHeaders();
-    await getWatermarkLogo();
+    await getFreeWatermarkLogo();
     const updateProgress = () => {
-      activeBtn.textContent = `正在处理 ${done}/${list.length}（生成 ${ok}${forceAll ? '' : '，跳过 ' + skipped}）…`;
+      forceBtn.textContent = `正在处理 ${done}/${list.length}（生成 ${ok}${forceAll ? '' : '，跳过 ' + skipped}）…`;
     };
     updateProgress();
     await mapPool(list, CONCURRENCY, async (w) => {
       try {
-        const dest = previewDest(w);
-        if (!forceAll && await previewAlreadyBaked(w.preview_key || dest.key)) {
+        const dest = previewFreeDest(w);
+        if (!forceAll && await previewAlreadyBaked(dest.key)) {
           skipped += 1;
           return;
         }
         const original = await fetchOriginalBlob(w.r2_key);
-        const previewBlob = await makePreviewBlob(original);
-        const key = await presignAndPut({
+        const previewBlob = await makeFreePreviewBlob(original);
+        await presignAndPut({
           filename: dest.filename,
           folder: dest.folder,
           contentType: 'image/jpeg',
           body: previewBlob,
-          variant: 'preview',
+          variant: 'preview-free',
           headers,
         });
-        if (!dest.existed || key !== w.preview_key) {
-          const metaRes = await fetch('/api/wallpaper-meta', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ action: 'set_preview', id: w.id, preview_key: key }),
-          });
-          if (!metaRes.ok) {
-            const err = await metaRes.json().catch(() => ({}));
-            throw new Error(err.error || `写入预览路径失败: ${metaRes.status}`);
-          }
-        }
         ok += 1;
       } catch (err) {
         fail += 1;
-        console.error('regen preview', w.filename || w.r2_key, err.message || err);
+        console.error('regen free preview', w.filename || w.r2_key, err.message || err);
       } finally {
         done += 1;
         updateProgress();
@@ -1225,37 +1267,34 @@ async function runRegen(forceAll) {
     });
   } finally {
     previewBust = String(Date.now());
-    regenBtn.disabled = false;
     forceBtn.disabled = false;
-    regenBtn.textContent = '补生成（跳过已完成）';
-    forceBtn.textContent = '强制全部重新生成';
-    await loadUploaded();
+    forceBtn.textContent = '强制生成全部免费水印';
   }
-  let msg = forceAll ? `已覆盖 ${ok} 张` : `新生成 ${ok} 张，跳过已生成 ${skipped} 张`;
+  let msg = forceAll ? `已生成 ${ok} 张免费水印` : `新生成 ${ok} 张，跳过已生成 ${skipped} 张`;
   if (fail) msg += `，失败 ${fail} 张`;
   alert(msg);
 }
 
-document.getElementById('btnRegenPreviews').addEventListener('click', () => runRegen(false));
-document.getElementById('btnForceRegen').addEventListener('click', () => runRegen(true));
+document.getElementById('btnForceFreeRegen').addEventListener('click', () => runFreeRegen(true));
 
-document.getElementById('btnTestPreview').addEventListener('click', async () => {
-  const btn = document.getElementById('btnTestPreview');
+document.getElementById('btnTestFreePreview').addEventListener('click', async () => {
+  const btn = document.getElementById('btnTestFreePreview');
   if (btn.disabled) return;
-  const list = (allUploaded || []).filter((w) => w.id && w.r2_key);
-  if (!list.length) { alert('没有可测试的壁纸，请先加载已上传列表'); return; }
+  const list = singleYunList();
+  if (!list.length) { alert('没有可测试的「补一个运」壁纸，请先加载已上传列表'); return; }
   btn.disabled = true;
   btn.textContent = '生成中…';
   try {
-    await getWatermarkLogo();
+    await getFreeWatermarkLogo();
     const w = list[0];
     const original = await fetchOriginalBlob(w.r2_key);
-    const previewBlob = await makePreviewBlob(original);
+    const previewBlob = await makeFreePreviewBlob(original);
+    const dest = previewFreeDest(w);
     const objUrl = URL.createObjectURL(previewBlob);
     const overlay = document.getElementById('previewTestOverlay');
     overlay.querySelector('img').src = objUrl;
     overlay.querySelector('p').textContent =
-      `R2 路径：${w.preview_key || ('wallpapers/' + (w.folder_number || '?') + '/preview/' + previewFilename(w.filename || 'preview.jpg'))}\n文件名：${w.filename || '—'}`;
+      `目标 R2 路径：${dest.key}\n文件名：${w.filename || '—'}\n（本次仅本地预览，未上传）`;
     overlay.classList.add('show');
     overlay.querySelector('button').onclick = () => {
       overlay.classList.remove('show');
@@ -1265,7 +1304,7 @@ document.getElementById('btnTestPreview').addEventListener('click', async () => 
     alert('测试失败：' + (err.message || err));
   } finally {
     btn.disabled = false;
-    btn.textContent = '测试生成一张';
+    btn.textContent = '测试生成一张免费水印';
   }
 });
 
