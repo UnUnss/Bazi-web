@@ -889,29 +889,6 @@
             background: rgba(255, 252, 245, 0.95);
         }
 
-        .wallpaper-actions {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 4px;
-            width: 100%;
-            margin-top: auto;
-        }
-
-        .wallpaper-actions-single {
-            grid-template-columns: 1fr;
-        }
-
-        .wallpaper-actions .btn-download {
-            margin-top: 0;
-            width: 100%;
-            padding: 8px 4px;
-            font-size: 11px;
-            letter-spacing: 0;
-            line-height: 1.2;
-            white-space: normal;
-            word-break: keep-all;
-        }
-
         /* ─── 支付彈窗 ─────────────────────────────────── */
 
         .pay-modal {
@@ -2621,12 +2598,6 @@
                 padding: 7px 14px;
                 margin-top: 8px;
             }
-
-            .wallpaper-actions .btn-download {
-                font-size: 10px;
-                padding: 7px 3px;
-                margin-top: 0;
-            }
         }
     </style>
 </head>
@@ -2985,7 +2956,11 @@
     <div class="modal invite-modal invite-promo-modal">
         <button type="button" class="modal-close" id="invitePromoClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 data-i18n="invite_promo_title">限時免費活動</h2>
-        <p class="invite-promo-msg" data-i18n="invite_promo_p1">新用戶可免費下載一張自己的八字專屬能量壁紙，邀請3位好友可再獲得一張免費八字專屬能量壁紙。</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p1">1. 活動時間：即日起至2026年8月31日（含當天）</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p2">2. 參與方式：成功邀請3位新用戶完成註冊，即可免費獲得當月專屬幸運背景圖1張（4張中任選1張）</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p3">3. 活動截止後（9月1日起），邀請機制取消，免費背景圖兌換仍有效</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p4">4. 邀請資格以新用戶註冊成功為準，需為此前未在本平台註冊過的用戶</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p5">5. 操作指引：註冊登入後，打開右上角「用戶」→「邀請碼獎勵」，即可填寫好友的邀請碼，或複製自己的邀請碼分享給好友</p>
     </div>
 </div>
 
@@ -4519,7 +4494,6 @@
                                 id:        w.id,
                                 img:       `${R2_PUBLIC_URL}/${previewKey}`,
                                 r2key:     w.r2_key,
-                                previewKey: w.preview_key || '',
                                 el:        spec.el,
                                 name:      spec.elName,
                                 desc:      spec.desc,
@@ -4565,7 +4539,6 @@
                         id:        w.id,
                         img:       `${R2_PUBLIC_URL}/${previewKey}`,
                         r2key:     w.r2_key,
-                        previewKey: w.preview_key || '',
                         el:        spec.el,
                         name:      spec.elName,
                         desc:      spec.desc,
@@ -4585,7 +4558,6 @@
                         id:        src.id,
                         img:       src.img,
                         r2key:     src.r2key,
-                        previewKey: src.previewKey || '',
                         el:        spec.el,
                         name:      spec.elName,
                         desc:      spec.desc,
@@ -4636,13 +4608,6 @@
             const fallbackAttrs = fallbackSrc
                 ? `data-fallback-src="${escapeHtml(fallbackSrc)}" onerror="const f=this.dataset.fallbackSrc;if(f){delete this.dataset.fallbackSrc;this.src=f;}"`
                 : '';
-            const hdBtn = `<button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
-            const freeBtn = idx < 2
-                ? `<button type="button" class="btn-download btn-download-free" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-previewkey="${escapeHtml(c.previewKey||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_free'))}</button>`
-                : '';
-            const actions = idx < 2
-                ? `<div class="wallpaper-actions">${freeBtn}${hdBtn}</div>`
-                : `<div class="wallpaper-actions wallpaper-actions-single">${hdBtn}</div>`;
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" ${fallbackAttrs} />
@@ -4650,7 +4615,7 @@
                 <div class="wallpaper-meta">
                     <p class="name">${nameHtml}</p>
                     <p class="desc">${escapeHtml(c.desc)}</p>
-                    ${actions}
+                    <button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
                 </div>
             </article>`;
         }
@@ -5007,110 +4972,6 @@
         document.body.appendChild(a);
         a.click();
         a.remove();
-    }
-
-    function r2PublicUrl(key) {
-        return `${R2_PUBLIC_URL}/${String(key).split('/').map(encodeURIComponent).join('/')}`;
-    }
-
-    function previewFreeKeyFrom(r2key, previewKey) {
-        if (previewKey && String(previewKey).includes('/preview/')) {
-            return String(previewKey).replace('/preview/', '/preview-free/');
-        }
-        if (!r2key) return '';
-        const parts = String(r2key).split('/');
-        if (parts.length < 3) return '';
-        const folder = parts[1];
-        const rawName = parts[parts.length - 1];
-        const filename = String(rawName).replace(/\.[^.]+$/, '') + '.jpg';
-        return `wallpapers/${folder}/preview-free/${filename}`;
-    }
-
-    function freeDlStorageKey() {
-        const email = (typeof getLoggedEmail === 'function' ? getLoggedEmail() : '').toLowerCase();
-        return `ew_free_dl_v2:${email}`;
-    }
-
-    function getFreeDlUsedKey() {
-        try { return localStorage.getItem(freeDlStorageKey()) || ''; } catch (_) { return ''; }
-    }
-
-    function setFreeDlUsedKey(r2key) {
-        try { localStorage.setItem(freeDlStorageKey(), r2key); } catch (_) {}
-    }
-
-    function clearFreeDlUsedKey() {
-        try { localStorage.removeItem(freeDlStorageKey()); } catch (_) {}
-    }
-
-    function hasInviteQuotaForSecondFree() {
-        const count = Number(inviteStatus && inviteStatus.successCount || 0);
-        const status = inviteStatus && inviteStatus.rewardStatus;
-        return count >= 3 || status === 'granted' || status === 'used';
-    }
-
-    async function saveBlobAsFile(blob, filename) {
-        const obj = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = obj;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(obj), 2000);
-    }
-
-    let freeDlBusy = false;
-
-    async function startFreeDownload(btn) {
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        if (freeDlBusy) return;
-        if (!requireLogin()) return;
-        const r2key = btn.getAttribute('data-r2key') || '';
-        const previewKey = btn.getAttribute('data-previewkey') || '';
-        const name = btn.getAttribute('data-name') || 'wallpaper';
-        if (!r2key) {
-            alert(t('download_missing_key'));
-            return;
-        }
-        freeDlBusy = true;
-        const prevText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = '…';
-        let claimedFirst = false;
-        try {
-            await refreshInviteStatus();
-            const used = getFreeDlUsedKey();
-            if (used && used !== r2key && !hasInviteQuotaForSecondFree()) {
-                openInviteModal('free_second');
-                return;
-            }
-            const freeKey = previewFreeKeyFrom(r2key, previewKey);
-            if (!freeKey) {
-                alert(t('free_dl_missing'));
-                return;
-            }
-            if (!used) {
-                setFreeDlUsedKey(r2key);
-                claimedFirst = true;
-            }
-            const url = r2PublicUrl(freeKey);
-            const res = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
-            if (!res.ok) throw new Error('missing');
-            const blob = await res.blob();
-            if (!blob || !blob.size) throw new Error('empty');
-            const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
-            await saveBlobAsFile(blob, `${baseName}.jpg`);
-            // 第二次也记录，防止重复绕过
-            if (!claimedFirst) setFreeDlUsedKey(r2key);
-        } catch (_) {
-            if (claimedFirst) clearFreeDlUsedKey();
-            alert(t('free_dl_missing'));
-        } finally {
-            freeDlBusy = false;
-            btn.disabled = false;
-            btn.textContent = prevText;
-        }
     }
 
     /**
@@ -5695,11 +5556,6 @@
 
 
     wallpaperGrid.addEventListener('click', (e) => {
-        const freeBtn = e.target.closest('.btn-download-free');
-        if (freeBtn) {
-            startFreeDownload(freeBtn);
-            return;
-        }
         const btn = e.target.closest('.btn-download');
         if (!btn) return;
         const img = btn.getAttribute('data-img');
@@ -6782,15 +6638,9 @@
         }
         if (inviteFooter) {
             const reward = st.rewardStatus || 'none';
-            if (inviteModalFooterMode === 'free_second') {
-                inviteFooter.textContent = inviteT('free_dl_need_invite');
-            } else if (reward === 'used') {
-                inviteFooter.textContent = inviteT('invite_footer_used');
-            } else if (reward === 'granted') {
-                inviteFooter.textContent = inviteT('invite_footer_granted');
-            } else {
-                inviteFooter.textContent = inviteT('invite_footer_goal');
-            }
+            if (reward === 'used') inviteFooter.textContent = inviteT('invite_footer_used');
+            else if (reward === 'granted') inviteFooter.textContent = inviteT('invite_footer_granted');
+            else inviteFooter.textContent = inviteT('invite_footer_goal');
         }
         syncInviteRedeemButton();
     }
@@ -6833,11 +6683,8 @@
         return inviteStatusPromise;
     }
 
-    let inviteModalFooterMode = 'default';
-
-    function openInviteModal(footerMode) {
+    function openInviteModal() {
         if (!requireLogin()) return;
-        inviteModalFooterMode = footerMode === 'free_second' ? 'free_second' : 'default';
         userMenu.classList.remove('open');
         if (inviteBindMsg) {
             inviteBindMsg.textContent = '';
@@ -6849,7 +6696,6 @@
     }
 
     function closeInviteModal() {
-        inviteModalFooterMode = 'default';
         if (inviteModal) inviteModal.classList.remove('open');
     }
 
