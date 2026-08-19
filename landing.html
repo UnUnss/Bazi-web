@@ -848,12 +848,28 @@
 
         .wallpaper-meta {
             margin-top: 18px;
-            text-align: center;
             width: 100%;
+            display: -webkit-flex;
             display: flex;
+            -webkit-flex-direction: column;
             flex-direction: column;
-            align-items: center;
+            -webkit-align-items: stretch;
+            align-items: stretch;
             flex: 1;
+            min-height: 0;
+        }
+
+        /* 文字区自动撑满剩余空间，将按钮挤到底部，不依赖 margin:auto */
+        .wallpaper-meta-text {
+            -webkit-flex: 1;
+            flex: 1;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-flex-direction: column;
+            flex-direction: column;
+            -webkit-align-items: center;
+            align-items: center;
+            text-align: center;
         }
 
         .wallpaper-meta .name {
@@ -882,7 +898,6 @@
             border-radius: 2px;
             cursor: pointer;
             transition: background 0.2s;
-            margin-top: auto;
         }
 
         .btn-download:hover {
@@ -890,14 +905,12 @@
         }
 
         .wallpaper-actions {
-            display: -webkit-box;
             display: -webkit-flex;
             display: flex;
             -webkit-flex-direction: column;
             flex-direction: column;
             gap: 4px;
             width: 100%;
-            margin-top: auto;
         }
 
         .wallpaper-actions .btn-download {
@@ -2326,16 +2339,9 @@
                 margin-bottom: 10px;
             }
 
-            .btn-download {
-                font-size: 14px;
-                padding: 7px 14px;
-                margin-top: 8px;
-            }
-
             .wallpaper-actions .btn-download {
                 font-size: 11px;
                 padding: 7px 4px;
-                margin-top: 0;
             }
         }
     </style>
@@ -4282,8 +4288,10 @@
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" ${fallbackAttrs} />
                 </div>
                 <div class="wallpaper-meta">
-                    <p class="name">${nameHtml}</p>
-                    <p class="desc">${escapeHtml(c.desc)}</p>
+                    <div class="wallpaper-meta-text">
+                        <p class="name">${nameHtml}</p>
+                        <p class="desc">${escapeHtml(c.desc)}</p>
+                    </div>
                     ${actions}
                 </div>
             </article>`;
