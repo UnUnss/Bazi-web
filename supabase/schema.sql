@@ -463,3 +463,39 @@ $$;
 revoke execute on function public.invite_add_success(uuid) from public, anon, authenticated;
 grant execute on function public.invite_add_success(uuid) to service_role;
 
+-- ════════════════════════════════════════════
+-- 免费下载统计（带 logo 水印的免费图）
+-- source: free = 第一次免费下载；invite = 邀请满 3 人后再下的第二次水印图（不能兑原图）
+-- ════════════════════════════════════════════
+create table if not exists public.free_download_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users (id) on delete set null,
+  owner_email text not null,
+  wallpaper_id uuid,
+  r2_key text not null,
+  wallpaper_name text,
+  source text not null check (source in ('free', 'invite')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists free_download_logs_email_idx
+  on public.free_download_logs (owner_email, created_at desc);
+
+create index if not exists free_download_logs_user_idx
+  on public.free_download_logs (user_id, created_at desc);
+
+create index if not exists free_download_logs_source_idx
+  on public.free_download_logs (source, created_at desc);
+
+create unique index if not exists free_download_logs_user_key_source_idx
+  on public.free_download_logs (user_id, r2_key, source)
+  where user_id is not null;
+
+create unique index if not exists free_download_logs_user_source_uniq
+  on public.free_download_logs (user_id, source)
+  where user_id is not null;
+
+alter table public.free_download_logs enable row level security;
+
+grant select, insert, update, delete on public.free_download_logs to service_role;
+

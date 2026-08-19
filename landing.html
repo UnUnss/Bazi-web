@@ -1220,36 +1220,6 @@
         }
 
 
-        .pay-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .btn-add-cart {
-            flex: 1;
-            font-family: inherit;
-            font-size: 13.5px;
-            letter-spacing: 0.08em;
-            padding: 13px 8px;
-            background: rgba(255, 252, 245, 0.6);
-            color: var(--ink);
-            border: 1px solid var(--line);
-            border-radius: 2px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-add-cart:hover {
-            background: rgba(255, 252, 245, 0.95);
-        }
-
-        .btn-add-cart:disabled {
-            opacity: 0.55;
-            cursor: not-allowed;
-        }
-
         /* ─── 邀请码活动（下线时删除本段及 #inviteModal） ─── */
         .invite-modal {
             max-width: 360px;
@@ -1648,14 +1618,8 @@
             z-index: 70;
         }
 
-        #checkoutReturnModal .confirm-modal p,
-        #inviteRedeemModal .confirm-modal p {
+        #checkoutReturnModal .confirm-modal p {
             margin-bottom: 0;
-        }
-
-        #inviteRedeemModal .confirm-modal p + p {
-            margin-top: 10px;
-            font-size: 13px;
         }
 
         .confirm-actions {
@@ -2657,9 +2621,6 @@
         <p class="pay-notice" id="payNotice" data-i18n="pay_notice">支付成功後將會自動下載背景圖，
 若下載失敗可在導航欄「用戶——本月下載記錄」重新下載</p>
 
-        <div class="pay-actions" style="display:none">
-            <button type="button" class="btn-add-cart" id="btnInviteRedeem" data-i18n="invite_redeem" style="display:none">使用邀請碼獎勵兌換</button>
-                    </div>
         <div class="pay-provider-row">
             <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
             <button type="button" class="btn-official-stripe" id="btnPayStripe" data-provider="stripe" aria-label="Stripe">
@@ -2704,13 +2665,6 @@
         <p class="invite-footer" id="inviteFooter"></p>
             </div>
         </div>
-
-<div class="modal-backdrop" id="inviteRedeemModal" role="status" aria-live="polite" aria-modal="true">
-    <div class="modal confirm-modal">
-        <p data-i18n="invite_redeeming">兌換成功，正在下載</p>
-        <p data-i18n="invite_redeeming_hint">若下載失敗可在右上角「用戶」→「本月下載記錄」重新下載</p>
-        </div>
-</div>
 
 <div class="modal-backdrop" id="invitePromoModal" role="dialog" aria-modal="true">
     <div class="modal invite-modal invite-promo-modal">
@@ -4775,26 +4729,66 @@
 
             if (usedKeys.length >= 2) {
                 alert(t('free_dl_exhausted'));
+                freeDlBusy = false;
+                btn.disabled = false;
+                btn.textContent = prevText;
                 return;
             }
             if (!alreadyUsedThis && usedKeys.length === 1 && !hasInviteQuotaForSecondFree()) {
                 openInviteModal('free_second');
+                freeDlBusy = false;
+                btn.disabled = false;
+                btn.textContent = prevText;
                 return;
             }
+
 
             const freeKey = previewFreeKeyFrom(r2key, previewKey);
             if (!freeKey) {
                 alert(t('free_dl_missing'));
+                freeDlBusy = false;
+                btn.disabled = false;
+                btn.textContent = prevText;
                 return;
             }
-            if (!alreadyUsedThis) {
+
+            // 先调 API 记账（服务端以 DB 为准），同时并行 fetch 图片，不增加体感延迟
+            const url = r2PublicUrl(freeKey);
+            const [apiRes, fetchRes] = await Promise.all([
+                alreadyUsedThis
+                    ? Promise.resolve({ ok: true, _skip: true })
+                    : getAuthHeaders().then((headers) =>
+                        fetch('/api/free-download-log', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ r2_key: r2key, wallpaper_name: name || '' }),
+                        })
+                    ),
+                fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' }),
+            ]);
+
+            // 检查 API 结果
+            if (!apiRes._skip) {
+                if (apiRes.status === 403) {
+                    const body = await apiRes.json().catch(() => ({}));
+                    if (body.error === 'need_invite') {
+                        openInviteModal('free_second');
+                    } else {
+                        alert(t('free_dl_exhausted'));
+                    }
+                    freeDlBusy = false;
+                    btn.disabled = false;
+                    btn.textContent = prevText;
+                    return;
+                }
+                if (!apiRes.ok) throw new Error('log_failed');
+                // 记账成功后再写 localStorage
                 claimedKey = r2key;
                 setFreeDlUsedKeys(usedKeys.concat(r2key));
             }
-            const url = r2PublicUrl(freeKey);
-            const res = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
-            if (!res.ok) throw new Error('missing');
-            const blob = await res.blob();
+
+            if (!fetchRes.ok) throw new Error('missing');
+            const blob = await fetchRes.blob();
             if (!blob || !blob.size) throw new Error('empty');
             const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
             await saveBlobAsFile(blob, `${baseName}.jpg`);
@@ -4813,7 +4807,7 @@
     /**
      * @returns {'ok'|'missing'|'auth'|'payment'|'fail'}
      */
-    async function startOriginalDownload({ r2key, name, previewImg, silentPaymentAlert = false, useInviteReward = false }) {
+    async function startOriginalDownload({ r2key, name, previewImg, silentPaymentAlert = false }) {
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return 'auth';
         if (!r2key) {
@@ -4839,7 +4833,6 @@
                     preview_url: previewImg || '',
                     wallpaper_name: name || '',
                     month_ganzhi: ganZhi ? ganZhi.month : '',
-                    use_invite_reward: !!useInviteReward,
                 }),
             });
             lastStatus = res.status;
@@ -5383,7 +5376,6 @@
         payPreviewImg.alt = name;
         payWallpaperName.textContent = name;
         applyPayPrice();
-        syncInviteRedeemButton();
         payModal.classList.add('open');
         refreshInviteStatus();
     });
@@ -6192,8 +6184,6 @@
     const btnInviteCopy = document.getElementById('btnInviteCopy');
     const inviteCountEl = document.getElementById('inviteCount');
     const inviteFooter = document.getElementById('inviteFooter');
-    const btnInviteRedeem = document.getElementById('btnInviteRedeem');
-    const inviteRedeemModal = document.getElementById('inviteRedeemModal');
 
     function getInviteDeviceId() {
         try {
@@ -6219,16 +6209,6 @@
             });
         }
         return s;
-    }
-
-    function syncInviteRedeemButton() {
-        if (!btnInviteRedeem) return;
-        const show = !!(inviteStatus && inviteStatus.enabled !== false && inviteStatus.rewardStatus === 'granted');
-        btnInviteRedeem.style.display = show ? '' : 'none';
-        btnInviteRedeem.disabled = false;
-        btnInviteRedeem.textContent = inviteT('invite_redeem');
-        const wrap = btnInviteRedeem.closest('.pay-actions');
-        if (wrap) wrap.style.display = show ? '' : 'none';
     }
 
     function renderInviteModal() {
@@ -6263,13 +6243,11 @@
                 inviteFooter.textContent = inviteT('invite_footer_goal');
             }
         }
-        syncInviteRedeemButton();
     }
 
     async function refreshInviteStatus() {
         if (!isLoggedIn()) {
             inviteStatus = null;
-            syncInviteRedeemButton();
             return null;
         }
         if (inviteStatusPromise) return inviteStatusPromise;
@@ -6285,7 +6263,6 @@
                     inviteStatus = { enabled: false };
                     const btn = document.getElementById('btnInviteReward');
                     if (btn) btn.style.display = 'none';
-                    syncInviteRedeemButton();
                     return inviteStatus;
                 }
                 if (!res.ok) return inviteStatus;
@@ -6358,7 +6335,6 @@
         inviteStatus = null;
         updateAuthUI();
         resetToGuestProfiles();
-        syncInviteRedeemButton();
     }
 
     function updateAuthUI() {
@@ -7206,33 +7182,6 @@
             if (inviteMyCode) {
                 inviteMyCode.focus();
                 inviteMyCode.select();
-            }
-        }
-    });
-    btnInviteRedeem?.addEventListener('click', async () => {
-        if (!requireLogin()) return;
-        if (!pendingDownloadR2Key && !pendingDownloadKey) return;
-        if (btnInviteRedeem.disabled) return;
-        btnInviteRedeem.disabled = true;
-        if (inviteRedeemModal) inviteRedeemModal.classList.add('open');
-        const result = await startOriginalDownload({
-            r2key: pendingDownloadR2Key || '',
-            name: pendingDownloadName,
-            previewImg: pendingDownloadImg,
-            silentPaymentAlert: true,
-            useInviteReward: true,
-        });
-        if (inviteRedeemModal) inviteRedeemModal.classList.remove('open');
-        if (result === 'ok') {
-            if (inviteStatus) inviteStatus.rewardStatus = 'used';
-            renderInviteModal();
-            payModal.classList.remove('open');
-        } else {
-            btnInviteRedeem.disabled = false;
-            btnInviteRedeem.textContent = inviteT('invite_redeem');
-            if (result !== 'auth') {
-                const t = window.I18N ? window.I18N.t : (k) => k;
-                alert(t(result === 'payment' ? 'download_payment_required' : 'download_failed'));
             }
         }
     });
