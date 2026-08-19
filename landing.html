@@ -4757,46 +4757,50 @@
                 return;
             }
 
-            // 先调 API 记账（服务端以 DB 为准），同时并行 fetch 图片，不增加体感延迟
             const url = r2PublicUrl(freeKey);
             const [apiRes, fetchRes] = await Promise.all([
                 alreadyUsedThis
-                    ? Promise.resolve({ ok: true, _skip: true })
+                    ? Promise.resolve({ ok: true, status: 200, _skip: true })
                     : getAuthHeaders().then((headers) =>
                         fetch('/api/free-download-log', {
                             method: 'POST',
                             headers,
                             body: JSON.stringify({ r2_key: r2key, wallpaper_name: name || '' }),
                         })
-                    ),
-                fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' }),
+                    ).catch(() => ({ ok: false, status: 0 })),
+                fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' })
+                    .catch(() => ({ ok: false, _cors: true })),
             ]);
 
-            // 检查 API 结果
-            if (!apiRes._skip) {
-                if (apiRes.status === 403) {
-                    const body = await apiRes.json().catch(() => ({}));
-                    if (body.error === 'need_invite') {
-                        openInviteModal('free_second');
-                    } else {
-                        alert(t('free_dl_exhausted'));
-                    }
-                    freeDlBusy = false;
-                    btn.disabled = false;
-                    btn.textContent = prevText;
-                    return;
+            // 只有明确的配额拒绝才拦截下载；表未建 / 记账 5xx 不挡下载
+            if (!apiRes._skip && apiRes.status === 403) {
+                const body = await apiRes.json().catch(() => ({}));
+                if (body.error === 'need_invite') {
+                    openInviteModal('free_second');
+                } else {
+                    alert(t('free_dl_exhausted'));
                 }
-                if (!apiRes.ok) throw new Error('log_failed');
-                // 记账成功后再写 localStorage
+                freeDlBusy = false;
+                btn.disabled = false;
+                btn.textContent = prevText;
+                return;
+            }
+
+            const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
+            if (fetchRes && fetchRes.ok) {
+                const blob = await fetchRes.blob();
+                if (!blob || !blob.size) throw new Error('empty');
+                await saveBlobAsFile(blob, `${baseName}.jpg`);
+            } else if (fetchRes && fetchRes._cors) {
+                triggerDirectDownload(url, `${baseName}.jpg`);
+            } else {
+                throw new Error('missing');
+            }
+
+            if (!alreadyUsedThis) {
                 claimedKey = r2key;
                 setFreeDlUsedKeys(usedKeys.concat(r2key));
             }
-
-            if (!fetchRes.ok) throw new Error('missing');
-            const blob = await fetchRes.blob();
-            if (!blob || !blob.size) throw new Error('empty');
-            const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
-            await saveBlobAsFile(blob, `${baseName}.jpg`);
         } catch (_) {
             if (claimedKey) {
                 setFreeDlUsedKeys(getFreeDlUsedKeys().filter((k) => k !== claimedKey));

@@ -27,8 +27,12 @@ export default async function handler(req, res) {
     if (!result.ok && result.error === 'no_user') {
       return res.status(401).json({ error: 'Login required' });
     }
+    if (!result.ok && result.error === 'table_missing') {
+      return res.status(503).json({ error: 'table_missing' });
+    }
     if (!result.ok) {
-      return res.status(500).json({ error: result.error || 'insert failed' });
+      const msg = typeof result.error === 'string' ? result.error : 'insert failed';
+      return res.status(500).json({ error: msg });
     }
     return res.status(200).json({ ok: true, source: result.source || null, duplicate: !!result.duplicate });
   } catch (err) {
