@@ -843,7 +843,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
     return;
   }
 
-  // 预检水印，确保上传过程中不会静默跳过水印
+  // 预检锁屏水印
   try {
     await getWatermarkLogo();
   } catch (err) {
@@ -851,6 +851,22 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
     btn.disabled = false;
     return;
   }
+
+  // 如果本批有「补一个运」图，提前预检免费水印
+  const hasSingleYun = pendingFiles.some(
+    (f) => f.status !== 'done' && FOLDER_MAP[f.folderNum] && FOLDER_MAP[f.folderNum].tags.length === 1
+  );
+  if (hasSingleYun) {
+    try {
+      await getFreeWatermarkLogo();
+    } catch (err) {
+      alert(err.message || '免费水印文件加载失败，请检查后再上传');
+      btn.disabled = false;
+      return;
+    }
+  }
+
+  const authHeaders = await getAdminAuthHeaders();
 
   for (let i = 0; i < pendingFiles.length; i++) {
     const item = pendingFiles[i];
@@ -864,6 +880,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
         folder: item.folderNum,
         contentType: item.file.type || 'image/jpeg',
         body: item.file,
+        headers: authHeaders,
       });
 
       // 2) 压缩预览图（长边 1080 / JPEG 0.6，锁屏水印烧进像素）
@@ -875,12 +892,32 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
         contentType: 'image/jpeg',
         body: previewBlob,
         variant: 'preview',
+        headers: authHeaders,
       });
 
-      // 3) 元数据入库
+      // 3) 补一个运：同步生成免费水印预览图
+      const isSingle = FOLDER_MAP[item.folderNum] && FOLDER_MAP[item.folderNum].tags.length === 1;
+      if (isSingle) {
+        try {
+          const freeBlob = await makeFreePreviewBlob(item.file);
+          await presignAndPut({
+            filename: previewName,
+            folder: item.folderNum,
+            contentType: 'image/jpeg',
+            body: freeBlob,
+            variant: 'preview-free',
+            headers: authHeaders,
+          });
+        } catch (freeErr) {
+          // 免费水印生成失败不阻断整体上传，仅记录日志
+          console.warn('免费水印生成失败', item.file.name, freeErr && freeErr.message || freeErr);
+        }
+      }
+
+      // 4) 元数据入库
       const metaRes = await fetch('/api/wallpaper-meta', {
         method: 'POST',
-        headers: await getAdminAuthHeaders(),
+        headers: authHeaders,
         body: JSON.stringify({
           folder_number: item.folderNum,
           element:       item.element,
