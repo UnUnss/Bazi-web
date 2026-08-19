@@ -652,7 +652,7 @@
         userMenuWrap.style.display = logged ? '' : 'none';
         userMenuEmail.textContent = logged ? (email || '') : '';
         if (btnAnnualService) {
-            btnAnnualService.style.display = (logged && isAnnualActive()) ? '' : 'none';
+            btnAnnualService.style.display = logged ? '' : 'none';
         }
     }
     window.BaziAuth.syncFromSupabase().then(({ loggedIn, email }) => updateAuthUI(loggedIn, email));

@@ -11,8 +11,6 @@ import {
 
 const expected = {
   single: 599,
-  pack2: 1099,
-  pack4: 1999,
   annual: 21999,
 };
 
@@ -27,7 +25,7 @@ for (const [k, v] of Object.entries(expected)) {
   }
 }
 
-const countMap = { 1: 'single', 2: 'pack2', 3: 'mixed', 4: 'pack4', 5: 'mixed' };
+const countMap = { 1: 'single', 2: 'mixed', 3: 'mixed', 4: 'mixed', 5: 'mixed' };
 for (const [n, typ] of Object.entries(countMap)) {
   const got = productTypeFromItemCount(Number(n));
   if (got !== typ) {
@@ -38,14 +36,13 @@ for (const [n, typ] of Object.entries(countMap)) {
   }
 }
 
-// 3 = pack2 + single = 1099 + 599
 const cartCases = [
   [1, 599],
-  [2, 1099],
-  [3, 1099 + 599],
-  [4, 1999],
-  [5, 1999 + 599],
-  [6, 1999 + 1099],
+  [2, 599 * 2],
+  [3, 599 * 3],
+  [4, 599 * 4],
+  [5, 599 * 5],
+  [6, 599 * 6],
 ];
 for (const [n, cents] of cartCases) {
   const got = amountCentsForItemCount(n);

@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   if (productType === 'annual') {
     amountCents = useCny ? amountForProductCny('annual') : amountForProduct('annual');
   } else {
-    // Wallpaper cart: price by item count (4+2+1 packs). Ignore client product_type.
+    // Wallpaper: price by item count, $5.99 / ¥39 each. Ignore client product_type.
     if (!items.length) {
       return res.status(400).json({ error: 'Cart is empty' });
     }

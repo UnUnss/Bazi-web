@@ -889,10 +889,33 @@
             background: rgba(255, 252, 245, 0.95);
         }
 
+        .wallpaper-actions {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 4px;
+            width: 100%;
+            margin-top: auto;
+        }
+
+        .wallpaper-actions-single {
+            grid-template-columns: 1fr;
+        }
+
+        .wallpaper-actions .btn-download {
+            margin-top: 0;
+            width: 100%;
+            padding: 8px 4px;
+            font-size: 11px;
+            letter-spacing: 0;
+            line-height: 1.2;
+            white-space: normal;
+            word-break: keep-all;
+        }
+
         /* ─── 支付彈窗 ─────────────────────────────────── */
 
         .pay-modal {
-            max-width: 320px;
+            max-width: 360px;
             text-align: center;
         }
 
@@ -953,70 +976,9 @@
             font-size: 12px;
             color: var(--ink-muted);
             letter-spacing: 0.04em;
+            line-height: 1.65;
             margin-bottom: 18px;
-        }
-
-        .pay-tier-section {
-            margin-bottom: 22px;
-            padding-top: 16px;
-            border-top: 1px solid var(--line);
-        }
-
-        .pay-tier-title {
-            font-size: 12px;
-            color: var(--ink-soft);
-            letter-spacing: 0.08em;
-            margin-bottom: 10px;
-        }
-
-        .pay-tier-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .pay-tier-btn {
-            font-family: inherit;
-            font-size: 12.5px;
-            letter-spacing: 0.04em;
-            line-height: 1.4;
-            padding: 9px 6px;
-            background: rgba(255, 252, 245, 0.5);
-            color: var(--ink-soft);
-            border: 1px solid var(--line);
-            border-radius: 2px;
-            cursor: pointer;
-            transition: background 0.2s, border-color 0.2s, color 0.2s;
-            text-align: center;
-        }
-
-        .pay-tier-btn .tier-qty {
-            display: block;
-            font-size: 13px;
-            color: var(--ink);
-            margin-bottom: 2px;
-        }
-
-        .pay-tier-btn .tier-price {
-            display: block;
-        }
-
-        .pay-tier-btn:hover {
-            background: rgba(255, 252, 245, 0.85);
-        }
-
-        .pay-tier-btn.active {
-            background: var(--ink);
-            border-color: var(--ink);
-        }
-
-        .pay-tier-btn.active .tier-qty,
-        .pay-tier-btn.active .tier-price {
-            color: #faf6ec;
-        }
-
-        .pay-tier-btn.pay-tier-year {
-            grid-column: 1 / -1;
+            white-space: pre-line;
         }
 
         /* ─── 包年档案选择 ─────────────────────────────── */
@@ -1259,36 +1221,11 @@
         }
 
 
-        .pay-tier-info-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .pay-tier-info {
-            padding: 4px 6px 9px;
-            display: flex;
-            align-items: baseline;
-            justify-content: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .pay-tier-info .tier-qty {
-            font-size: 16px;
-            color: var(--ink);
-        }
-
-        .pay-tier-info .tier-price {
-            font-size: 12.5px;
-            color: var(--ink-muted);
-        }
-
         .pay-actions {
             display: flex;
             flex-direction: column;
             gap: 10px;
+            margin-bottom: 12px;
         }
 
         .btn-add-cart {
@@ -1517,173 +1454,6 @@
 
         .checkout-provider-modal .pay-provider-hint {
             margin: 0 0 16px;
-        }
-
-        .cart-modal .btn-pay-confirm {
-            display: block;
-            width: 100%;
-            margin-top: 0;
-        }
-
-        .cart-checkout-hint {
-            margin: 0 0 12px;
-            font-size: 11px;
-            line-height: 1.65;
-            letter-spacing: 0.04em;
-            color: var(--ink-muted);
-            text-align: center;
-            white-space: pre-line;
-        }
-
-        /* ─── 購物車（下載列表） ──────────────────────── */
-
-        .nav-cart-wrap {
-            position: relative;
-        }
-
-        .nav-cart-badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            min-width: 16px;
-            height: 16px;
-            padding: 0 3px;
-            border-radius: 8px;
-            background: #b5442e;
-            color: #faf6ec;
-            font-size: 10px;
-            line-height: 16px;
-            text-align: center;
-            display: none;
-        }
-
-        .nav-cart-badge.show {
-            display: block;
-        }
-
-        .cart-modal {
-            max-width: 420px;
-        }
-
-        .cart-list {
-            max-height: 320px;
-            overflow-y: auto;
-            margin-bottom: 16px;
-        }
-
-        .cart-empty {
-            text-align: center;
-            color: var(--ink-muted);
-            font-size: 13px;
-            letter-spacing: 0.04em;
-            padding: 24px 0;
-        }
-
-        .cart-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .cart-item-checkbox {
-            width: 17px;
-            height: 17px;
-            flex-shrink: 0;
-            accent-color: var(--ink);
-            cursor: pointer;
-        }
-
-        .cart-item-thumb {
-            width: 44px;
-            height: 58px;
-            border-radius: 2px;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .cart-item-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .cart-item-name {
-            flex: 1;
-            font-size: 13.5px;
-            letter-spacing: 0.04em;
-            color: var(--ink);
-        }
-
-        .cart-item-remove {
-            border: none;
-            background: transparent;
-            color: var(--ink-muted);
-            font-size: 18px;
-            line-height: 1;
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        .cart-item-remove:hover {
-            color: var(--ink);
-        }
-
-        .cart-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .cart-select-all {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: var(--ink-soft);
-            letter-spacing: 0.04em;
-            cursor: pointer;
-        }
-
-        .cart-select-all input {
-            accent-color: var(--ink);
-            width: 15px;
-            height: 15px;
-            cursor: pointer;
-        }
-
-        .cart-clear {
-            border: none;
-            background: transparent;
-            color: var(--ink-muted);
-            font-size: 12.5px;
-            letter-spacing: 0.04em;
-            text-decoration: underline;
-            cursor: pointer;
-        }
-
-        .cart-total-row {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            padding-top: 14px;
-            border-top: 1px solid var(--line);
-        }
-
-        .cart-total-label {
-            font-size: 13px;
-            color: var(--ink-soft);
-            letter-spacing: 0.06em;
-        }
-
-        .cart-total-price {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--ink);
         }
 
         /* ─── 新增八字彈窗 ─────────────────────────────── */
@@ -2598,6 +2368,12 @@
                 padding: 7px 14px;
                 margin-top: 8px;
             }
+
+            .wallpaper-actions .btn-download {
+                font-size: 10px;
+                padding: 7px 3px;
+                margin-top: 0;
+            }
         }
     </style>
 </head>
@@ -2636,18 +2412,6 @@
                 <button type="button" data-lang-option="zh-CN" data-i18n="lang_menu_zh_cn">简体中文</button>
                 <button type="button" data-lang-option="en" data-i18n="lang_menu_en">English</button>
             </div>
-        </div>
-        <div class="nav-cart-wrap" id="navCartWrap" style="display:none;">
-            <div class="nav-user-icon" id="cartBtn" data-i18n-aria-label="nav_cart_aria" aria-label="下載列表">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.7">
-                    <circle cx="9" cy="20" r="1.4" fill="currentColor" stroke="none" />
-                    <circle cx="18" cy="20" r="1.4" fill="currentColor" stroke="none" />
-                    <path d="M2.5 3h2.4l1.6 11.2a1.8 1.8 0 0 0 1.78 1.55h9.9a1.8 1.8 0 0 0 1.77-1.47l1.28-6.9H6.1"
-                          stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-            </div>
-            <span class="nav-cart-badge" id="cartBadge">0</span>
         </div>
         <div class="auth-area" id="authArea">
             <button type="button" class="btn-login" id="btnLogin" data-i18n="nav_login">登入 / 註冊</button>
@@ -2879,7 +2643,7 @@
     </div>
 </div>
 
-<!-- 支付彈窗 -->
+<!-- 支付彈窗：壁纸信息 + 支付方式 -->
 <div class="modal-backdrop" id="payModal" role="dialog" aria-modal="true">
     <div class="modal pay-modal">
         <button type="button" class="modal-close" id="payModalClose" aria-label="關閉">×</button>
@@ -2888,34 +2652,31 @@
         </div>
         <p class="pay-wallpaper-name" id="payWallpaperName"></p>
         <div class="pay-price-row">
-            <span class="pay-price-currency">US</span><span class="pay-price" id="payPrice">$5.99</span>
+            <span class="pay-price-currency" id="payPriceCurrency">US</span><span class="pay-price" id="payPrice">$5.99</span>
             <span class="pay-price-unit" id="payPriceUnit" data-i18n="pay_per_image">/ 張</span>
         </div>
-        <p class="pay-notice" id="payNotice" data-i18n="pay_notice">虛擬商品，購買後不支持退款</p>
+        <p class="pay-notice" id="payNotice" data-i18n="pay_notice">支付成功後將會自動下載背景圖，
+若下載失敗可在導航欄「用戶——本月下載記錄」重新下載</p>
 
-        <div class="pay-tier-section">
-            <p class="pay-tier-title" data-i18n="pay_tier_title">更划算的選擇</p>
-            <div class="pay-tier-info-row">
-                <div class="pay-tier-info">
-                    <span class="tier-qty" data-i18n="pay_tier_2_qty">2 張</span>
-                    <span class="tier-price">US$10.99</span>
-                </div>
-                <div class="pay-tier-info">
-                    <span class="tier-qty" data-i18n="pay_tier_4_qty">4 張</span>
-                    <span class="tier-price">US$19.99</span>
-                </div>
-            </div>
-            <div class="pay-tier-row" id="payTierRow">
-                <button type="button" class="pay-tier-btn pay-tier-year" data-tier="year" data-price="219.99">
-                    <span class="tier-qty" data-i18n="pay_tier_year_qty">包年無限下載</span>
-                    <span class="tier-price">US$219.99</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="pay-actions">
-            <button type="button" class="btn-add-cart" id="btnAddCart" data-i18n="pay_add_cart">加入購物車</button>
+        <div class="pay-actions" style="display:none">
             <button type="button" class="btn-add-cart" id="btnInviteRedeem" data-i18n="invite_redeem" style="display:none">使用邀請碼獎勵兌換</button>
+        </div>
+        <div class="pay-provider-row">
+            <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
+            <button type="button" class="btn-official-stripe" id="btnPayStripe" data-provider="stripe" aria-label="Stripe">
+                <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
+                <span class="stripe-methods">
+                    <span data-i18n="pay_stripe_methods_before">支持</span>
+                    <img class="stripe-methods-img" src="assets/pay/支付合集logo.png" alt="">
+                    <span data-i18n="pay_stripe_methods_after">等多种方式</span>
+                </span>
+            </button>
+            <button type="button" class="btn-official-paypal" id="btnPayPaypal" data-provider="paypal" aria-label="Pay with PayPal">
+                <img src="assets/pay/paypal-logo.png" alt="PayPal">
+            </button>
+            <button type="button" class="btn-official-alipay" id="btnPayAlipay" data-provider="alipay" aria-label="支付宝" hidden>
+                <img src="assets/pay/支付宝logo.png" alt="支付宝">
+            </button>
         </div>
     </div>
 </div>
@@ -2956,11 +2717,7 @@
     <div class="modal invite-modal invite-promo-modal">
         <button type="button" class="modal-close" id="invitePromoClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 data-i18n="invite_promo_title">限時免費活動</h2>
-        <p class="invite-promo-msg" data-i18n="invite_promo_p1">1. 活動時間：即日起至2026年8月31日（含當天）</p>
-        <p class="invite-promo-msg" data-i18n="invite_promo_p2">2. 參與方式：成功邀請3位新用戶完成註冊，即可免費獲得當月專屬幸運背景圖1張（4張中任選1張）</p>
-        <p class="invite-promo-msg" data-i18n="invite_promo_p3">3. 活動截止後（9月1日起），邀請機制取消，免費背景圖兌換仍有效</p>
-        <p class="invite-promo-msg" data-i18n="invite_promo_p4">4. 邀請資格以新用戶註冊成功為準，需為此前未在本平台註冊過的用戶</p>
-        <p class="invite-promo-msg" data-i18n="invite_promo_p5">5. 操作指引：註冊登入後，打開右上角「用戶」→「邀請碼獎勵」，即可填寫好友的邀請碼，或複製自己的邀請碼分享給好友</p>
+        <p class="invite-promo-msg" data-i18n="invite_promo_p1">新用戶可免費下載一張自己的八字專屬能量壁紙，邀請3位好友可再獲得一張免費八字專屬能量壁紙。</p>
     </div>
 </div>
 
@@ -3013,58 +2770,6 @@
                     <img src="assets/pay/支付宝logo.png" alt="支付宝">
                 </button>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- 下載列表（購物車）彈窗 -->
-<div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true">
-    <div class="modal cart-modal">
-        <button type="button" class="modal-close" id="cartModalClose" aria-label="關閉">×</button>
-        <h2 data-i18n="cart_title">下載列表</h2>
-
-        <div class="cart-toolbar" id="cartToolbar" style="display:none;">
-            <label class="cart-select-all">
-                <input type="checkbox" id="cartSelectAll">
-                <span data-i18n="cart_select_all">全選</span>
-            </label>
-            <button type="button" class="cart-clear" id="cartClear" data-i18n="cart_clear">清空列表</button>
-        </div>
-
-        <div class="cart-list" id="cartList"></div>
-
-        <div class="cart-total-row" id="cartTotalRow" style="display:none;">
-            <span class="cart-total-label" data-i18n="cart_total_label">結算金額</span>
-            <span class="cart-total-price" id="cartTotalPrice">US$0.00</span>
-        </div>
-
-        <p class="cart-checkout-hint" id="cartCheckoutHint" data-i18n="cart_checkout_hint" style="display:none">支付成功后将会自动下载壁纸，
-若下载失败可在导航栏「用户——本月下载记录」重新下载</p>
-        <button type="button" class="btn-pay-confirm" id="btnCartCheckout" data-i18n="cart_checkout" style="display:none">結算</button>
-    </div>
-</div>
-
-<!-- 結算時選擇支付方式 -->
-<div class="modal-backdrop" id="checkoutProviderModal" role="dialog" aria-modal="true">
-    <div class="modal checkout-provider-modal">
-        <button type="button" class="modal-close" id="checkoutProviderClose" aria-label="關閉">×</button>
-        <h2 data-i18n="pay_choose_provider">選擇支付方式</h2>
-        <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
-        <div class="pay-provider-row">
-            <button type="button" class="btn-official-stripe" id="btnCheckoutStripe" data-provider="stripe" aria-label="Stripe">
-                <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
-                <span class="stripe-methods">
-                    <span data-i18n="pay_stripe_methods_before">支持</span>
-                    <img class="stripe-methods-img" src="assets/pay/支付合集logo.png" alt="">
-                    <span data-i18n="pay_stripe_methods_after">等多种方式</span>
-                </span>
-            </button>
-            <button type="button" class="btn-official-paypal" id="btnCheckoutPaypal" data-provider="paypal" aria-label="Pay with PayPal">
-                <img src="assets/pay/paypal-logo.png" alt="PayPal">
-            </button>
-            <button type="button" class="btn-official-alipay" id="btnCheckoutAlipay" data-provider="alipay" aria-label="支付宝" hidden>
-                <img src="assets/pay/支付宝logo.png" alt="支付宝">
-            </button>
         </div>
     </div>
 </div>
@@ -4494,6 +4199,7 @@
                                 id:        w.id,
                                 img:       `${R2_PUBLIC_URL}/${previewKey}`,
                                 r2key:     w.r2_key,
+                                previewKey: w.preview_key || '',
                                 el:        spec.el,
                                 name:      spec.elName,
                                 desc:      spec.desc,
@@ -4539,6 +4245,7 @@
                         id:        w.id,
                         img:       `${R2_PUBLIC_URL}/${previewKey}`,
                         r2key:     w.r2_key,
+                        previewKey: w.preview_key || '',
                         el:        spec.el,
                         name:      spec.elName,
                         desc:      spec.desc,
@@ -4558,6 +4265,7 @@
                         id:        src.id,
                         img:       src.img,
                         r2key:     src.r2key,
+                        previewKey: src.previewKey || '',
                         el:        spec.el,
                         name:      spec.elName,
                         desc:      spec.desc,
@@ -4608,6 +4316,13 @@
             const fallbackAttrs = fallbackSrc
                 ? `data-fallback-src="${escapeHtml(fallbackSrc)}" onerror="const f=this.dataset.fallbackSrc;if(f){delete this.dataset.fallbackSrc;this.src=f;}"`
                 : '';
+            const hdBtn = `<button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
+            const freeBtn = idx < 2
+                ? `<button type="button" class="btn-download btn-download-free" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-previewkey="${escapeHtml(c.previewKey||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_free'))}</button>`
+                : '';
+            const actions = idx < 2
+                ? `<div class="wallpaper-actions">${freeBtn}${hdBtn}</div>`
+                : `<div class="wallpaper-actions wallpaper-actions-single">${hdBtn}</div>`;
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" ${fallbackAttrs} />
@@ -4615,7 +4330,7 @@
                 <div class="wallpaper-meta">
                     <p class="name">${nameHtml}</p>
                     <p class="desc">${escapeHtml(c.desc)}</p>
-                    <button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download'))}</button>
+                    ${actions}
                 </div>
             </article>`;
         }
@@ -4664,32 +4379,27 @@
     const payPreviewImg = document.getElementById('payPreviewImg');
     const payWallpaperName = document.getElementById('payWallpaperName');
     const payPrice = document.getElementById('payPrice');
+    const payPriceCurrency = document.getElementById('payPriceCurrency');
     const payPriceUnit = document.getElementById('payPriceUnit');
     const payNotice = document.getElementById('payNotice');
-    const payTierRow = document.getElementById('payTierRow');
-    const btnAddCart = document.getElementById('btnAddCart');
     let pendingDownloadImg = '';
     let pendingDownloadName = '';
     let pendingDownloadKey = '';
     let pendingDownloadR2Key = '';
-    let selectedTier = '1';
+    let alipayAvailable = false;
 
-    // 套餐檔位：1 張 / 2 張 / 4 張 / 包年（包年解鎖全站付費功能，不限次數下載）。
-    // 2 張、4 張目前僅作為「更划算」的展示（不可點擊），實際多張結算走下方購物車（下載列表）。
-    const PAY_TIER_PRICE = { '1': '5.99', '2': '10.99', '4': '19.99', 'year': '219.99' };
-    const PAY_TIER_UNIT_KEY = { '1': 'pay_per_image', '2': 'pay_per_2_images', '4': 'pay_per_4_images', 'year': 'pay_per_year' };
-    const PAY_TIER_NOTICE_KEY = { '1': 'pay_notice', '2': 'pay_notice', '4': 'pay_notice', 'year': 'pay_notice_year' };
-
-    function applyTierUI(tier) {
-        selectedTier = tier;
+    function applyPayPrice() {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        const btn = payTierRow.querySelector(`.pay-tier-btn[data-tier="${tier}"]`);
-        payTierRow.querySelectorAll('.pay-tier-btn').forEach((b) => b.classList.toggle('active', b === btn));
-        payPrice.textContent = '$' + (PAY_TIER_PRICE[tier] || PAY_TIER_PRICE['1']);
-        payPriceUnit.setAttribute('data-i18n', PAY_TIER_UNIT_KEY[tier] || 'pay_per_image');
-        payPriceUnit.textContent = t(PAY_TIER_UNIT_KEY[tier] || 'pay_per_image');
-        payNotice.setAttribute('data-i18n', PAY_TIER_NOTICE_KEY[tier] || 'pay_notice');
-        payNotice.textContent = t(PAY_TIER_NOTICE_KEY[tier] || 'pay_notice');
+        if (payPriceCurrency) payPriceCurrency.textContent = 'US';
+        if (payPrice) payPrice.textContent = '$5.99';
+        if (payPriceUnit) {
+            payPriceUnit.setAttribute('data-i18n', 'pay_per_image');
+            payPriceUnit.textContent = t('pay_per_image');
+        }
+        if (payNotice) {
+            payNotice.setAttribute('data-i18n', 'pay_notice');
+            payNotice.textContent = t('pay_notice');
+        }
     }
 
     const ANNUAL_PLANS_KEY = 'bazi_annual_plans';
@@ -4911,7 +4621,7 @@
         if (!btnAnnualService) return;
         // 直接读 localStorage，避免在 AUTH_KEY 声明前调用 isLoggedIn() 触发 TDZ 中断整页脚本
         const logged = localStorage.getItem('bazi_logged_in') === '1';
-        btnAnnualService.style.display = (logged && isAnnualActive()) ? '' : 'none';
+        btnAnnualService.style.display = logged ? '' : 'none';
     }
 
     function purchaseAnnualPlan() {
@@ -4972,6 +4682,110 @@
         document.body.appendChild(a);
         a.click();
         a.remove();
+    }
+
+    function r2PublicUrl(key) {
+        return `${R2_PUBLIC_URL}/${String(key).split('/').map(encodeURIComponent).join('/')}`;
+    }
+
+    function previewFreeKeyFrom(r2key, previewKey) {
+        if (previewKey && String(previewKey).includes('/preview/')) {
+            return String(previewKey).replace('/preview/', '/preview-free/');
+        }
+        if (!r2key) return '';
+        const parts = String(r2key).split('/');
+        if (parts.length < 3) return '';
+        const folder = parts[1];
+        const rawName = parts[parts.length - 1];
+        const filename = String(rawName).replace(/\.[^.]+$/, '') + '.jpg';
+        return `wallpapers/${folder}/preview-free/${filename}`;
+    }
+
+    function freeDlStorageKey() {
+        const email = (typeof getLoggedEmail === 'function' ? getLoggedEmail() : '').toLowerCase();
+        return `ew_free_dl_v2:${email}`;
+    }
+
+    function getFreeDlUsedKey() {
+        try { return localStorage.getItem(freeDlStorageKey()) || ''; } catch (_) { return ''; }
+    }
+
+    function setFreeDlUsedKey(r2key) {
+        try { localStorage.setItem(freeDlStorageKey(), r2key); } catch (_) {}
+    }
+
+    function clearFreeDlUsedKey() {
+        try { localStorage.removeItem(freeDlStorageKey()); } catch (_) {}
+    }
+
+    function hasInviteQuotaForSecondFree() {
+        const count = Number(inviteStatus && inviteStatus.successCount || 0);
+        const status = inviteStatus && inviteStatus.rewardStatus;
+        return count >= 3 || status === 'granted' || status === 'used';
+    }
+
+    async function saveBlobAsFile(blob, filename) {
+        const obj = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = obj;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(obj), 2000);
+    }
+
+    let freeDlBusy = false;
+
+    async function startFreeDownload(btn) {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        if (freeDlBusy) return;
+        if (!requireLogin()) return;
+        const r2key = btn.getAttribute('data-r2key') || '';
+        const previewKey = btn.getAttribute('data-previewkey') || '';
+        const name = btn.getAttribute('data-name') || 'wallpaper';
+        if (!r2key) {
+            alert(t('download_missing_key'));
+            return;
+        }
+        freeDlBusy = true;
+        const prevText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '…';
+        let claimedFirst = false;
+        try {
+            await refreshInviteStatus();
+            const used = getFreeDlUsedKey();
+            if (used && used !== r2key && !hasInviteQuotaForSecondFree()) {
+                openInviteModal('free_second');
+                return;
+            }
+            const freeKey = previewFreeKeyFrom(r2key, previewKey);
+            if (!freeKey) {
+                alert(t('free_dl_missing'));
+                return;
+            }
+            if (!used) {
+                setFreeDlUsedKey(r2key);
+                claimedFirst = true;
+            }
+            const url = r2PublicUrl(freeKey);
+            const res = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
+            if (!res.ok) throw new Error('missing');
+            const blob = await res.blob();
+            if (!blob || !blob.size) throw new Error('empty');
+            const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
+            await saveBlobAsFile(blob, `${baseName}.jpg`);
+            // 第二次也记录，防止重复绕过
+            if (!claimedFirst) setFreeDlUsedKey(r2key);
+        } catch (_) {
+            if (claimedFirst) clearFreeDlUsedKey();
+            alert(t('free_dl_missing'));
+        } finally {
+            freeDlBusy = false;
+            btn.disabled = false;
+            btn.textContent = prevText;
+        }
     }
 
     /**
@@ -5070,29 +4884,13 @@
         return 'payment';
     }
 
-    function productTypeFromTier(tier) {
-        if (tier === 'year' || tier === 'annual') return 'annual';
-        if (tier === '2') return 'pack2';
-        if (tier === '4') return 'pack4';
-        return 'single';
-    }
-
-    function productTypeFromCount(n) {
-        if (n === 1) return 'single';
-        if (n === 2) return 'pack2';
-        if (n === 4) return 'pack4';
-        if (n >= 1) return 'mixed';
-        return null;
-    }
-
-    let alipayAvailable = false;
-
     function setAlipayVisible(show) {
         alipayAvailable = !!show;
-        ['btnCheckoutAlipay', 'btnAnnualPayAlipay'].forEach((id) => {
+        ['btnPayAlipay', 'btnAnnualPayAlipay'].forEach((id) => {
             const el = document.getElementById(id);
             if (el) el.hidden = !show;
         });
+        applyPayPrice();
     }
 
     async function detectMainlandChina() {
@@ -5248,12 +5046,6 @@
             for (const it of items) {
                 if (!it?.r2Key) continue;
                 await downloadAfterPayment(it);
-            }
-            if (items.length) {
-                const keys = new Set(items.map((it) => it.r2Key).filter(Boolean));
-                cartItems = loadCart().filter((it) => !keys.has(it.r2key || ''));
-                saveCart(cartItems);
-                updateCartBadge();
             }
             setTimeout(hideCheckoutReturnModal, 800);
         } catch (err) {
@@ -5465,18 +5257,6 @@
         // pay 模式改走 Stripe / PayPal 按钮
     }
 
-    payTierRow.addEventListener('click', (e) => {
-        const btn = e.target.closest('.pay-tier-btn');
-        if (!btn || btn.disabled) return;
-        if (!requireLogin()) { payModal.classList.remove('open'); return; }
-        const tier = btn.getAttribute('data-tier');
-        if (tier === 'year') {
-            openAnnualSelectModal('pay');
-            return;
-        }
-        applyTierUI(tier);
-    });
-
     if (annualPlansContainer) {
         annualPlansContainer.addEventListener('click', (e) => {
             if (annualSelectPurpose !== 'manage') return;
@@ -5547,7 +5327,7 @@
             e.stopPropagation();
             const userMenuEl = document.getElementById('userMenu');
             if (userMenuEl) userMenuEl.classList.remove('open');
-            openAnnualSelectModal('manage');
+            openAnnualSelectModal(isAnnualActive() ? 'manage' : 'pay');
         });
     }
     updateAnnualNavBtn();
@@ -5556,6 +5336,11 @@
 
 
     wallpaperGrid.addEventListener('click', (e) => {
+        const freeBtn = e.target.closest('.btn-download-free');
+        if (freeBtn) {
+            startFreeDownload(freeBtn);
+            return;
+        }
         const btn = e.target.closest('.btn-download');
         if (!btn) return;
         const img = btn.getAttribute('data-img');
@@ -5575,7 +5360,7 @@
         payPreviewImg.src = img;
         payPreviewImg.alt = name;
         payWallpaperName.textContent = name;
-        applyTierUI('1');
+        applyPayPrice();
         syncInviteRedeemButton();
         payModal.classList.add('open');
         refreshInviteStatus();
@@ -5605,224 +5390,29 @@
         await startCheckout({ provider: 'alipay', productType: 'annual', items: [] });
     });
 
-    // ─── 下載列表（購物車） ─────────────────────────────
-    const CART_STORAGE_KEY = 'bazi_cart_items';
-    const cartModal = document.getElementById('cartModal');
-    const cartModalClose = document.getElementById('cartModalClose');
-    const cartBtn = document.getElementById('cartBtn');
-    const cartBadge = document.getElementById('cartBadge');
-    const cartList = document.getElementById('cartList');
-    const cartToolbar = document.getElementById('cartToolbar');
-    const cartSelectAll = document.getElementById('cartSelectAll');
-    const cartClear = document.getElementById('cartClear');
-    const cartTotalRow = document.getElementById('cartTotalRow');
-    const cartTotalPrice = document.getElementById('cartTotalPrice');
-    const btnCartCheckout = document.getElementById('btnCartCheckout');
-    const cartCheckoutHint = document.getElementById('cartCheckoutHint');
-    const checkoutProviderModal = document.getElementById('checkoutProviderModal');
-    const checkoutProviderClose = document.getElementById('checkoutProviderClose');
-
-    function loadCart() {
-        try {
-            const raw = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
-            return Array.isArray(raw) ? raw : [];
-        } catch (_) { return []; }
-    }
-    function saveCart(items) {
-        try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items)); } catch (_) {}
-    }
-
-    let cartItems = loadCart(); // [{ id, img, name, checked }]
-    let pendingCartCheckout = null; // { productType, items }
-
-    function updateCartBadge() {
-        const count = cartItems.length;
-        cartBadge.textContent = String(count);
-        cartBadge.classList.toggle('show', count > 0);
-    }
-
-    // 依已勾選數量計算結算金額：以 4 張 $19.99、2 張 $10.99、1 張 $5.99 的檔位組合出最省價格
-    function computeCartTotal(count) {
-        let n = count;
-        let total = 0;
-        total += Math.floor(n / 4) * 19.99; n %= 4;
-        total += Math.floor(n / 2) * 10.99; n %= 2;
-        total += n * 5.99;
-        return total;
-    }
-
-    function renderCart() {
+    async function payCurrentWallpaper(provider) {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        updateCartBadge();
-
-        if (cartItems.length === 0) {
-            cartList.innerHTML = `<p class="cart-empty">${escapeHtml(t('cart_empty'))}</p>`;
-            cartToolbar.style.display = 'none';
-            cartTotalRow.style.display = 'none';
-            if (btnCartCheckout) btnCartCheckout.style.display = 'none';
-            if (cartCheckoutHint) cartCheckoutHint.style.display = 'none';
-            return;
-        }
-
-        cartToolbar.style.display = 'flex';
-        cartList.innerHTML = cartItems.map((it) => `
-            <div class="cart-item" data-id="${escapeHtml(it.id)}">
-                <input type="checkbox" class="cart-item-checkbox" ${it.checked ? 'checked' : ''} />
-                <div class="cart-item-thumb"><img src="${escapeHtml(it.img)}" alt="${escapeHtml(it.name)}" draggable="false" /></div>
-                <span class="cart-item-name">${escapeHtml(it.name)}</span>
-                <button type="button" class="cart-item-remove" aria-label="移除">×</button>
-            </div>
-        `).join('');
-
-        const checkedCount = cartItems.filter((it) => it.checked).length;
-        const canCheckout = checkedCount >= 1;
-        cartSelectAll.checked = checkedCount === cartItems.length && checkedCount > 0;
-        cartTotalRow.style.display = checkedCount > 0 ? 'flex' : 'none';
-        cartTotalPrice.textContent = 'US$' + computeCartTotal(checkedCount).toFixed(2);
-        if (btnCartCheckout) {
-            btnCartCheckout.style.display = 'block';
-            btnCartCheckout.disabled = !canCheckout;
-        }
-        if (cartCheckoutHint) {
-            cartCheckoutHint.style.display = canCheckout ? 'block' : 'none';
-        }
-    }
-
-    function openCartModal() {
-        cartItems = loadCart();
-        renderCart();
-        cartModal.classList.add('open');
-    }
-
-    function openCheckoutProviderModal() {
-        if (checkoutProviderModal) checkoutProviderModal.classList.add('open');
-    }
-
-    function closeCheckoutProviderModal() {
-        if (checkoutProviderModal) checkoutProviderModal.classList.remove('open');
-    }
-
-    cartBtn.addEventListener('click', openCartModal);
-    cartModalClose.addEventListener('click', () => { cartModal.classList.remove('open'); });
-    cartModal.addEventListener('click', (e) => {
-        if (e.target === cartModal) cartModal.classList.remove('open');
-    });
-    checkoutProviderClose?.addEventListener('click', closeCheckoutProviderModal);
-    checkoutProviderModal?.addEventListener('click', (e) => {
-        if (e.target === checkoutProviderModal) closeCheckoutProviderModal();
-    });
-
-    cartList.addEventListener('click', (e) => {
-        const row = e.target.closest('.cart-item');
-        if (!row) return;
-        const id = row.getAttribute('data-id');
-        if (e.target.closest('.cart-item-remove')) {
-            cartItems = cartItems.filter((it) => it.id !== id);
-            saveCart(cartItems);
-            renderCart();
-            return;
-        }
-        if (e.target.classList.contains('cart-item-checkbox')) {
-            const item = cartItems.find((it) => it.id === id);
-            if (item) item.checked = e.target.checked;
-            saveCart(cartItems);
-            renderCart();
-        }
-    });
-
-    cartSelectAll.addEventListener('change', () => {
-        const checked = cartSelectAll.checked;
-        cartItems.forEach((it) => { it.checked = checked; });
-        saveCart(cartItems);
-        renderCart();
-    });
-
-    cartClear.addEventListener('click', () => {
-        cartItems = [];
-        saveCart(cartItems);
-        renderCart();
-    });
-
-    function prepareCartCheckout() {
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        if (!requireLogin()) return false;
-        const checked = cartItems.filter((it) => it.checked);
-        if (!checked.length) {
-            alert(t('pay_cart_empty'));
-            return false;
-        }
-        const missing = checked.some((it) => !it.r2key);
-        if (missing) {
+        if (!requireLogin()) return;
+        if (provider === 'alipay' && !alipayAvailable) return;
+        if (!pendingDownloadR2Key) {
             alert(t('download_missing_key'));
-            return false;
+            return;
         }
-        pendingCartCheckout = {
-            productType: productTypeFromCount(checked.length),
-            items: checked.map((it) => ({
-                r2_key: it.r2key,
-                preview_url: it.img,
-                wallpaper_name: it.name,
-            })),
-        };
-        return true;
-    }
-
-    async function cartCheckout(provider) {
-        if (!pendingCartCheckout) {
-            if (!prepareCartCheckout()) return;
-        }
-        const payload = pendingCartCheckout;
-        pendingCartCheckout = null;
-        cartModal.classList.remove('open');
-        closeCheckoutProviderModal();
+        payModal.classList.remove('open');
         await startCheckout({
             provider,
-            productType: payload.productType,
-            items: payload.items,
+            productType: 'single',
+            items: [{
+                r2_key: pendingDownloadR2Key,
+                preview_url: pendingDownloadImg,
+                wallpaper_name: pendingDownloadName,
+            }],
         });
     }
 
-    btnCartCheckout?.addEventListener('click', () => {
-        if (!prepareCartCheckout()) return;
-        openCheckoutProviderModal();
-    });
-    document.getElementById('btnCheckoutStripe')?.addEventListener('click', () => cartCheckout('stripe'));
-    document.getElementById('btnCheckoutPaypal')?.addEventListener('click', () => cartCheckout('paypal'));
-    document.getElementById('btnCheckoutAlipay')?.addEventListener('click', () => {
-        if (!alipayAvailable) return;
-        cartCheckout('alipay');
-    });
-
-    btnAddCart.addEventListener('click', () => {
-        if (!requireLogin()) return;
-        if (!pendingDownloadImg) return;
-        const key = pendingDownloadKey || pendingDownloadImg;
-        const exists = cartItems.some((it) => (it.key || it.img) === key);
-        if (!exists) {
-            cartItems.push({
-                id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-                key,
-                img: pendingDownloadImg,
-                name: pendingDownloadName,
-                r2key: pendingDownloadR2Key || '',
-                checked: true
-            });
-            saveCart(cartItems);
-        }
-        updateCartBadge();
-
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        const original = btnAddCart.textContent;
-        btnAddCart.textContent = t('pay_added_cart');
-        btnAddCart.disabled = true;
-        setTimeout(() => {
-            btnAddCart.textContent = original;
-            btnAddCart.disabled = false;
-            payModal.classList.remove('open');
-        }, 700);
-    });
-
-    updateCartBadge();
+    document.getElementById('btnPayStripe')?.addEventListener('click', () => payCurrentWallpaper('stripe'));
+    document.getElementById('btnPayPaypal')?.addEventListener('click', () => payCurrentWallpaper('paypal'));
+    document.getElementById('btnPayAlipay')?.addEventListener('click', () => payCurrentWallpaper('alipay'));
 
     let profiles = loadProfiles();
     const _isLoggedIn = localStorage.getItem('bazi_logged_in') === '1';
@@ -6511,6 +6101,7 @@
         if (!btn || !window.I18N) return;
         e.stopPropagation();
         window.I18N.setLanguage(btn.getAttribute('data-lang-option'));
+        applyPayPrice();
         langMenu.classList.remove('open');
     });
 
@@ -6614,6 +6205,8 @@
         btnInviteRedeem.style.display = show ? '' : 'none';
         btnInviteRedeem.disabled = false;
         btnInviteRedeem.textContent = inviteT('invite_redeem');
+        const wrap = btnInviteRedeem.closest('.pay-actions');
+        if (wrap) wrap.style.display = show ? '' : 'none';
     }
 
     function renderInviteModal() {
@@ -6638,9 +6231,15 @@
         }
         if (inviteFooter) {
             const reward = st.rewardStatus || 'none';
-            if (reward === 'used') inviteFooter.textContent = inviteT('invite_footer_used');
-            else if (reward === 'granted') inviteFooter.textContent = inviteT('invite_footer_granted');
-            else inviteFooter.textContent = inviteT('invite_footer_goal');
+            if (inviteModalFooterMode === 'free_second') {
+                inviteFooter.textContent = inviteT('free_dl_need_invite');
+            } else if (reward === 'used') {
+                inviteFooter.textContent = inviteT('invite_footer_used');
+            } else if (reward === 'granted') {
+                inviteFooter.textContent = inviteT('invite_footer_granted');
+            } else {
+                inviteFooter.textContent = inviteT('invite_footer_goal');
+            }
         }
         syncInviteRedeemButton();
     }
@@ -6683,8 +6282,11 @@
         return inviteStatusPromise;
     }
 
-    function openInviteModal() {
+    let inviteModalFooterMode = 'default';
+
+    function openInviteModal(footerMode) {
         if (!requireLogin()) return;
+        inviteModalFooterMode = footerMode === 'free_second' ? 'free_second' : 'default';
         userMenu.classList.remove('open');
         if (inviteBindMsg) {
             inviteBindMsg.textContent = '';
@@ -6696,6 +6298,7 @@
     }
 
     function closeInviteModal() {
+        inviteModalFooterMode = 'default';
         if (inviteModal) inviteModal.classList.remove('open');
     }
 
@@ -6727,10 +6330,8 @@
         localStorage.removeItem(AUTH_KEY);
         localStorage.removeItem(AUTH_EMAIL_KEY);
         localStorage.removeItem('bazi_logged_in_email');
-        localStorage.removeItem(CART_STORAGE_KEY);
+        localStorage.removeItem('bazi_cart_items');
         localStorage.removeItem('bazi_profiles');
-        cartItems = [];
-        updateCartBadge();
         clearLocalAnnualPlans();
         inviteStatus = null;
         updateAuthUI();
@@ -6743,8 +6344,6 @@
         btnLogin.style.display = logged ? 'none' : '';
         userMenuWrap.style.display = logged ? '' : 'none';
         userMenuEmail.textContent = logged ? getLoggedEmail() : '';
-        const navCartWrap = document.getElementById('navCartWrap');
-        if (navCartWrap) navCartWrap.style.display = logged ? '' : 'none';
         updateAnnualNavBtn();
     }
 
@@ -6845,9 +6444,9 @@
     try { localStorage.removeItem('ew_download_history'); } catch (_) {}
 
     // 其他页面「包年服务」跳转落地：landing.html#annual
-    if (location.hash === '#annual' && isLoggedIn() && isAnnualActive()) {
+    if (location.hash === '#annual' && isLoggedIn()) {
         setTimeout(() => {
-            openAnnualSelectModal('manage');
+            openAnnualSelectModal(isAnnualActive() ? 'manage' : 'pay');
             try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
         }, 0);
     }
