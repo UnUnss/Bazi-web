@@ -890,24 +890,23 @@
         }
 
         .wallpaper-actions {
-            display: grid;
-            grid-template-columns: auto 1fr;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-flex-direction: column;
+            flex-direction: column;
             gap: 4px;
             width: 100%;
             margin-top: auto;
         }
 
-        .wallpaper-actions-single {
-            grid-template-columns: 1fr;
-        }
-
         .wallpaper-actions .btn-download {
-            margin-top: 0;
             width: 100%;
-            padding: 8px 4px;
-            font-size: 11px;
+            margin-top: 0;
+            padding: 8px 6px;
+            font-size: 12px;
             letter-spacing: 0;
-            line-height: 1.2;
+            line-height: 1.3;
             white-space: normal;
             word-break: keep-all;
         }
@@ -2370,8 +2369,8 @@
             }
 
             .wallpaper-actions .btn-download {
-                font-size: 10px;
-                padding: 7px 3px;
+                font-size: 11px;
+                padding: 7px 4px;
                 margin-top: 0;
             }
         }
@@ -2649,18 +2648,18 @@
         <button type="button" class="modal-close" id="payModalClose" aria-label="關閉">×</button>
         <div class="pay-wallpaper-preview">
             <img id="payPreviewImg" src="" alt="" draggable="false">
-        </div>
+                </div>
         <p class="pay-wallpaper-name" id="payWallpaperName"></p>
         <div class="pay-price-row">
             <span class="pay-price-currency" id="payPriceCurrency">US</span><span class="pay-price" id="payPrice">$5.99</span>
             <span class="pay-price-unit" id="payPriceUnit" data-i18n="pay_per_image">/ 張</span>
-        </div>
+                </div>
         <p class="pay-notice" id="payNotice" data-i18n="pay_notice">支付成功後將會自動下載背景圖，
 若下載失敗可在導航欄「用戶——本月下載記錄」重新下載</p>
 
         <div class="pay-actions" style="display:none">
             <button type="button" class="btn-add-cart" id="btnInviteRedeem" data-i18n="invite_redeem" style="display:none">使用邀請碼獎勵兌換</button>
-        </div>
+                    </div>
         <div class="pay-provider-row">
             <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
             <button type="button" class="btn-official-stripe" id="btnPayStripe" data-provider="stripe" aria-label="Stripe">
@@ -2677,9 +2676,9 @@
             <button type="button" class="btn-official-alipay" id="btnPayAlipay" data-provider="alipay" aria-label="支付宝" hidden>
                 <img src="assets/pay/支付宝logo.png" alt="支付宝">
             </button>
-        </div>
-    </div>
-</div>
+                    </div>
+                </div>
+            </div>
 
 <!-- 邀请码活动弹窗（下线时删除本块及对应 JS） -->
 <div class="modal-backdrop" id="inviteModal" role="dialog" aria-modal="true">
@@ -2691,9 +2690,9 @@
             <div class="code-row">
                 <input type="text" id="inviteCodeInput" name="inviteCodeInput" maxlength="8" autocomplete="off" spellcheck="false" data-i18n-placeholder="invite_input_placeholder" placeholder="請輸入好友的邀請碼" />
                 <button type="button" class="btn-get-code" id="btnInviteBind" data-i18n="invite_submit">確認</button>
-            </div>
+                </div>
             <p class="invite-bind-msg" id="inviteBindMsg"></p>
-        </div>
+                </div>
         <div class="form-group">
             <label for="inviteMyCode" data-i18n="invite_my_code">我的邀請碼</label>
             <div class="code-row">
@@ -2703,14 +2702,14 @@
             <p class="invite-count" id="inviteCount"></p>
         </div>
         <p class="invite-footer" id="inviteFooter"></p>
-    </div>
-</div>
+            </div>
+        </div>
 
 <div class="modal-backdrop" id="inviteRedeemModal" role="status" aria-live="polite" aria-modal="true">
     <div class="modal confirm-modal">
         <p data-i18n="invite_redeeming">兌換成功，正在下載</p>
         <p data-i18n="invite_redeeming_hint">若下載失敗可在右上角「用戶」→「本月下載記錄」重新下載</p>
-    </div>
+        </div>
 </div>
 
 <div class="modal-backdrop" id="invitePromoModal" role="dialog" aria-modal="true">
@@ -4704,19 +4703,34 @@
 
     function freeDlStorageKey() {
         const email = (typeof getLoggedEmail === 'function' ? getLoggedEmail() : '').toLowerCase();
+        return `ew_free_dl_v3:${email}`;
+    }
+
+    function freeDlLegacyStorageKey() {
+        const email = (typeof getLoggedEmail === 'function' ? getLoggedEmail() : '').toLowerCase();
         return `ew_free_dl_v2:${email}`;
     }
 
-    function getFreeDlUsedKey() {
-        try { return localStorage.getItem(freeDlStorageKey()) || ''; } catch (_) { return ''; }
+    function getFreeDlUsedKeys() {
+        try {
+            const raw = localStorage.getItem(freeDlStorageKey());
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    return parsed.map((k) => String(k || '')).filter(Boolean);
+                }
+            }
+            const legacy = localStorage.getItem(freeDlLegacyStorageKey()) || '';
+            return legacy ? [legacy] : [];
+        } catch (_) {
+            return [];
+        }
     }
 
-    function setFreeDlUsedKey(r2key) {
-        try { localStorage.setItem(freeDlStorageKey(), r2key); } catch (_) {}
-    }
-
-    function clearFreeDlUsedKey() {
-        try { localStorage.removeItem(freeDlStorageKey()); } catch (_) {}
+    function setFreeDlUsedKeys(keys) {
+        try {
+            localStorage.setItem(freeDlStorageKey(), JSON.stringify(keys));
+        } catch (_) {}
     }
 
     function hasInviteQuotaForSecondFree() {
@@ -4753,22 +4767,29 @@
         const prevText = btn.textContent;
         btn.disabled = true;
         btn.textContent = '…';
-        let claimedFirst = false;
+        let claimedKey = '';
         try {
             await refreshInviteStatus();
-            const used = getFreeDlUsedKey();
-            if (used && used !== r2key && !hasInviteQuotaForSecondFree()) {
+            const usedKeys = getFreeDlUsedKeys();
+            const alreadyUsedThis = usedKeys.includes(r2key);
+
+            if (usedKeys.length >= 2) {
+                alert(t('free_dl_exhausted'));
+                return;
+            }
+            if (!alreadyUsedThis && usedKeys.length === 1 && !hasInviteQuotaForSecondFree()) {
                 openInviteModal('free_second');
                 return;
             }
+
             const freeKey = previewFreeKeyFrom(r2key, previewKey);
             if (!freeKey) {
                 alert(t('free_dl_missing'));
                 return;
             }
-            if (!used) {
-                setFreeDlUsedKey(r2key);
-                claimedFirst = true;
+            if (!alreadyUsedThis) {
+                claimedKey = r2key;
+                setFreeDlUsedKeys(usedKeys.concat(r2key));
             }
             const url = r2PublicUrl(freeKey);
             const res = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
@@ -4777,10 +4798,10 @@
             if (!blob || !blob.size) throw new Error('empty');
             const baseName = (name || 'wallpaper').replace(/[\\/:*?"<>|]+/g, '_');
             await saveBlobAsFile(blob, `${baseName}.jpg`);
-            // 第二次也记录，防止重复绕过
-            if (!claimedFirst) setFreeDlUsedKey(r2key);
         } catch (_) {
-            if (claimedFirst) clearFreeDlUsedKey();
+            if (claimedKey) {
+                setFreeDlUsedKeys(getFreeDlUsedKeys().filter((k) => k !== claimedKey));
+            }
             alert(t('free_dl_missing'));
         } finally {
             freeDlBusy = false;
