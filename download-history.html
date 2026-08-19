@@ -7,12 +7,12 @@
     <meta name="robots" content="noindex, nofollow">
     <title data-i18n="nav_download_history">本月下載記錄 · ElementaWall</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png">
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=9" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=8" />
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=10" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=10" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
     <script src="auth-session.js"></script>
-    <script src="i18n.js?v=39"></script>
+    <script src="i18n.js?v=40"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -604,7 +604,7 @@
             });
             if (res.status === 401) { location.href = '/landing?login=1'; return; }
             if (res.status === 402) {
-                alert(window.I18N ? window.I18N.t('download_payment_required') : '需要先購買此背景圖');
+                alert(window.I18N ? window.I18N.t('download_payment_required') : '需要先購買此手機桌布');
                 return;
             }
             if (!res.ok) {

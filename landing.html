@@ -43,18 +43,18 @@
     })();
     </script>
     <meta name="theme-color" content="#F1ECDF">
-    <title data-i18n="meta_title">每月定製個性化背景圖</title>
+    <title data-i18n="meta_title">每月定製個性化手機桌布</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <meta name="application-name" content="ElementaWall">
-    <meta name="description" content="ElementaWall 根據生辰八字，為你定制每月運勢背景圖。支援 Google 與郵箱登入，提供個人化背景圖推薦與下載。">
+    <meta name="description" content="ElementaWall 根據生辰八字，為你定制每月運勢手機桌布。支援 Google 與郵箱登入，提供個人化手機桌布推薦與下載。">
     <!--
         汇迹正楷 CooperZhengKai：UI 子集优先；子集没有的字回退到完整 CooperZhengKai。
         城市名等地点文案仍可走系统字体（见 .loc-select）。
     -->
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=9" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=8" />
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=10" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=10" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=39"></script>
+    <script src="i18n.js?v=40"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -2421,9 +2421,9 @@
     <section class="brand-seo">
         <h1>ElementaWall</h1>
         <p>ElementaWall is an app that creates personalized monthly fortune wallpapers based on your BaZi (Four Pillars) birth chart. Users can browse, select, and download wallpapers matched to their chart.</p>
-        <p>ElementaWall 根據生辰八字，為你定制每月運勢背景圖，並提供個人化背景圖推薦與下載。</p>
+        <p>ElementaWall 根據生辰八字，為你定制每月運勢手機桌布，並提供個人化手機桌布推薦與下載。</p>
         <p>Sign in with Google or email to save your profiles, sync wallpaper history, and manage your account. When you use Google Sign-In, ElementaWall requests basic profile and email information only to create and authenticate your account; we do not use Google user data for advertising.</p>
-        <p>使用 Google 或郵箱登入後，可保存八字檔案、同步背景圖記錄並管理帳號。透過 Google 登入時，ElementaWall 僅請求基本資料與電子郵件用於建立與驗證帳號，不會將 Google 用戶資料用於廣告。</p>
+        <p>使用 Google 或郵箱登入後，可保存八字檔案、同步手機桌布記錄並管理帳號。透過 Google 登入時，ElementaWall 僅請求基本資料與電子郵件用於建立與驗證帳號，不會將 Google 用戶資料用於廣告。</p>
         <p><a href="/policy">Privacy Policy / 用戶服務與隱私協議</a> · <a href="/about">About ElementaWall / 關於我們</a> · <a href="/contact">Contact / 聯絡我們</a></p>
     </section>
     <div class="action-row">
@@ -2505,7 +2505,7 @@
 </main>
 
 <section class="wallpaper-section">
-    <h2 class="wallpaper-title" data-i18n="wallpaper_section_title">本月專屬背景圖</h2>
+    <h2 class="wallpaper-title" data-i18n="wallpaper_section_title">本月專屬手機桌布</h2>
 
     <!-- 卡片內容由 JS 依據 bazi_logic.js 的本月喜用五行／弱勢領域計算結果動態生成，見下方 renderWallpapers() -->
     <div class="wallpaper-grid" id="wallpaperGrid"></div>
@@ -2623,7 +2623,7 @@
             <span class="pay-price-currency" id="payPriceCurrency">US</span><span class="pay-price" id="payPrice">$5.99</span>
             <span class="pay-price-unit" id="payPriceUnit" data-i18n="pay_per_image">/ 張</span>
                 </div>
-        <p class="pay-notice" id="payNotice" data-i18n="pay_notice">支付成功後將會自動下載背景圖，
+        <p class="pay-notice" id="payNotice" data-i18n="pay_notice">支付成功後將會自動下載手機桌布，
 若下載失敗可在導航欄「用戶——本月下載記錄」重新下載</p>
 
         <div class="pay-provider-row">
@@ -2765,7 +2765,7 @@
             <div class="form-group subscribe-row" id="subscribeRow" style="display:none;">
                 <label class="subscribe-label">
                     <input type="checkbox" id="subscribeEmail" name="subscribeEmail" checked />
-                    <span data-i18n="signup_subscribe_label">訂閱每月換運提示，及時獲取背景圖更新通知，後續功能更新郵箱接收提示</span>
+                    <span data-i18n="signup_subscribe_label">訂閱每月換運提示，及時獲取手機桌布更新通知，後續功能更新郵箱接收提示</span>
                 </label>
             </div>
             <button type="submit" class="btn-save" id="loginSubmitBtn">登入</button>
@@ -2830,7 +2830,7 @@
         <div class="form-group subscribe-row">
             <label class="subscribe-label">
                 <input type="checkbox" id="accountSubscribeEmail" name="accountSubscribeEmail" />
-                <span data-i18n="signup_subscribe_label">訂閱每月換運提示，及時獲取背景圖更新通知，後續功能更新郵箱接收提示</span>
+                <span data-i18n="signup_subscribe_label">訂閱每月換運提示，及時獲取手機桌布更新通知，後續功能更新郵箱接收提示</span>
             </label>
         </div>
         <div class="account-manage-actions">
