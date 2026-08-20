@@ -2668,7 +2668,7 @@
                 </div>
         <p class="pay-wallpaper-name" id="payWallpaperName"></p>
         <div class="pay-price-row">
-            <span class="pay-price-currency" id="payPriceCurrency">US</span><span class="pay-price" id="payPrice">$5.99</span>
+            <span class="pay-price" id="payPrice">$5.99</span><span class="pay-price-currency" id="payPriceCurrency">美元</span>
             <span class="pay-price-unit" id="payPriceUnit" data-i18n="pay_per_image">/ 張</span>
                 </div>
         <p class="pay-notice" id="payNotice" data-i18n="pay_notice">支付成功後將會自動下載手機桌布，
@@ -2761,6 +2761,10 @@
             <button type="button" class="btn-annual-later annual-select-manage-only" id="btnAnnualLater" data-i18n="annual_select_later">稍后再选</button>
             <button type="button" class="btn-annual-confirm annual-select-manage-only" id="btnAnnualConfirm" data-i18n="annual_select_confirm">确认</button>
             <div class="pay-provider-row annual-select-pay-only" id="annualPayRow" style="display:none; width:100%;">
+                <div class="pay-price-row">
+                    <span class="pay-price">$219.99</span><span class="pay-price-currency">美元</span>
+                    <span class="pay-price-unit" data-i18n="pay_per_year">/ 年</span>
+                </div>
                 <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
                 <button type="button" class="btn-official-stripe" id="btnAnnualPayStripe" data-provider="stripe" aria-label="Stripe">
                     <img class="stripe-wordmark" src="assets/pay/stripe-wordmark.png" alt="stripe">
@@ -4400,7 +4404,7 @@
 
     function applyPayPrice() {
         const t = window.I18N ? window.I18N.t : (k) => k;
-        if (payPriceCurrency) payPriceCurrency.textContent = 'US';
+        if (payPriceCurrency) payPriceCurrency.textContent = '美元';
         if (payPrice) payPrice.textContent = '$5.99';
         if (payPriceUnit) {
             payPriceUnit.setAttribute('data-i18n', 'pay_per_image');
@@ -4809,6 +4813,7 @@
             }
 
             const url = r2PublicUrl(freeKey);
+            showCheckoutReturnMsg('dl_in_progress');
             const [apiRes, fetchRes] = await Promise.all([
                 alreadyUsedThis
                     ? Promise.resolve({ ok: true, status: 200, _skip: true })
@@ -4825,6 +4830,7 @@
 
             // 只有明确的配额拒绝才拦截下载；表未建 / 记账 5xx 不挡下载
             if (!apiRes._skip && apiRes.status === 403) {
+                hideCheckoutReturnModal();
                 const body = await apiRes.json().catch(() => ({}));
                 if (body.error === 'need_invite') {
                     openInviteModal('free_second');
@@ -4853,11 +4859,13 @@
                 setFreeDlUsedKeys(usedKeys.concat(r2key));
             }
         } catch (_) {
+            hideCheckoutReturnModal();
             if (claimedKey) {
                 setFreeDlUsedKeys(getFreeDlUsedKeys().filter((k) => k !== claimedKey));
             }
             alert(t('free_dl_missing'));
         } finally {
+            hideCheckoutReturnModal();
             freeDlBusy = false;
             btn.disabled = false;
             btn.textContent = prevText;
@@ -4985,12 +4993,15 @@
 
     async function startCheckout({ provider, productType, items }) {
         const t = window.I18N ? window.I18N.t : (k) => k;
+        if (startCheckout.inFlight) return;
         if (!requireLogin()) return;
         if (provider === 'alipay' && !alipayAvailable) return;
         if (provider !== 'stripe' && provider !== 'paypal' && provider !== 'alipay') {
             alert(t('pay_provider_required'));
             return;
         }
+        startCheckout.inFlight = true;
+        showCheckoutReturnMsg('pay_creating');
         try {
             const headers = await getAuthHeaders();
             const res = await fetch('/api/checkout/create', {
@@ -5015,6 +5026,8 @@
             } catch (_) {}
             window.location.href = data.checkoutUrl;
         } catch (err) {
+            startCheckout.inFlight = false;
+            hideCheckoutReturnModal();
             alert(err?.message || t('pay_create_failed'));
         }
     }
