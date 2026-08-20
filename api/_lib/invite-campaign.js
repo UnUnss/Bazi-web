@@ -1,4 +1,5 @@
-// 限时邀请码活动。下线时删除本文件、api/invite.js、migration，并去掉 download.js 里的邀请分支。
+// 限时邀请码活动。下线时删除本文件、api/invite.js、migration。
+// 邀请奖励只能兑换带水印的免费图，不能兑换原图。
 import { randomBytes } from 'node:crypto';
 import { getServiceSupabase } from './supabase.js';
 

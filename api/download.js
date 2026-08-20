@@ -1,7 +1,7 @@
 // 已登录用户获取原图临时下载链接（Bearer）
 // 授权：有效包年 或 已支付订单包含该 r2_key
 //       或本月（节气月）已有下载记录 → 允许重新下载（包年/单购皆可）
-//       或 use_invite_reward=true 且有未使用的邀请奖励额度（活动模块，下线时删除此分支）
+// 邀请奖励不能兑换原图，只走带水印的免费下载。
 // 可选：record_history=true 时由服务端写入 download_records（避免浏览器直连 Supabase 失败）
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -9,7 +9,6 @@ import { Solar } from 'lunar-javascript';
 import { assertUser } from './_lib/auth.js';
 import { getServiceSupabase } from './_lib/supabase.js';
 import { userCanDownloadKey } from './_lib/fulfill-order.js';
-import { consumeInviteReward, revertInviteReward } from './_lib/invite-campaign.js';
 
 const s3 = new S3Client({
   region: 'auto',
@@ -121,7 +120,6 @@ export default async function handler(req, res) {
     preview_url: previewUrl,
     wallpaper_name: wallpaperName,
     month_ganzhi: monthGanzhi,
-    use_invite_reward: useInviteReward,
   } = body;
   if (!r2_key || typeof r2_key !== 'string') {
     return res.status(400).json({ error: 'Missing r2_key' });
@@ -187,11 +185,6 @@ export default async function handler(req, res) {
       r2Key: originalKey,
     });
   }
-  let consumedInvite = false;
-  if (!allowed && useInviteReward) {
-    consumedInvite = await consumeInviteReward(auth.userId);
-    allowed = consumedInvite;
-  }
   if (!allowed) {
     return res.status(402).json({ error: 'Payment required' });
   }
@@ -225,7 +218,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ url, r2_key: originalKey, filename: downloadName });
   } catch (err) {
-    if (consumedInvite) await revertInviteReward(auth.userId);
     console.error('download presign error:', err);
     return res.status(500).json({ error: 'Failed to generate download URL' });
   }
