@@ -54,7 +54,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=10" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=10" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=41"></script>
+    <script src="i18n.js?v=42"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -910,6 +910,36 @@
 
         .wallpaper-actions .btn-download:first-child {
             margin-top: 0;
+        }
+
+        .wallpaper-actions .btn-download-hd {
+            background: #4a3a28;
+            color: #faf6ec;
+            border-color: #4a3a28;
+        }
+
+        .wallpaper-actions .btn-download-hd:hover {
+            background: #3d2f20;
+            color: #fff8ee;
+        }
+
+        #previewLargeModal {
+            z-index: 80;
+            background: rgba(20, 14, 6, 0.72);
+            padding: 16px;
+        }
+
+        .preview-large-modal {
+            max-width: min(420px, 88vw);
+            padding: 10px 10px 12px;
+            background: #faf6ec;
+        }
+
+        .preview-large-modal img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 2px;
         }
 
         /* ─── 支付彈窗 ─────────────────────────────────── */
@@ -2611,6 +2641,14 @@
     </div>
 </div>
 
+<!-- 补两个运：预览完整锁屏水印大图 -->
+<div class="modal-backdrop" id="previewLargeModal" role="dialog" aria-modal="true">
+    <div class="modal preview-large-modal">
+        <button type="button" class="modal-close" id="previewLargeClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
+        <img id="previewLargeImg" src="" alt="" draggable="false">
+    </div>
+</div>
+
 <!-- 支付彈窗：壁纸信息 + 支付方式 -->
 <div class="modal-backdrop" id="payModal" role="dialog" aria-modal="true">
     <div class="modal pay-modal">
@@ -4275,13 +4313,16 @@
             const fallbackAttrs = fallbackSrc
                 ? `data-fallback-src="${escapeHtml(fallbackSrc)}" onerror="const f=this.dataset.fallbackSrc;if(f){delete this.dataset.fallbackSrc;this.src=f;}"`
                 : '';
-            const hdBtn = `<button type="button" class="btn-download" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
+            const hdBtn = `<button type="button" class="btn-download btn-download-hd" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
             const freeBtn = idx < 2
                 ? `<button type="button" class="btn-download btn-download-free" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-previewkey="${escapeHtml(c.previewKey||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_free'))}</button>`
                 : '';
+            const previewBtn = idx >= 2
+                ? `<button type="button" class="btn-download btn-preview-large" data-preview-src="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_preview_large'))}</button>`
+                : '';
             const actions = idx < 2
                 ? `<div class="wallpaper-actions">${freeBtn}${hdBtn}</div>`
-                : `<div class="wallpaper-actions wallpaper-actions-single">${hdBtn}</div>`;
+                : `<div class="wallpaper-actions">${previewBtn}${hdBtn}</div>`;
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" ${fallbackAttrs} />
@@ -5360,6 +5401,19 @@
 
 
     wallpaperGrid.addEventListener('click', (e) => {
+        const previewBtn = e.target.closest('.btn-preview-large');
+        if (previewBtn) {
+            const src = previewBtn.getAttribute('data-preview-src') || '';
+            const name = previewBtn.getAttribute('data-name') || '';
+            const previewLargeModal = document.getElementById('previewLargeModal');
+            const previewLargeImg = document.getElementById('previewLargeImg');
+            if (src && previewLargeModal && previewLargeImg) {
+                previewLargeImg.src = src;
+                previewLargeImg.alt = name;
+                previewLargeModal.classList.add('open');
+            }
+            return;
+        }
         const freeBtn = e.target.closest('.btn-download-free');
         if (freeBtn) {
             startFreeDownload(freeBtn);
@@ -5392,6 +5446,19 @@
     payModalClose.addEventListener('click', () => { payModal.classList.remove('open'); });
     payModal.addEventListener('click', (e) => {
         if (e.target === payModal) payModal.classList.remove('open');
+    });
+
+    const previewLargeModal = document.getElementById('previewLargeModal');
+    const previewLargeClose = document.getElementById('previewLargeClose');
+    function closePreviewLarge() {
+        if (!previewLargeModal) return;
+        previewLargeModal.classList.remove('open');
+        const img = document.getElementById('previewLargeImg');
+        if (img) img.removeAttribute('src');
+    }
+    previewLargeClose?.addEventListener('click', closePreviewLarge);
+    previewLargeModal?.addEventListener('click', (e) => {
+        if (e.target === previewLargeModal) closePreviewLarge();
     });
 
     document.getElementById('btnAnnualPayStripe')?.addEventListener('click', async () => {
