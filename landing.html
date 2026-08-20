@@ -5032,6 +5032,15 @@
         }
     }
 
+    // 跳去支付后用浏览器返回时，页面可能从往返缓存恢复，弹层会停在「生成订单中」
+    window.addEventListener('pageshow', () => {
+        if (!startCheckout.inFlight) return;
+        startCheckout.inFlight = false;
+        hideCheckoutReturnModal();
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        alert(t('pay_cancelled'));
+    });
+
     function showCheckoutReturnMsg(key) {
         const t = window.I18N ? window.I18N.t : (k) => k;
         const el = document.getElementById('checkoutReturnModal');
