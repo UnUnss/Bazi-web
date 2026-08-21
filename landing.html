@@ -4195,10 +4195,15 @@
                 const lockedEntry = history[ymKey];
                 if (Array.isArray(lockedEntry) && lockedEntry.length > 0
                         && lockedEntry[0] && typeof lockedEntry[0] === 'object' && 'si' in lockedEntry[0]) {
-                    // 校验锁定壁纸仍在图库中（防止管理员删图后出现空卡）
+                    // 校验锁定壁纸仍在图库中，且五行与槽位一致（防止用水图锁进金槽）
                     const allPool = [...(poolPrimary || []), ...(poolSecondary || [])];
                     const poolMap = new Map(allPool.map((w) => [w.id, w]));
-                    const allValid = lockedEntry.every((e) => !e.id || poolMap.has(e.id));
+                    const allValid = lockedEntry.every((e) => {
+                        if (!e.id) return true;
+                        const w = poolMap.get(e.id);
+                        const spec = cardSpecs[e.si];
+                        return w && spec && (!w.element || w.element === spec.el);
+                    });
                     if (allValid) {
                         // 从图库重新取壁纸对象（获取最新预览 key），name/desc 从 cardSpecs 重取支持语言切换
                         const restored = lockedEntry.map((e) => {
@@ -4239,16 +4244,12 @@
                 matchOrder.forEach((i) => {
                     const spec = cardSpecs[i];
                     const preferred = (spec.el === primaryEl ? poolPrimary : poolSecondary) || [];
-                    const other = (spec.el === primaryEl ? poolSecondary : poolPrimary) || [];
                     const seed = `${baseSeed}|card${i}`;
-                    // 先避开：本月已选 + 上月已展示；不够再放宽上月限制，最后才允许本月内复用
+                    // 只在同五行池里选；优先避开上月已展示，不够再放宽，最后允许本月复用。不跨五行。
                     const exclStrict = usedIds.concat(prevMonthIds.filter((id) => usedIds.indexOf(id) < 0));
                     const w = pickByTags(preferred, spec.tags, seed, exclStrict)
                         || pickByTags(preferred, spec.tags, seed + '|relaxPrev', usedIds)
-                        || pickByTags(other, spec.tags, seed + '|other', exclStrict)
-                        || pickByTags(other, spec.tags, seed + '|otherRelax', usedIds)
-                        || pickByTags(preferred, spec.tags, seed + '|reuse', [])
-                        || pickByTags(other, spec.tags, seed + '|otherReuse', []);
+                        || pickByTags(preferred, spec.tags, seed + '|reuse', []);
                     if (!w) return;
                     if (w.id != null && !usedIds.includes(w.id)) usedIds.push(w.id);
                     const previewKey = w.preview_key || w.r2_key;
@@ -4266,25 +4267,7 @@
                     };
                 });
 
-                // 按展示顺序取出；空槽用已选图循环补齐，保证 4 张
-                const availableCards = picked.filter(Boolean);
-                cards = cardSpecs.map((spec, i) => {
-                    if (picked[i]) return picked[i];
-                    if (!availableCards.length) return null;
-                    const src = availableCards[i % availableCards.length];
-                    return {
-                        id:        src.id,
-                        img:       src.img,
-                        r2key:     src.r2key,
-                        previewKey: src.previewKey || '',
-                        el:        spec.el,
-                        name:      spec.elName,
-                        desc:      spec.desc,
-                        tags:      src.tags,
-                        specIndex: i,
-                        isPreview: src.isPreview,
-                    };
-                }).filter(Boolean);
+                cards = cardSpecs.map((_, i) => picked[i]).filter(Boolean);
 
                 // 仅登录用户写入月度锁定；游客不保存选图。
                 if (userLoggedIn) {
