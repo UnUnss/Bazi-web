@@ -36,13 +36,7 @@
       ]
     },
     {
-      "source": "/assets/video.mp4",
-      "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive, max-video-preview:0" }
-      ]
-    },
-    {
-      "source": "/assets/video-2.mp4",
+      "source": "/assets/video-opt.mp4",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive, max-video-preview:0" }
       ]
