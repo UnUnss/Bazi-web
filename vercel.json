@@ -18,12 +18,6 @@
       ]
     },
     {
-      "source": "/assets/disk.png",
-      "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive" }
-      ]
-    },
-    {
       "source": "/assets/disk.webp",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive" }
