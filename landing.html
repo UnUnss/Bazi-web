@@ -51,8 +51,8 @@
         汇迹正楷 CooperZhengKai：UI 子集优先；子集没有的字回退到完整 CooperZhengKai。
         城市名等地点文案仍可走系统字体（见 .loc-select）。
     -->
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=10" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=10" />
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=11" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=11" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
     <script src="i18n.js?v=43"></script>
     <style>
@@ -5751,6 +5751,38 @@
         SG: { '01':['新加坡'] },
     };
 
+    const CITY_TW = {
+        '芜湖':'蕪湖','马鞍山':'馬鞍山','铜陵':'銅陵','安庆':'安慶','黄山':'黃山','阜阳':'阜陽','重庆':'重慶','厦门':'廈門','龙岩':'龍巖',
+        '宁德':'寧德','广州':'廣州','汕头':'汕頭','韶关':'韶關','东莞':'東莞','江门':'江門','阳江':'陽江','肇庆':'肇慶','清远':'清遠','揭阳':'揭陽',
+        '云浮':'雲浮','兰州':'蘭州','嘉峪关':'嘉峪關','白银':'白銀','张掖':'張掖','平凉':'平涼','庆阳':'慶陽','陇南':'隴南','南宁':'南寧',
+        '钦州':'欽州','贵港':'貴港','贺州':'賀州','来宾':'來賓','贵阳':'貴陽','六盘水':'六盤水','遵义':'遵義','安顺':'安順','毕节':'畢節',
+        '铜仁':'銅仁','郑州':'鄭州','开封':'開封','洛阳':'洛陽','平顶山':'平頂山','安阳':'安陽','新乡':'新鄉','许昌':'許昌','南阳':'南陽',
+        '信阳':'信陽','驻马店':'駐馬店','武汉':'武漢','黄石':'黃石','襄阳':'襄陽','荆门':'荊門','荆州':'荊州','黄冈':'黃岡','咸宁':'咸寧',
+        '随州':'隨州','石家庄':'石家莊','秦皇岛':'秦皇島','邯郸':'邯鄲','邢台':'邢臺','张家口':'張家口','沧州':'滄州','三亚':'三亞','琼海':'瓊海',
+        '万宁':'萬寧','哈尔滨':'哈爾濱','齐齐哈尔':'齊齊哈爾','鸡西':'雞西','鹤岗':'鶴崗','双鸭山':'雙鴨山','大庆':'大慶','绥化':'綏化','长沙':'長沙',
+        '衡阳':'衡陽','邵阳':'邵陽','岳阳':'岳陽','张家界':'張家界','益阳':'益陽','怀化':'懷化','娄底':'婁底','长春':'長春','辽源':'遼源',
+        '无锡':'無錫','苏州':'蘇州','连云港':'連雲港','盐城':'鹽城','扬州':'揚州','镇江':'鎮江','宿迁':'宿遷','景德镇':'景德鎮','萍乡':'萍鄉',
+        '新余':'新餘','鹰潭':'鷹潭','赣州':'贛州','抚州':'撫州','上饶':'上饒','沈阳':'瀋陽','大连':'大連','抚顺':'撫順','丹东':'丹東','锦州':'錦州',
+        '营口':'營口','辽阳':'遼陽','盘锦':'盤錦','铁岭':'鐵嶺','朝阳':'朝陽','葫芦岛':'葫蘆島','包头':'包頭','乌海':'烏海','通辽':'通遼',
+        '鄂尔多斯':'鄂爾多斯','呼伦贝尔':'呼倫貝爾','巴彦淖尔':'巴彥淖爾','乌兰察布':'烏蘭察布','银川':'銀川','吴忠':'吳忠','中卫':'中衛','西宁':'西寧',
+        '海东':'海東','自贡':'自貢','泸州':'瀘州','德阳':'德陽','绵阳':'綿陽','广元':'廣元','遂宁':'遂寧','内江':'內江','乐山':'樂山','宜宾':'宜賓',
+        '广安':'廣安','达州':'達州','资阳':'資陽','济南':'濟南','青岛':'青島','枣庄':'棗莊','东营':'東營','烟台':'煙臺','潍坊':'濰坊','济宁':'濟寧',
+        '滨州':'濱州','临沂':'臨沂','菏泽':'菏澤','铜川':'銅川','宝鸡':'寶雞','咸阳':'咸陽','汉中':'漢中','阳泉':'陽泉','长治':'長治','晋城':'晉城',
+        '晋中':'晉中','运城':'運城','临汾':'臨汾','吕梁':'呂梁','乌鲁木齐':'烏魯木齊','克拉玛依':'克拉瑪依','吐鲁番':'吐魯番','伊宁':'伊寧',
+        '库尔勒':'庫爾勒','阿克苏':'阿克蘇','拉萨':'拉薩','日喀则':'日喀則','丽江':'麗江','临沧':'臨滄','宁波':'寧波','温州':'溫州','嘉兴':'嘉興',
+        '绍兴':'紹興','金华':'金華','丽水':'麗水','台北':'臺北','桃园':'桃園','新竹县':'新竹縣','台中':'臺中','云林':'雲林','嘉义市':'嘉義市',
+        '嘉义县':'嘉義縣','台南':'臺南','屏东':'屏東','宜兰':'宜蘭','花莲':'花蓮','台东':'臺東','金门':'金門','马祖':'馬祖','八打灵再也':'八打靈再也',
+        '槟城':'檳城','乔治市':'喬治市','柔佛巴鲁':'柔佛巴魯','马六甲':'馬六甲','亚庇':'亞庇','古晋':'古晉','关丹':'關丹','东京':'東京','横滨':'橫濱',
+        '千叶':'千葉','神户':'神戶','函馆':'函館','福冈':'福岡','长崎':'長崎','仙台':'仙臺','首尔':'首爾','济州':'濟州'
+    };
+
+    function cityLabel(name) {
+        if (!name) return name;
+        const lang = (window.I18N && I18N.getLanguage && I18N.getLanguage()) || '';
+        if (lang !== 'zh-TW') return name;
+        return CITY_TW[name] || name;
+    }
+
     const locCountrySel        = document.getElementById('locCountry');
     const locStateSel          = document.getElementById('locState');
     const locCitySel           = document.getElementById('locCity');
@@ -5759,6 +5791,26 @@
     let _stateLatLon       = null;
     let _countryTimezones  = []; // 當前選定國家的時區列表（來自 country.json）
     let _locationModified  = false; // 用戶是否在本次彈窗中手動更改了地點下拉框
+
+    function fillCitySelect(iso2, stateCode, selectedValue) {
+        resetSelect(locCitySel, 'loc_placeholder_city');
+        const cityList = (CITY_DATA[iso2] || {})[stateCode];
+        if (cityList && cityList.length) {
+            cityList.forEach((c) => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = cityLabel(c);
+                locCitySel.appendChild(opt);
+            });
+            locCitySel.disabled = false;
+            if (selectedValue) locCitySel.value = selectedValue;
+        }
+    }
+
+    function selectedCityDisplay() {
+        const opt = locCitySel.options[locCitySel.selectedIndex];
+        return (opt && opt.value) ? opt.textContent : '';
+    }
 
     // 官方使用單一民用時區的國家——即使 IANA 收錄了多條記錄（如中國有
     // Asia/Shanghai UTC+8 和 Asia/Urumqi UTC+6，但官方全境使用 UTC+8）。
@@ -5939,7 +5991,17 @@
                 locStateSel.value = currentState;
             }
         }
-        // city 選項都是中文城市名，語言切換不影響其內容
+        if (currentCountry && currentState) {
+            fillCitySelect(currentCountry, currentState, currentCity);
+        }
+        const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || currentState;
+        const countryName = locCountrySel.options[locCountrySel.selectedIndex]?.textContent || currentCountry;
+        const cityShown = selectedCityDisplay();
+        if (cityShown && stateName) {
+            birthplaceHidden.value = `${cityShown}, ${stateName}`;
+        } else if (stateName && countryName) {
+            birthplaceHidden.value = `${stateName}, ${countryName}`;
+        }
     });
 
     locCountrySel.addEventListener('change', () => {
@@ -5985,28 +6047,19 @@
         const countryName = locCountrySel.options[locCountrySel.selectedIndex]?.textContent || iso2;
         // 只更新显示名，坐标留空等提交时查询
         birthplaceHidden.value    = `${stateName}, ${countryName}`;
-        // 若有內嵌城市資料，展開城市下拉
-        const cityList = (CITY_DATA[iso2] || {})[stateCode];
-        if (cityList && cityList.length) {
-            cityList.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = opt.textContent = c;
-                locCitySel.appendChild(opt);
-            });
-            locCitySel.disabled = false;
-        }
-        // 否則城市下拉保持 disabled，直接使用省份坐標
+        fillCitySelect(iso2, stateCode);
     });
 
     locCitySel.addEventListener('change', () => {
         _locationModified = true;
         const city      = locCitySel.value;
+        const cityShown = selectedCityDisplay() || city;
         const stateCode = locStateSel.value;
         const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
         const countryName = locCountrySel.options[locCountrySel.selectedIndex]?.textContent || locCountrySel.value;
         // 只更新显示名称，坐标在提交时统一获取
         if (city) {
-            birthplaceHidden.value = `${city}, ${stateName}`;
+            birthplaceHidden.value = `${cityShown}, ${stateName}`;
         } else {
             birthplaceHidden.value = `${stateName}, ${countryName}`;
         }
@@ -6148,16 +6201,7 @@
                     if (!isNaN(lon)) _stateLatLon = { lat, lon };
                 }
                 resetSelect(locCitySel, 'loc_placeholder_city');
-                const cityList = (CITY_DATA[profile.countryCode] || {})[profile.stateCode];
-                if (cityList && cityList.length) {
-                    cityList.forEach(c => {
-                        const opt = document.createElement('option');
-                        opt.value = opt.textContent = c;
-                        locCitySel.appendChild(opt);
-                    });
-                    locCitySel.disabled = false;
-                    if (profile.cityName) locCitySel.value = profile.cityName;
-                }
+                fillCitySelect(profile.countryCode, profile.stateCode, profile.cityName);
             }
         }
 
