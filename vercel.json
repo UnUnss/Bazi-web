@@ -36,12 +36,6 @@
       ]
     },
     {
-      "source": "/assets/video-2-opt.mp4",
-      "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noimageindex, noarchive, max-video-preview:0" }
-      ]
-    },
-    {
       "source": "/assets/obf/d",
       "headers": [
         { "key": "Content-Type", "value": "application/octet-stream" },

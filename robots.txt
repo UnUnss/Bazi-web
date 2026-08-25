@@ -10,7 +10,6 @@ Disallow: /bazi-calc-debug
 Disallow: /api/
 Disallow: /assets/disk.webp
 Disallow: /assets/dragon.png
-Disallow: /assets/video-2-opt.mp4
 Disallow: /assets/video-opt.mp4
 Disallow: /assets/obf/
 

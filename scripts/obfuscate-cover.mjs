@@ -15,4 +15,3 @@ function obfuscate(srcRel, destRel) {
 }
 
 obfuscate('assets/disk.webp', 'assets/obf/d');
-obfuscate('assets/video-2-opt.mp4', 'assets/obf/v');
