@@ -3117,10 +3117,11 @@
     // 串接 bazi_logic.js：算出這個八字在「當前流月」的喜用五行、以及需要補運的弱勢生活領域，
     // 用於下方壁紙區塊動態選圖選文案，而不是寫死固定內容。
     // v2：傳入完整流月干支（"壬申"2字）和大運/流年 period，啟用六層動態算法。
-    const INSIGHT_CACHE_KEY = 'bazi_monthly_insight_v3';
+    const INSIGHT_CACHE_KEY = 'bazi_monthly_insight_v4';
     try {
         localStorage.removeItem('ew_favor_history');
         localStorage.removeItem('bazi_monthly_insight_v1');
+        localStorage.removeItem('bazi_monthly_insight_v3');
         localStorage.removeItem('bazi_wallpaper_meta_v1');
     } catch (_) {}
 
@@ -3599,6 +3600,20 @@
         const b = normalizeYunTags(wanted);
         return a.length === b.length && a.every((t, i) => t === b[i]);
     }
+    // 与 pickByTags 前三档一致（精确 / 子集 / 超集），不含「同五行任意」兜底
+    function wallpaperFitsWantedTags(w, wantedTags) {
+        const wanted = normalizeYunTags(wantedTags);
+        if (tagsMatchWanted(w && w.tags, wanted)) return true;
+        const a = normalizeYunTags(w && w.tags);
+        if (!wanted.length || !a.length) return false;
+        const wantedSet = new Set(wanted);
+        if (a.every((t) => wantedSet.has(t))) return true;
+        const aSet = new Set(a);
+        return wanted.every((t) => aSet.has(t));
+    }
+    function poolHasTagMatch(pool, wantedTags) {
+        return (pool || []).some((w) => wallpaperFitsWantedTags(w, wantedTags));
+    }
     // 从池中按 tags 匹配：精确 → 软匹配(壁纸⊆需求) → 软匹配(壁纸⊇需求) → 同五行任意
     // 单标签需求不会优先抢走双标签图（⊇ 放到后面），配合下方「先配双标再配单标」的选取顺序
     function pickByTags(pool, wantedTags, seedStr, excludeIds) {
@@ -3652,15 +3667,17 @@
         '官杀': { 'zh-TW': '官殺', 'zh-CN': '官杀', 'en': 'Authority' },
         '印枭': { 'zh-TW': '印星', 'zh-CN': '印星', 'en': 'Resource' },
     };
-    // ── weak_domains 存的是域值字符串（"才华灵感"、"感情与桃花"…）
+    // ── weak_domains 存的是域值字符串（"才华灵感"、"感情与事业"…）
     //    需反查回十神 key 才能拿到五行和展示名 ──────────────────
     const DOMAIN_VALUE_TO_SHISHEN = {
         '人际关系、合伙': '比劫',
         '才华灵感':       '食伤',
         '财富与感情':     '财才',
-        '财富与事业':     '财才',
+        '财富':           '财才',
+        '财富与事业':     '财才',   // 旧女命财才
         '事业':           '官杀',
-        '感情与桃花':     '官杀',
+        '感情与桃花':     '官杀',   // 旧女命官杀
+        '感情与事业':     '官杀',
         '健康与贵人运':   '印枭',
     };
 
@@ -3894,12 +3911,31 @@
         localStorage.setItem(WP_HIST_KEY, JSON.stringify(all));
     }
 
+    // 月度锁：旧格式为 [{id,si}|id] 数组；新格式为 { a, b, cards }
+    function parseWallpaperMonthEntry(entry) {
+        if (Array.isArray(entry) && entry.length) {
+            return { cards: entry, a: null, b: null };
+        }
+        if (entry && typeof entry === 'object' && Array.isArray(entry.cards) && entry.cards.length) {
+            return { cards: entry.cards, a: entry.a || null, b: entry.b || null };
+        }
+        return null;
+    }
+
     function normalizeLocalWallpaperHistory(raw) {
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
         const out = {};
         for (const k of Object.keys(raw)) {
-            if (!Array.isArray(raw[k])) continue;
-            out[k] = raw[k].filter((id) => id != null && id !== '');
+            const parsed = parseWallpaperMonthEntry(raw[k]);
+            if (!parsed) continue;
+            const cards = parsed.cards.filter((e) => {
+                if (e == null || e === '') return false;
+                if (typeof e === 'string') return true;
+                return !!(e && e.id);
+            });
+            if (!cards.length) continue;
+            if (parsed.a && parsed.b) out[k] = { a: parsed.a, b: parsed.b, cards };
+            else out[k] = cards;
         }
         return out;
     }
@@ -3935,14 +3971,14 @@
         const prevMonth = getPrevLiuyueGanZhi(monthGanZhi);
         if (!prevMonth) return [];
         const map = resolveWallpaperHistory(profile);
-        const entry = map[`${yearGanZhi}|${prevMonth}`];
-        if (!Array.isArray(entry)) return [];
-        return entry.map((e) => (typeof e === 'string' ? e : (e && e.id))).filter(Boolean);
+        const parsed = parseWallpaperMonthEntry(map[`${yearGanZhi}|${prevMonth}`]);
+        if (!parsed) return [];
+        return parsed.cards.map((e) => (typeof e === 'string' ? e : (e && e.id))).filter(Boolean);
     }
 
     // 写入本月壁纸选图（含槽位）→ 档案内存 + localStorage + 云端 PATCH
-    // cards: [{id, specIndex}, ...] 新格式；存为 [{id, si}] 节省空间
-    function recordMonthWallpaperIds(profile, ymKey, cards, yearGanZhi) {
+    // 存 { a, b, cards:[{id,si}] }，补运名变了（如映射改版）可作废本月锁重选
+    function recordMonthWallpaperIds(profile, ymKey, cards, yearGanZhi, yunPair) {
         if (!profile || !profile.id || !ymKey || !Array.isArray(cards) || !cards.length) return;
         const yearPrefix = `${yearGanZhi}|`;
         const prev = resolveWallpaperHistory(profile);
@@ -3950,9 +3986,14 @@
         for (const k of Object.keys(prev)) {
             if (k.indexOf(yearPrefix) === 0) next[k] = prev[k];
         }
-        next[ymKey] = cards
+        const lockedCards = cards
             .filter((c) => c && c.id != null)
             .map((c) => ({ id: c.id, si: c.specIndex }));
+        if (yunPair && yunPair.aCN && yunPair.bCN) {
+            next[ymKey] = { a: yunPair.aCN, b: yunPair.bCN, cards: lockedCards };
+        } else {
+            next[ymKey] = lockedCards;
+        }
 
         profile.wallpaperHistory = next;
         // 同步进 profiles 列表，便于 saveProfiles / 下次选图
@@ -4192,17 +4233,24 @@
             const userLoggedIn = typeof isLoggedIn === 'function' && isLoggedIn();
             if (userLoggedIn) {
                 const history = resolveWallpaperHistory(profile);
-                const lockedEntry = history[ymKey];
-                if (Array.isArray(lockedEntry) && lockedEntry.length > 0
+                const locked = parseWallpaperMonthEntry(history[ymKey]);
+                const lockedEntry = locked && locked.cards;
+                if (lockedEntry && lockedEntry.length > 0
                         && lockedEntry[0] && typeof lockedEntry[0] === 'object' && 'si' in lockedEntry[0]) {
-                    // 校验锁定壁纸仍在图库中，且五行与槽位一致（防止用水图锁进金槽）
+                    // 补运名已变（映射改版等）：作废本月锁，按新标签重选，避免标题和图对不上
+                    const yunChanged = !!(locked.a && locked.b
+                        && (locked.a !== yunPair.aCN || locked.b !== yunPair.bCN));
                     const allPool = [...(poolPrimary || []), ...(poolSecondary || [])];
                     const poolMap = new Map(allPool.map((w) => [w.id, w]));
-                    const allValid = lockedEntry.every((e) => {
+                    const poolOf = (el) => (el === primaryEl ? poolPrimary : poolSecondary) || [];
+                    const allValid = !yunChanged && lockedEntry.every((e) => {
                         if (!e.id) return true;
                         const w = poolMap.get(e.id);
                         const spec = cardSpecs[e.si];
-                        return w && spec && (!w.element || w.element === spec.el);
+                        if (!w || !spec || (w.element && w.element !== spec.el)) return false;
+                        if (wallpaperFitsWantedTags(w, spec.tags)) return true;
+                        // 图库本来就没有对应补运图、当时是五行兜底：继续用锁，避免每次刷新换图
+                        return !poolHasTagMatch(poolOf(spec.el), spec.tags);
                     });
                     if (allValid) {
                         // 从图库重新取壁纸对象（获取最新预览 key），name/desc 从 cardSpecs 重取支持语言切换
@@ -4271,7 +4319,7 @@
 
                 // 仅登录用户写入月度锁定；游客不保存选图。
                 if (userLoggedIn) {
-                    recordMonthWallpaperIds(profile, ymKey, cards, nowYearMonth.year);
+                    recordMonthWallpaperIds(profile, ymKey, cards, nowYearMonth.year, yunPair);
                 }
             }
         } else {
