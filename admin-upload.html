@@ -183,6 +183,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
       <button class="filter-btn" data-el="火">火</button>
       <button class="filter-btn" data-el="土">土</button>
       <button class="filter-btn" data-el="金">金</button>
+      <button class="filter-btn" data-el="盲盒">盲盒</button>
       </div>
       <div class="manage-actions" style="display:none">
         <button type="button" class="btn-regen btn-check" id="btnTestFreePreview">测试生成一张免费水印</button>
@@ -203,7 +204,7 @@ const SUPABASE_URL  = 'https://yyiecrsibflscgjxmvbn.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A';
 const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
 
-// 文件夹编号 → 五行 + 运势标签映射表（共 140 个）
+// 文件夹编号 → 五行 + 运势标签映射表（1–140 补运匹配；141–145 盲盒）
 const FOLDER_MAP = {
   // ── 水（1–28）──
   1:  { element: '水', tags: ['感情运'] },
@@ -350,7 +351,22 @@ const FOLDER_MAP = {
   138: { element: '金', tags: ['财富运', '才华运'] },
   139: { element: '金', tags: ['财富运', '人缘运'] },
   140: { element: '金', tags: ['才华运', '人缘运'] },
+  // ── 盲盒：纯五行，无补运（141–145 水木火土金）──
+  141: { element: '水', tags: [], pool: 'blindbox' },
+  142: { element: '木', tags: [], pool: 'blindbox' },
+  143: { element: '火', tags: [], pool: 'blindbox' },
+  144: { element: '土', tags: [], pool: 'blindbox' },
+  145: { element: '金', tags: [], pool: 'blindbox' },
 };
+
+function isBlindboxFolder(num) {
+  const meta = FOLDER_MAP[num];
+  return !!(meta && meta.pool === 'blindbox');
+}
+
+function folderGroupTitle(num) {
+  return isBlindboxFolder(num) ? `文件夹 ${num} · 盲盒` : `文件夹 ${num}`;
+}
 
 // ════════════════════════════════════════════
 // Supabase
@@ -604,7 +620,7 @@ function renderQueue() {
     const items = groups.get(num);
     const meta = FOLDER_MAP[num];
     const tagsHtml = meta
-      ? `<span class="tag el-${meta.element}">${esc(meta.element)}</span>${meta.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}`
+      ? `<span class="tag el-${meta.element}">${esc(meta.element)}</span>${meta.pool === 'blindbox' ? '<span class="tag el-tag">盲盒</span>' : meta.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}`
       : '';
     const cards = items.map(({ f, i }) =>
       `<div class="wp-card" id="qcard-${i}">
@@ -613,7 +629,7 @@ function renderQueue() {
           <div class="card-name" title="${esc(f.file.name)}">${esc(f.file.name)}</div>
           <div class="card-tags">
             <span class="tag el-${f.element}">${esc(f.element)}</span>
-            ${f.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
+            ${isBlindboxFolder(f.folderNum) ? '<span class="tag el-tag">盲盒</span>' : f.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
           </div>
           <div class="card-status ${f.status}">${STATUS_TEXT[f.status]}</div>
         </div>
@@ -621,7 +637,7 @@ function renderQueue() {
     ).join('');
     return `<div class="folder-group">
       <div class="folder-group-header">
-        <span class="folder-group-title">文件夹 ${num}</span>
+        <span class="folder-group-title">${folderGroupTitle(num)}</span>
         <span class="folder-group-meta">${tagsHtml}</span>
         <span class="folder-group-count">${items.length} 张</span>
       </div>
@@ -999,15 +1015,22 @@ function resolveFolderNum(w) {
   return m ? parseInt(m[1], 10) : null;
 }
 
+function isBlindboxWallpaper(w) {
+  if (w && w.pool === 'blindbox') return true;
+  const num = resolveFolderNum(w);
+  return num != null && isBlindboxFolder(num);
+}
+
 function wallpaperCardHtml(w) {
   const tags = Array.isArray(w.tags) ? w.tags : [];
+  const boxBadge = isBlindboxWallpaper(w) ? '<span class="tag el-tag">盲盒</span>' : '';
   return `<div class="wp-card" data-id="${esc(w.id || '')}">
     <img class="thumb" src="${esc(w.preview_url || w.r2_url || '')}" alt="${esc(w.filename || '')}" loading="lazy" onerror="this.style.display='none'" />
     <div class="card-info">
       <div class="card-name" title="${esc(w.filename || '')}">${esc(w.filename || '')}</div>
       <div class="card-tags">
         <span class="tag el-${esc(w.element)}">${esc(w.element)}</span>
-        ${tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
+        ${boxBadge}${tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}
       </div>
       ${w.uploaded_at ? `<div style="font-size:11px;color:#bbb;margin-top:4px;">${esc(w.uploaded_at)}</div>` : ''}
       ${w.id ? `<div class="card-actions"><button type="button" class="btn-del" data-id="${esc(w.id)}">删除</button></div>` : ''}
@@ -1018,7 +1041,11 @@ function wallpaperCardHtml(w) {
 function renderManaged() {
   const grid  = document.getElementById('managedGrid');
   const empty = document.getElementById('manageEmpty');
-  const list  = activeFilter === '全部' ? allUploaded : allUploaded.filter(w => w.element === activeFilter);
+  const list = activeFilter === '全部'
+    ? allUploaded
+    : activeFilter === '盲盒'
+      ? allUploaded.filter(isBlindboxWallpaper)
+      : allUploaded.filter((w) => w.element === activeFilter && !isBlindboxWallpaper(w));
   if (!list.length) {
     grid.innerHTML = '';
     empty.style.display = 'block';
@@ -1044,9 +1071,9 @@ function renderManaged() {
     const items = groups.get(key);
     const meta = typeof key === 'number' ? FOLDER_MAP[key] : null;
     const tagsHtml = meta
-      ? `<span class="tag el-${meta.element}">${esc(meta.element)}</span>${meta.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}`
+      ? `<span class="tag el-${meta.element}">${esc(meta.element)}</span>${meta.pool === 'blindbox' ? '<span class="tag el-tag">盲盒</span>' : meta.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}`
       : (items[0]?.element ? `<span class="tag el-${esc(items[0].element)}">${esc(items[0].element)}</span>` : '');
-    const title = key === '未知' ? '未知文件夹' : `文件夹 ${key}`;
+    const title = key === '未知' ? '未知文件夹' : folderGroupTitle(key);
     return `<div class="folder-group">
       <div class="folder-group-header">
         <span class="folder-group-title">${title}</span>

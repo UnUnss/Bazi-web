@@ -4024,7 +4024,7 @@
     // 壁纸缓存：内存 + localStorage（跨刷新）+ Cache API（预览图）
     const _wallpaperCache = {};
     const _wallpaperInflight = {};
-    const WP_META_LS_KEY = 'bazi_wallpaper_meta_v2';
+    const WP_META_LS_KEY = 'bazi_wallpaper_meta_v3';
     const WP_META_TTL_MS = 24 * 60 * 60 * 1000; // 24h
     // 方案B锁定后新壁纸不影响当月，revalidate 与 TTL 对齐，等缓存自然过期再拉取
     const WP_META_REVALIDATE_MS = WP_META_TTL_MS; // 24h，等同于禁用后台 revalidate
@@ -4116,15 +4116,36 @@
     );
     const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
 
+    function isMatchPoolWallpaper(w) {
+        if (!w) return false;
+        if (w.pool === 'blindbox') return false;
+        const n = Number(w.folder_number);
+        if (n >= 141 && n <= 145) return false;
+        return true;
+    }
+
     async function fetchWallpapersFromNetwork(element) {
-        const { data, error } = await _sb
+        const selectCols = 'id,element,tags,r2_key,preview_key,folder_number,pool';
+        let { data, error } = await _sb
             .from('wallpapers')
-            .select('id,element,tags,r2_key,preview_key')
-            .eq('element', element);
-        if (!error && data && data.length > 0) {
-            _wallpaperCache[element] = data;
-            writeWallpaperMetaCache(element, data);
-            return data;
+            .select(selectCols)
+            .eq('element', element)
+            .eq('pool', 'match');
+        if (error) {
+            const retry = await _sb
+                .from('wallpapers')
+                .select('id,element,tags,r2_key,preview_key,folder_number')
+                .eq('element', element);
+            data = retry.data;
+            error = retry.error;
+        }
+        const rows = (!error && data && data.length > 0)
+            ? data.filter(isMatchPoolWallpaper)
+            : null;
+        if (rows && rows.length > 0) {
+            _wallpaperCache[element] = rows;
+            writeWallpaperMetaCache(element, rows);
+            return rows;
         }
         return null;
     }
@@ -4148,14 +4169,17 @@
 
     async function fetchWallpapers(element) {
         if (!element) return null;
-        if (_wallpaperCache[element]) return _wallpaperCache[element];
+        if (_wallpaperCache[element]) {
+            return _wallpaperCache[element].filter(isMatchPoolWallpaper);
+        }
 
         const local = readWallpaperMetaCache(element);
         if (local) {
-            _wallpaperCache[element] = local;
+            const filtered = local.filter(isMatchPoolWallpaper);
+            _wallpaperCache[element] = filtered;
             // 仅缓存写入超过 1h 才后台静默 revalidate，避免每次进页都打 Supabase
             if (isCacheStale(element)) revalidateWallpapers(element);
-            return local;
+            return filtered;
         }
 
         if (_wallpaperInflight[element]) return _wallpaperInflight[element];

@@ -8,6 +8,17 @@ const sb = createClient(
   { auth: { persistSession: false } }
 );
 
+const VALID_ELEMENTS = new Set(['金', '木', '水', '火', '土']);
+const VALID_TAGS = new Set(['人缘运', '才华运', '财富运', '感情运', '事业运', '健康运', '贵人运']);
+/** 141–145：水木火土金，纯五行盲盒，无补运 */
+const BLINDBOX_FOLDER_ELEMENT = {
+  141: '水',
+  142: '木',
+  143: '火',
+  144: '土',
+  145: '金',
+};
+
 async function assertAdmin(req) {
   const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
   if (!token) return { ok: false, status: 401, error: 'Unauthorized' };
@@ -48,17 +59,29 @@ export default async function handler(req, res) {
 
   if (!element || !r2_key || !filename) return res.status(400).json({ error: 'Missing params' });
 
-  const VALID_ELEMENTS = new Set(['金', '木', '水', '火', '土']);
   if (!VALID_ELEMENTS.has(element)) return res.status(400).json({ error: 'Invalid element' });
 
-  const VALID_TAGS = new Set(['人缘运', '才华运', '财富运', '感情运', '事业运', '健康运', '贵人运']);
+  const folderNum = parseInt(folder_number, 10);
+  if (!Number.isInteger(folderNum) || folderNum < 1) {
+    return res.status(400).json({ error: 'Invalid folder' });
+  }
+
+  const blindboxEl = BLINDBOX_FOLDER_ELEMENT[folderNum];
+  const pool = blindboxEl ? 'blindbox' : 'match';
   const tagsArr = Array.isArray(tags) ? tags : [];
-  if (tagsArr.some((t) => !VALID_TAGS.has(t))) return res.status(400).json({ error: 'Invalid tags' });
+
+  if (pool === 'blindbox') {
+    if (element !== blindboxEl) return res.status(400).json({ error: 'Invalid element' });
+    if (tagsArr.length) return res.status(400).json({ error: 'Blindbox wallpapers cannot have tags' });
+  } else if (tagsArr.some((t) => !VALID_TAGS.has(t))) {
+    return res.status(400).json({ error: 'Invalid tags' });
+  }
 
   const { error: insertError } = await sb.from('wallpapers').insert({
-    folder_number: parseInt(folder_number, 10),
+    folder_number: folderNum,
     element,
     tags: tagsArr,
+    pool,
     r2_key,
     preview_key: preview_key || null,
     filename,

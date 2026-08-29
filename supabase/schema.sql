@@ -91,6 +91,17 @@ grant execute on function public.is_admin_email(text) to anon, authenticated;
 alter table public.wallpapers
   add column if not exists preview_key text;
 
+-- 图池：match=喜用补运匹配（1–140）；blindbox=五行盲盒（141–145）
+alter table public.wallpapers
+  add column if not exists pool text not null default 'match';
+
+alter table public.wallpapers
+  drop constraint if exists wallpapers_pool_check;
+
+alter table public.wallpapers
+  add constraint wallpapers_pool_check
+  check (pool in ('match', 'blindbox'));
+
 -- 兼容字段：邮箱仅用于展示/排查；档案归属以 user_id 为准
 alter table public.bazi_profiles
   add column if not exists owner_email text;
