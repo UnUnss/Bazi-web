@@ -988,8 +988,9 @@
         }
 
         .pay-price-currency {
-            font-size: 14px;
-            color: var(--ink-soft);
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--ink);
             letter-spacing: 0.06em;
             align-self: baseline;
         }
@@ -1350,6 +1351,10 @@
             letter-spacing: 0.04em;
             color: var(--ink-muted);
             text-align: center;
+        }
+
+        .pay-provider-hint[hidden] {
+            display: none;
         }
 
         /* Official Stripe / PayPal brand buttons */
@@ -5027,6 +5032,9 @@
         ['btnPayAlipay', 'btnAnnualPayAlipay'].forEach((id) => {
             const el = document.getElementById(id);
             if (el) el.hidden = !show;
+        });
+        document.querySelectorAll('.pay-provider-hint').forEach((el) => {
+            el.hidden = !!show;
         });
         applyPayPrice();
     }
