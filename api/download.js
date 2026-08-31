@@ -197,6 +197,13 @@ export default async function handler(req, res) {
     if (annual) downloadSource = 'annual';
   }
   if (!allowed && useRedeem) {
+    const annual = await hasActiveAnnual(sb, {
+      userId: auth.userId,
+      email: auth.email,
+    });
+    if (annual) {
+      return res.status(402).json({ error: 'Redeem disabled during annual plan' });
+    }
     const owned = await getOwnedElementCounts(sb, auth.userId);
     const redeemed = await getRedeemCount(sb, auth.userId);
     if (redeemAvailable(owned, redeemed) < 1) {

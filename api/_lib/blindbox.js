@@ -246,7 +246,12 @@ export async function getOwnedBlindboxStats(sb, userId) {
       downloaded_ids: downloadedIds,
     };
   }
-  const eligibleKeys = new Set(rows.filter((r) => r.source !== 'redeem').map((r) => r.r2_key).filter(Boolean));
+  const eligibleKeys = new Set(
+    rows
+      .filter((r) => r.source !== 'redeem' && r.source !== 'annual')
+      .map((r) => r.r2_key)
+      .filter(Boolean)
+  );
   const keys = [...new Set(rows.map((r) => r.r2_key).filter(Boolean))];
   if (!keys.length) {
     return {
@@ -326,10 +331,13 @@ export function publicCard(row, r2Public) {
 
 export async function buildBlindboxState(sb, { userId, email }) {
   const month = getCurrentMonthGanZhi();
-  const annualFree = await hasActiveAnnual(sb, { userId, email });
-  const stats = await getOwnedBlindboxStats(sb, userId);
+  const [annualFree, stats, redeemed, row] = await Promise.all([
+    hasActiveAnnual(sb, { userId, email }),
+    getOwnedBlindboxStats(sb, userId),
+    getRedeemCount(sb, userId),
+    month ? getOrCreateMonth(sb, userId, month) : Promise.resolve(null),
+  ]);
   const owned = stats.owned;
-  const redeemed = await getRedeemCount(sb, userId);
   const extra = {
     owned,
     owned_keys: stats.owned_keys,
@@ -337,19 +345,18 @@ export async function buildBlindboxState(sb, { userId, email }) {
     downloaded_keys: stats.downloaded_keys,
     downloaded_ids: stats.downloaded_ids,
     redeemed,
-    redeem_available: redeemAvailable(owned, redeemed),
+    redeem_available: annualFree ? 0 : redeemAvailable(owned, redeemed),
     annual_free: annualFree,
   };
-  if (!month) {
+  if (!month || !row) {
     return {
-      month_ganzhi: '',
+      month_ganzhi: month || '',
       draw_count: 0,
       cards: [],
       unused_credits: 0,
       ...extra,
     };
   }
-  const row = await getOrCreateMonth(sb, userId, month);
   const cards = await loadCardsByIds(sb, row.current_ids || []);
   const r2Public = (process.env.R2_PUBLIC_URL || 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev').replace(/\/$/, '');
   return {

@@ -54,7 +54,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=11" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=11" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=54"></script>
+    <script src="i18n.js?v=57"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -4079,6 +4079,34 @@
     };
     let blindboxLoadPromise = null;
     let blindboxDrawBusy = false;
+    let lastBlindboxCardSig = '';
+    const BLINDBOX_CACHE_KEY = 'ew_blindbox_state';
+
+    function blindboxCardSig(cards) {
+        return (cards || []).map((c) => String(c && (c.id || c.r2_key) || '')).join('|');
+    }
+
+    function readBlindboxCache() {
+        try {
+            const raw = sessionStorage.getItem(BLINDBOX_CACHE_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return data && typeof data === 'object' ? data : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function writeBlindboxCache(state) {
+        try {
+            if (!state || !(state.cards || []).length) return;
+            sessionStorage.setItem(BLINDBOX_CACHE_KEY, JSON.stringify(state));
+        } catch (_) {}
+    }
+
+    function clearBlindboxCache() {
+        try { sessionStorage.removeItem(BLINDBOX_CACHE_KEY); } catch (_) {}
+    }
 
     function emptyBlindboxState() {
         return {
@@ -4126,29 +4154,34 @@
 
     function applyBlindboxState(data) {
         if (!data || typeof data !== 'object') return;
+        const prev = blindboxState;
         blindboxState = {
-            draw_count: Number(data.draw_count) || 0,
-            cards: Array.isArray(data.cards) ? data.cards : [],
-            unused_credits: Number(data.unused_credits) || 0,
-            owned: Object.assign(emptyBlindboxOwned(), data.owned || {}),
-            owned_keys: Array.isArray(data.owned_keys) ? data.owned_keys : [],
-            owned_ids: Array.isArray(data.owned_ids) ? data.owned_ids.map(String) : [],
-            downloaded_keys: Array.isArray(data.downloaded_keys) ? data.downloaded_keys : [],
-            downloaded_ids: Array.isArray(data.downloaded_ids) ? data.downloaded_ids.map(String) : [],
-            redeemed: Number(data.redeemed) || 0,
-            redeem_available: Number(data.redeem_available) || 0,
-            annual_free: !!data.annual_free,
-            month_ganzhi: data.month_ganzhi || '',
+            draw_count: data.draw_count != null ? Number(data.draw_count) || 0 : prev.draw_count,
+            cards: Array.isArray(data.cards) ? data.cards : (prev.cards || []),
+            unused_credits: data.unused_credits != null ? Number(data.unused_credits) || 0 : prev.unused_credits,
+            owned: Object.assign(emptyBlindboxOwned(), data.owned != null ? data.owned : (prev.owned || {})),
+            owned_keys: Array.isArray(data.owned_keys) ? data.owned_keys : (prev.owned_keys || []),
+            owned_ids: Array.isArray(data.owned_ids) ? data.owned_ids.map(String) : (prev.owned_ids || []),
+            downloaded_keys: Array.isArray(data.downloaded_keys) ? data.downloaded_keys : (prev.downloaded_keys || []),
+            downloaded_ids: Array.isArray(data.downloaded_ids) ? data.downloaded_ids.map(String) : (prev.downloaded_ids || []),
+            redeemed: data.redeemed != null ? Number(data.redeemed) || 0 : prev.redeemed,
+            redeem_available: data.redeem_available != null ? Number(data.redeem_available) || 0 : prev.redeem_available,
+            annual_free: data.annual_free != null ? !!data.annual_free : !!prev.annual_free,
+            month_ganzhi: data.month_ganzhi != null ? (data.month_ganzhi || '') : (prev.month_ganzhi || ''),
         };
+        if (localStorage.getItem('bazi_logged_in') === '1') writeBlindboxCache(blindboxState);
         renderBlindboxFront();
         if (typeof syncPayRedeemButton === 'function') syncPayRedeemButton();
     }
 
     async function loadBlindboxState() {
         if (localStorage.getItem('bazi_logged_in') !== '1') {
+            clearBlindboxCache();
             applyBlindboxState(emptyBlindboxState());
             return blindboxState;
         }
+        const cached = readBlindboxCache();
+        if (cached && !(blindboxState.cards || []).length) applyBlindboxState(cached);
         if (blindboxLoadPromise) return blindboxLoadPromise;
         blindboxLoadPromise = (async () => {
             try {
@@ -4212,6 +4245,7 @@
     function renderBlindboxCollectLine() {
         const line = document.getElementById('blindboxCollectLine');
         if (!line) return;
+        line.hidden = false;
         const t = window.I18N ? window.I18N.t : (k) => k;
         const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
         const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
@@ -4221,8 +4255,11 @@
             const name = wxNameMap[el] || el;
             return `${name}x${owned[el] || 0}`;
         });
-        const redeem = String(t('blindbox_collect_redeem') || '').replace('{n}', String(blindboxState.redeemed || 0));
-        line.textContent = `${t('blindbox_collect_prefix')}${parts.join(sep)}${redeem}`;
+        let text = `${t('blindbox_collect_prefix')}${parts.join(sep)}`;
+        if (!isAnnualBlindboxFree()) {
+            text += String(t('blindbox_collect_redeem') || '').replace('{n}', String(blindboxState.redeemed || 0));
+        }
+        line.textContent = text;
     }
 
     function sealedBlindboxCardHtml(t) {
@@ -4284,10 +4321,19 @@
         }
     }
 
-    function renderBlindboxFront() {
+    function renderBlindboxFront(opts) {
         if (!blindboxGrid) return;
         const t = window.I18N ? window.I18N.t : (k) => k;
         const cards = (blindboxState.cards || []).slice(0, 4);
+        const sig = blindboxCardSig(cards);
+        const force = !!(opts && opts.force);
+        if (!force && sig && sig === lastBlindboxCardSig && blindboxGrid.querySelector('.wallpaper-card')) {
+            updateBlindboxDrawButton();
+            renderBlindboxCollectLine();
+            syncBlindboxPlaceholderRatio();
+            return;
+        }
+        lastBlindboxCardSig = sig;
         let cardsHtml;
         if (cards.length === 4) {
             const htmls = cards.map((c, idx) => openedBlindboxCardHtml(t, c, idx));
@@ -4328,7 +4374,7 @@
         else img.addEventListener('load', apply, { once: true });
     }
     document.addEventListener('i18n:change', () => {
-        renderBlindboxFront();
+        renderBlindboxFront({ force: true });
     });
 
     // ── 壁紙池工具函數 ─────────────────────────────────────
@@ -4884,7 +4930,7 @@
                 if (img) img.src = blobUrl;
             }).catch(() => {});
         });
-        renderBlindboxFront();
+        syncBlindboxPlaceholderRatio();
     }
 
 
@@ -5004,7 +5050,17 @@
             payNotice.setAttribute('data-i18n', 'pay_notice_blindbox');
             payNotice.textContent = t('pay_notice_blindbox');
         }
-        setPayCreditHint(0);
+        if (payCreditHint) {
+            const draws = Number(blindboxState.draw_count) || 0;
+            const unused = countUnusedPaidDrawCredits();
+            const stack = draws >= 2 && unused >= 1;
+            const key = stack
+                ? (alipayAvailable ? 'pay_blindbox_draw_credit_note_stack_cny' : 'pay_blindbox_draw_credit_note_stack')
+                : (alipayAvailable ? 'pay_blindbox_draw_credit_note_cny' : 'pay_blindbox_draw_credit_note');
+            payCreditHint.hidden = false;
+            payCreditHint.setAttribute('data-i18n', key);
+            payCreditHint.textContent = t(key);
+        }
         syncPayRedeemButton();
         const wrap = document.querySelector('#payModal .pay-wallpaper-preview');
         if (wrap) wrap.style.display = 'none';
@@ -7216,6 +7272,7 @@
         localStorage.removeItem('bazi_logged_in_email');
         localStorage.removeItem('bazi_cart_items');
         localStorage.removeItem('bazi_profiles');
+        clearBlindboxCache();
         clearLocalAnnualPlans();
         inviteStatus = null;
         updateAuthUI();

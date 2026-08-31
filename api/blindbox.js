@@ -4,7 +4,15 @@ import {
   applyDraw,
   buildBlindboxState,
   getCurrentMonthGanZhi,
+  getOrCreateMonth,
+  hasActiveAnnual,
+  publicCard,
+  unusedCreditCount,
 } from './_lib/blindbox.js';
+
+function r2PublicUrl() {
+  return (process.env.R2_PUBLIC_URL || 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev').replace(/\/$/, '');
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -37,22 +45,24 @@ export default async function handler(req, res) {
   try {
     const month = getCurrentMonthGanZhi();
     if (!month) return res.status(500).json({ error: 'Month unavailable' });
-    const stateBefore = await buildBlindboxState(sb, {
-      userId: auth.userId,
-      email: auth.email,
-    });
-    if (stateBefore.draw_count >= 3) {
+    const [annualFree, row] = await Promise.all([
+      hasActiveAnnual(sb, { userId: auth.userId, email: auth.email }),
+      getOrCreateMonth(sb, auth.userId, month),
+    ]);
+    if (row.draw_count >= 3) {
       return res.status(400).json({ error: 'draw_limit' });
     }
-    if (stateBefore.draw_count >= 1 && !stateBefore.annual_free) {
+    if (row.draw_count >= 1 && !annualFree) {
       return res.status(402).json({ error: 'Payment required' });
     }
-    await applyDraw(sb, auth.userId, month);
-    const state = await buildBlindboxState(sb, {
-      userId: auth.userId,
-      email: auth.email,
+    const drawn = await applyDraw(sb, auth.userId, month);
+    return res.status(200).json({
+      month_ganzhi: month,
+      draw_count: drawn.row.draw_count || 0,
+      cards: (drawn.cards || []).map((c) => publicCard(c, r2PublicUrl())).filter(Boolean),
+      unused_credits: unusedCreditCount(drawn.row),
+      annual_free: annualFree,
     });
-    return res.status(200).json(state);
   } catch (err) {
     if (err.code === 'draw_limit') return res.status(400).json({ error: 'draw_limit' });
     if (err.code === 'pool_too_small') return res.status(503).json({ error: 'pool_too_small' });
