@@ -12,6 +12,10 @@ import {
 const expected = {
   single: 599,
   annual: 21999,
+  blindbox: 299,
+  blindbox_draw: 99,
+  blindbox_credited: 200,
+  blindbox_double_credited: 101,
 };
 
 let failed = 0;

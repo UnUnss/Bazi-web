@@ -7,6 +7,9 @@
     { "source": "/api/checkout/zpay-notify", "destination": "/api/checkout/zpay?action=notify" },
     { "source": "/api/checkout/zpay-return", "destination": "/api/checkout/zpay?action=return" },
     { "source": "/api/geo", "destination": "/api/checkout/zpay?action=geo" },
+    { "source": "/api/presign", "destination": "/api/admin?fn=presign" },
+    { "source": "/api/wallpaper-meta", "destination": "/api/admin?fn=meta" },
+    { "source": "/api/wallpaper-delete", "destination": "/api/admin?fn=delete" },
     { "source": "/api/checkout/paypal-capture", "destination": "/api/checkout/paypal?action=capture" },
     { "source": "/api/checkout/paypal-webhook", "destination": "/api/checkout/paypal?action=webhook" }
   ],

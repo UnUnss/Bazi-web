@@ -13,6 +13,13 @@ import {
 } from '../_lib/pricing.js';
 import { paypalFetch } from '../_lib/paypal.js';
 import { orderIdToOutTradeNo, zpayConfigured } from '../_lib/zpay.js';
+import { userCanDownloadKey } from '../_lib/fulfill-order.js';
+import {
+  getCurrentMonthGanZhi,
+  getOrCreateMonth,
+  hasActiveAnnual,
+  unusedCreditCount,
+} from '../_lib/blindbox.js';
 
 function normalizeItems(rawItems) {
   if (!Array.isArray(rawItems)) return [];
@@ -41,10 +48,58 @@ export default async function handler(req, res) {
   let productType = body.product_type || body.productType || null;
   const items = normalizeItems(body.items);
   const useCny = provider === 'alipay';
+  const sb = getServiceSupabase();
 
   let amountCents;
+  let orderMeta = { source: 'checkout/create' };
+
   if (productType === 'annual') {
     amountCents = useCny ? amountForProductCny('annual') : amountForProduct('annual');
+  } else if (productType === 'blindbox_draw') {
+    const month = getCurrentMonthGanZhi();
+    if (!month) return res.status(500).json({ error: 'Month unavailable' });
+    const annual = await hasActiveAnnual(sb, { userId: auth.userId, email: auth.email });
+    if (annual) return res.status(400).json({ error: 'Annual plan already covers draws' });
+    const row = await getOrCreateMonth(sb, auth.userId, month);
+    if (row.draw_count < 1) return res.status(400).json({ error: 'First draw is free' });
+    if (row.draw_count >= 3) return res.status(400).json({ error: 'draw_limit' });
+    amountCents = useCny ? amountForProductCny('blindbox_draw') : amountForProduct('blindbox_draw');
+    orderMeta.kind = 'blindbox_draw';
+    orderMeta.month_ganzhi = month;
+  } else if (productType === 'blindbox') {
+    if (items.length !== 1) return res.status(400).json({ error: 'One wallpaper required' });
+    const annual = await hasActiveAnnual(sb, { userId: auth.userId, email: auth.email });
+    if (annual) return res.status(400).json({ error: 'Annual plan already covers mystery box originals' });
+    const { data: wall } = await sb
+      .from('wallpapers')
+      .select('id, r2_key, pool, folder_number')
+      .eq('r2_key', items[0].r2_key)
+      .maybeSingle();
+    const folder = Number(wall?.folder_number);
+    const isBlind = wall?.pool === 'blindbox' || (folder >= 141 && folder <= 145);
+    if (!isBlind) return res.status(400).json({ error: 'Not a mystery box wallpaper' });
+    const alreadyOwned = await userCanDownloadKey({
+      userId: auth.userId,
+      email: auth.email,
+      r2Key: items[0].r2_key,
+      wallpaperPool: 'blindbox',
+    });
+    if (alreadyOwned) return res.status(400).json({ error: 'Already owned' });
+    const month = getCurrentMonthGanZhi();
+    const row = month ? await getOrCreateMonth(sb, auth.userId, month) : null;
+    const currentIds = (row?.current_ids || []).map(String);
+    if (wall?.id && currentIds.length && currentIds.indexOf(String(wall.id)) < 0) {
+      return res.status(400).json({ error: 'Wallpaper is not in the current draw' });
+    }
+    const credits = unusedCreditCount(row);
+    const priceKey = credits >= 2
+      ? 'blindbox_double_credited'
+      : (credits === 1 ? 'blindbox_credited' : 'blindbox');
+    amountCents = useCny ? amountForProductCny(priceKey) : amountForProduct(priceKey);
+    productType = 'blindbox';
+    orderMeta.kind = 'blindbox_hd';
+    orderMeta.month_ganzhi = month;
+    orderMeta.credit_count = credits;
   } else {
     // Wallpaper: price by item count, $5.99 / ¥39 each. Ignore client product_type.
     if (!items.length) {
@@ -64,7 +119,6 @@ export default async function handler(req, res) {
     ? amountCents
     : Math.round(amountCents / Math.max(items.length, 1));
 
-  const sb = getServiceSupabase();
   const { data: order, error: orderErr } = await sb
     .from('payment_orders')
     .insert({
@@ -75,7 +129,7 @@ export default async function handler(req, res) {
       amount_cents: amountCents,
       currency: useCny ? 'CNY' : 'USD',
       provider,
-      meta: { source: 'checkout/create' },
+      meta: orderMeta,
     })
     .select('*')
     .single();

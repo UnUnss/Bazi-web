@@ -1,5 +1,5 @@
 import { getServiceSupabase } from './supabase.js';
-import { getInviteStatus, consumeInviteReward } from './invite-campaign.js';
+import { getInviteStatus, consumeInviteReward, isFirstFreeOpen, isAllFreeOpen } from './invite-campaign.js';
 
 function sanitizeText(raw, max) {
   if (typeof raw !== 'string') return null;
@@ -69,7 +69,7 @@ export async function insertFreeDownloadLog(sb, {
   return { ok: true };
 }
 
-/** 水印免费图：第一次记 free，第二次（需已邀请满 3 人）记 invite。 */
+/** 水印免费图：活动期内第一次记 free；邀请满 3 人记 invite。首次免费截止后不再写 free。 */
 export async function logWatermarkedFreeDownload({ userId, email, r2Key, wallpaperName }) {
   const sb = getServiceSupabase();
   const { wallpaperId, originalKey } = await resolveWallpaper(sb, r2Key);
@@ -92,15 +92,24 @@ export async function logWatermarkedFreeDownload({ userId, email, r2Key, wallpap
   if (rows.length >= 2) {
     return { ok: false, error: 'exhausted' };
   }
+  // 9 月 7 日后两张免费额度全部失效；已记过账的同一张图仍可重复下载
+  if (!isAllFreeOpen()) {
+    return { ok: false, error: 'ended' };
+  }
 
   const freeCount = rows.filter((r) => r.source === 'free').length;
+  const inviteCount = rows.filter((r) => r.source === 'invite').length;
   let source = 'free';
-  if (freeCount >= 1) {
+  // 活动期内第一次走 free；截止后不再发放首次免费，只允许未使用的邀请奖励。
+  if (freeCount >= 1 || !isFirstFreeOpen()) {
+    if (inviteCount >= 1) return { ok: false, error: 'exhausted' };
     const invite = await getInviteStatus(userId);
-    // 只有 rewardStatus === 'granted'（已发放但未使用）才允许
     const hasInvite = Number(invite && invite.successCount || 0) >= 3
       || invite.rewardStatus === 'granted';
-    if (!hasInvite) return { ok: false, error: 'need_invite' };
+    if (!hasInvite) {
+      return { ok: false, error: freeCount >= 1 ? 'need_invite' : 'ended' };
+    }
+    if (invite.rewardStatus === 'used') return { ok: false, error: 'exhausted' };
     source = 'invite';
   }
 

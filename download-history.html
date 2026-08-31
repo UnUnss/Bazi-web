@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#F1ECDF">
     <meta name="robots" content="noindex, nofollow">
-    <title data-i18n="nav_download_history">本月下載記錄 · ElementaWall</title>
+    <title data-i18n="nav_download_history">下載記錄 · ElementaWall</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=11" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=11" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
     <script src="auth-session.js"></script>
-    <script src="i18n.js?v=43"></script>
+    <script src="i18n.js?v=50"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -214,7 +214,7 @@
         .about-menu a:hover { background: rgba(42, 30, 10, 0.05); }
         .about-menu a { text-decoration: none; }
 
-        .auth-area { position: relative; display: flex; align-items: center; }
+        .auth-area { position: relative; display: flex; align-items: center; gap: 8px; }
         .user-menu-wrap { position: relative; }
         .nav-user-icon {
             width: 32px; height: 32px;
@@ -261,6 +261,19 @@
             letter-spacing: 0.24em;
             color: var(--ink-soft);
             margin-bottom: 32px;
+        }
+
+        .history-section {
+            margin-bottom: 36px;
+            text-align: left;
+        }
+
+        .history-section-title {
+            font-size: 15px;
+            letter-spacing: 0.16em;
+            color: var(--ink);
+            margin-bottom: 14px;
+            font-weight: 400;
         }
 
         .history-list {
@@ -337,6 +350,15 @@
             background: rgba(255, 252, 245, 0.72);
             border: 1px solid var(--line);
             border-radius: 4px;
+            text-align: center;
+        }
+
+        .empty-tip .btn-login {
+            margin: 16px auto 0;
+        }
+
+        .history-section .empty-tip {
+            padding: 20px 14px;
         }
 
         @media (max-width: 720px) {
@@ -416,7 +438,7 @@
                     <div class="user-menu-email" id="userMenuEmail"></div>
                     <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
                     <button type="button" id="btnInviteReward" data-i18n="nav_invite_reward">邀請碼獎勵</button>
-                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">本月下載記錄</button>
+                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
                 </div>
@@ -426,8 +448,10 @@
 </nav>
 
 <div class="page-content">
-    <h1 class="page-title" data-i18n="nav_download_history">本月下載記錄</h1>
-    <div class="history-list" id="historyList"></div>
+    <h1 class="page-title" data-i18n="nav_download_history">下載記錄</h1>
+    <div id="historyRoot">
+        <div class="history-list" id="historyList"></div>
+    </div>
 </div>
 
 <script>
@@ -448,7 +472,6 @@
         langSwitchLabel.textContent = lang === 'zh-TW' ? '語言' : (lang === 'en' ? 'Language' : '语言');
     }
     updateLangLabel();
-    document.addEventListener('i18n:change', () => { updateLangLabel(); renderHistory(); });
 
     langSwitchBtn.addEventListener('click', e => {
         e.stopPropagation();
@@ -469,21 +492,22 @@
     aboutMenu.addEventListener('click', () => { aboutMenu.classList.remove('open'); });
     document.addEventListener('click', () => { langMenu.classList.remove('open'); aboutMenu.classList.remove('open'); });
 
-    const ANNUAL_PLANS_KEY = 'bazi_annual_plans';
-    const ANNUAL_ACTIVE_KEY = 'bazi_annual_active';
+    const AUTH_KEY = 'bazi_logged_in';
+    const AUTH_EMAIL_KEY = 'bazi_logged_email';
+    try {
+        localStorage.removeItem('bazi_mock_login');
+        if (localStorage.getItem(AUTH_EMAIL_KEY) === 'mock@local') {
+            localStorage.removeItem(AUTH_KEY);
+            localStorage.removeItem(AUTH_EMAIL_KEY);
+        }
+    } catch (_) {}
     const btnLogin = document.getElementById('btnLogin');
     const userMenuWrap = document.getElementById('userMenuWrap');
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userMenu = document.getElementById('userMenu');
     const userMenuEmail = document.getElementById('userMenuEmail');
     const btnAnnualService = document.getElementById('btnAnnualService');
-    function isAnnualActive() {
-        try {
-            const raw = JSON.parse(localStorage.getItem(ANNUAL_PLANS_KEY) || 'null');
-            if (Array.isArray(raw) && raw.length > 0) return true;
-        } catch (_) {}
-        return localStorage.getItem(ANNUAL_ACTIVE_KEY) === '1';
-    }
+
     function updateAuthUI(logged, email) {
         btnLogin.style.display = logged ? 'none' : '';
         userMenuWrap.style.display = logged ? '' : 'none';
@@ -492,9 +516,11 @@
             btnAnnualService.style.display = logged ? '' : 'none';
         }
     }
-    window.BaziAuth.syncFromSupabase().then(({ loggedIn, email }) => updateAuthUI(loggedIn, email));
+    window.BaziAuth.syncFromSupabase().then(({ loggedIn, email }) => {
+        updateAuthUI(loggedIn, email);
+    });
     document.addEventListener('i18n:change', () => { updateLangLabel(); renderHistory(); });
-    btnLogin.addEventListener('click', () => { location.href = '/landing?login=1'; });
+    btnLogin.addEventListener('click', () => { location.href = '/landing.html?login=1'; });
     userMenuBtn.addEventListener('click', e => { e.stopPropagation(); userMenu.classList.toggle('open'); });
     if (btnAnnualService) {
         btnAnnualService.addEventListener('click', (e) => {
@@ -513,8 +539,9 @@
     });
     document.getElementById('btnLogout').addEventListener('click', async () => {
         await window.BaziAuth.signOut();
-        window.location.href = '/';
-        return;
+        updateAuthUI(false, '');
+        userMenu.classList.remove('open');
+        renderHistory();
     });
     document.addEventListener('click', () => { userMenu.classList.remove('open'); });
 
@@ -564,25 +591,42 @@
         const user = session?.user;
         if (!user?.id) return null; // null = 未登录
         const currentMonth = getCurrentMonthGanZhi();
-        if (!currentMonth) return [];
         const { data, error } = await _sb
             .from('download_records')
             .select('r2_key, preview_url, wallpaper_name, month_ganzhi, created_at')
             .eq('user_id', user.id)
-            .eq('month_ganzhi', currentMonth)
             .order('created_at', { ascending: false })
-            .limit(200);
+            .limit(400);
         if (error) {
             console.warn('download history cloud load failed', error);
             throw error;
         }
-        return (data || []).map((r) => ({
+        const rows = (data || []).map((r) => ({
             r2key: r.r2_key,
             img: r.preview_url || '',
             name: r.wallpaper_name || '',
             date: String(r.created_at || '').slice(0, 19).replace('T', ' '),
             monthGanZhi: r.month_ganzhi || '',
+            pool: 'match',
         }));
+        const keys = [...new Set(rows.map((r) => r.r2key).filter(Boolean))];
+        if (keys.length) {
+            const { data: walls } = await _sb
+                .from('wallpapers')
+                .select('r2_key, pool, folder_number')
+                .in('r2_key', keys);
+            const poolByKey = {};
+            (walls || []).forEach((w) => {
+                const folder = Number(w.folder_number);
+                const isBlind = w.pool === 'blindbox' || (folder >= 141 && folder <= 145);
+                poolByKey[w.r2_key] = isBlind ? 'blindbox' : 'match';
+            });
+            rows.forEach((r) => {
+                if (poolByKey[r.r2key]) r.pool = poolByKey[r.r2key];
+                else if (/(?:^|[/_-])14[1-5](?:[/_.-]|$)/.test(String(r.r2key || ''))) r.pool = 'blindbox';
+            });
+        }
+        return rows.map((r) => ({ ...r, currentMonth }));
     }
 
     async function doRedownload(btn, r2key, name) {
@@ -639,48 +683,69 @@
         }
     }
 
+    function historyItemHtml(r, btnLabel) {
+        const name = r.name || '—';
+        const img = r.img || '';
+        const date = r.date || '';
+        const r2key = r.r2key || '';
+        return `
+            <div class="history-item">
+                <img class="history-thumb" src="${img}" alt="${name}" onerror="this.style.display='none'">
+                <div class="history-info">
+                    <div class="history-name">${name}</div>
+                    <div class="history-date">${date}</div>
+                </div>
+                <button type="button" class="btn-redownload"
+                    data-r2key="${r2key}"
+                    data-name="${name}"
+                >${btnLabel}</button>
+            </div>`;
+    }
+
+    function historySectionHtml(title, records, emptyTip, btnLabel) {
+        const body = records.length
+            ? `<div class="history-list">${records.map((r) => historyItemHtml(r, btnLabel)).join('')}</div>`
+            : `<div class="empty-tip">${emptyTip}</div>`;
+        return `<section class="history-section">
+            <h2 class="history-section-title">${title}</h2>
+            ${body}
+        </section>`;
+    }
+
     async function renderHistory() {
-        const list = document.getElementById('historyList');
-        const tip = (map) => map[getLang()] || map['zh-TW'];
-        list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '載入中…', 'zh-CN': '加载中…', 'en': 'Loading…' })}</div>`;
+        const root = document.getElementById('historyRoot');
+        const t = (k) => window.I18N ? window.I18N.t(k) : k;
+        root.innerHTML = `<div class="empty-tip">${t('history_loading')}</div>`;
 
         let records = [];
         try {
             const loaded = await loadDownloadRecordsFromCloud();
             if (loaded === null) {
-                list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '請先登入查看本月下載記錄', 'zh-CN': '请先登录查看本月下载记录', 'en': "Please sign in to view this month's downloads" })}</div>`;
+                root.innerHTML = `<div class="empty-tip">${t('history_need_login')}</div>`;
                 return;
             }
             records = loaded;
         } catch (_) {
-            list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '載入失敗，請稍後重試', 'zh-CN': '加载失败，请稍后重试', 'en': 'Failed to load. Please try again.' })}</div>`;
+            root.innerHTML = `<div class="empty-tip">${t('history_load_fail')}</div>`;
             return;
         }
 
-        if (!records.length) {
-            list.innerHTML = `<div class="empty-tip">${tip({ 'zh-TW': '本月尚無下載記錄', 'zh-CN': '本月暂无下载记录', 'en': 'No downloads this month yet' })}</div>`;
-            return;
-        }
+        const currentMonth = getCurrentMonthGanZhi();
+        const matchRecords = records.filter((r) => {
+            if (r.pool === 'blindbox') return false;
+            if (!currentMonth) return !r.monthGanZhi;
+            return !r.monthGanZhi || r.monthGanZhi === currentMonth;
+        });
+        const blindboxRecords = records.filter((r) => r.pool === 'blindbox');
+        const btnLabel = t('btn_redownload');
 
-        const btnLabel = tip({ 'zh-TW': '重新下載', 'zh-CN': '重新下载', 'en': 'Re-download' });
+        root.innerHTML =
+            historySectionHtml(t('history_section_match'), matchRecords, t('history_empty_match'), btnLabel) +
+            historySectionHtml(t('history_section_blindbox'), blindboxRecords, t('history_empty_blindbox'), btnLabel);
 
-        // 仅当前节气月记录（查询已按 month_ganzhi 过滤）
-        list.innerHTML = records.map((r) => `
-            <div class="history-item">
-                <img class="history-thumb" src="${r.img || ''}" alt="${r.name || ''}" onerror="this.style.display='none'">
-                <div class="history-info">
-                    <div class="history-name">${r.name || '—'}</div>
-                    <div class="history-date">${r.date || ''}</div>
-                </div>
-                <button type="button" class="btn-redownload"
-                    data-r2key="${r.r2key || ''}"
-                    data-name="${r.name || ''}"
-                >${btnLabel}</button>
-            </div>`).join('');
-
-        if (!list._redownloadBound) {
-            list._redownloadBound = true;
-            list.addEventListener('click', e => {
+        if (!root._redownloadBound) {
+            root._redownloadBound = true;
+            root.addEventListener('click', e => {
                 const btn = e.target.closest('.btn-redownload');
                 if (!btn) return;
                 const r2key = btn.getAttribute('data-r2key');

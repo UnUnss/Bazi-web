@@ -54,7 +54,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=11" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=11" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=43"></script>
+    <script src="i18n.js?v=54"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -807,6 +807,45 @@
             display: block;
         }
 
+        .wallpaper-preview.is-blindbox-sealed,
+        .wallpaper-preview.is-blindbox-opened {
+            /* 先用接近手机壁纸的比例，JS 会按上方实图再对齐 */
+            aspect-ratio: 9 / 16;
+            background: #efe6d0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .blindbox-mark {
+            font-size: clamp(36px, 16cqi, 64px);
+            font-weight: 400;
+            color: var(--ink-muted);
+            line-height: 1;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .wallpaper-blindbox-title {
+            margin-top: 48px;
+            margin-bottom: 6px;
+        }
+
+        .blindbox-collect-line {
+            text-align: center;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            color: var(--ink-soft);
+            line-height: 1.7;
+            padding: 0 24px 4px;
+        }
+
+        .blindbox-draw-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 8px 24px 0;
+        }
+
         /* ─── 左上角转动圆盘（坐标与动效跟 index.html 封面页保持一致） ─── */
 
         /* 圆盘与龙：与 index.html 保持完全一致的位置/尺寸/分层方式 */
@@ -889,6 +928,28 @@
             background: rgba(255, 252, 245, 0.95);
         }
 
+        /* 必须写在 .btn-download:hover 后面，否则悬停会变成浅底浅字，看起来像空白 */
+        .btn-download.btn-blindbox-draw {
+            min-width: min(280px, 100%);
+            background: #4a3a28;
+            color: #faf6ec;
+            border-color: #4a3a28;
+        }
+
+        .btn-download.btn-blindbox-draw:hover {
+            background: #3d2f20;
+            color: #fff8ee;
+        }
+
+        .btn-download.btn-blindbox-draw:disabled,
+        .btn-download.btn-blindbox-draw:disabled:hover {
+            background: #9a8b78;
+            color: #faf6ec;
+            border-color: #9a8b78;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
         /* 只做普通块级容器，不使用 flex/grid，避免 iOS 16 布局错乱 */
         .wallpaper-actions {
             width: 100%;
@@ -915,6 +976,12 @@
         .wallpaper-actions .btn-download-free {
             font-size: 11px;
             padding: 8px 4px;
+        }
+
+        /* display:block 会盖掉原生 [hidden]，活动下线后必须显式藏掉按钮 */
+        .wallpaper-actions .btn-download-free[hidden],
+        .wallpaper-actions .btn-preview-large[hidden] {
+            display: none !important;
         }
 
         .wallpaper-actions .btn-download-hd {
@@ -1006,6 +1073,41 @@
             font-size: 14px;
             color: var(--ink-soft);
             letter-spacing: 0.06em;
+        }
+
+        .pay-credit-hint {
+            margin: 0 0 10px;
+            font-size: 12px;
+            color: var(--ink-soft);
+            letter-spacing: 0.04em;
+            line-height: 1.5;
+        }
+
+        .pay-credit-hint[hidden] {
+            display: none;
+        }
+
+        .btn-pay-redeem {
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 14px;
+            letter-spacing: 0.08em;
+            color: var(--ink);
+            background: transparent;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .btn-pay-redeem:hover {
+            background: rgba(42, 30, 10, 0.06);
+        }
+
+        .btn-pay-redeem[hidden] {
+            display: none !important;
         }
 
         .pay-notice {
@@ -2190,6 +2292,7 @@
             letter-spacing: 0.04em;
             transition: background 0.15s;
         }
+
         .btn-google:hover { background: #f9f9f7; }
 
         .auth-method-tabs {
@@ -2344,6 +2447,20 @@
                 align-items: stretch;
             }
 
+            .wallpaper-blindbox-title {
+                margin-top: 32px;
+            }
+
+            .blindbox-collect-line {
+                font-size: 12px;
+                padding: 0 14px 2px;
+                letter-spacing: 0.04em;
+            }
+
+            .blindbox-draw-wrap {
+                padding: 4px 14px 0;
+            }
+
             .wallpaper-group {
                 width: 100%;
                 min-width: 0;
@@ -2441,7 +2558,7 @@
                     <div class="user-menu-email" id="userMenuEmail"></div>
                     <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
                     <button type="button" id="btnInviteReward" data-i18n="nav_invite_reward">邀請碼獎勵</button>
-                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">本月下載記錄</button>
+                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
                 </div>
@@ -2554,6 +2671,13 @@
 
     <!-- 卡片內容由 JS 依據 bazi_logic.js 的本月喜用五行／弱勢領域計算結果動態生成，見下方 renderWallpapers() -->
     <div class="wallpaper-grid" id="wallpaperGrid"></div>
+
+    <h2 class="wallpaper-title wallpaper-blindbox-title" data-i18n="wallpaper_blindbox_title">本月五行盲盒</h2>
+    <p class="blindbox-collect-line" id="blindboxCollectLine"></p>
+    <div class="wallpaper-grid" id="blindboxGrid"></div>
+    <div class="blindbox-draw-wrap">
+        <button type="button" class="btn-download btn-blindbox-draw" id="btnBlindboxDraw" data-i18n="btn_blindbox_draw_free">抽盲盒（每月首抽免費開啟）</button>
+    </div>
 </section>
 </div>
 
@@ -2676,8 +2800,9 @@
             <span class="pay-price" id="payPrice">$5.99</span><span class="pay-price-currency" id="payPriceCurrency">美元</span>
             <span class="pay-price-unit" id="payPriceUnit" data-i18n="pay_per_image">/ 張</span>
                 </div>
+        <p class="pay-credit-hint" id="payCreditHint" hidden></p>
         <p class="pay-notice" id="payNotice" data-i18n="pay_notice">支付成功後將會自動下載手機桌布，
-若下載失敗可在導航欄「用戶——本月下載記錄」重新下載</p>
+若下載失敗可在導航欄「用戶——下載記錄」重新下載</p>
 
         <div class="pay-provider-row">
             <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
@@ -2695,9 +2820,10 @@
             <button type="button" class="btn-official-alipay" id="btnPayAlipay" data-provider="alipay" aria-label="支付宝" hidden>
                 <img src="assets/pay/支付宝logo.png" alt="支付宝">
             </button>
-                    </div>
-                </div>
-            </div>
+        </div>
+        <button type="button" class="btn-pay-redeem" id="btnPayRedeem" hidden data-i18n="btn_blindbox_redeem">使用免費下載兌換</button>
+    </div>
+</div>
 
 <!-- 邀请码活动弹窗（下线时删除本块及对应 JS） -->
 <div class="modal-backdrop" id="inviteModal" role="dialog" aria-modal="true">
@@ -2757,7 +2883,7 @@
     <div class="modal annual-select-modal">
         <button type="button" class="modal-close" id="annualSelectClose" data-i18n-aria-label="modal_close_aria" aria-label="關閉">×</button>
         <h2 id="annualSelectTitle" data-i18n="annual_select_title">选择包年档案</h2>
-        <p class="annual-select-desc" id="annualSelectDesc" data-i18n="annual_select_pay_desc">包年服务可指定两个八字档案使用。支付后可在右上角「我的」菜单中选择指定八字档案。绑定包年后，所选档案将不可修改、不可删除。</p>
+        <p class="annual-select-desc" id="annualSelectDesc" data-i18n="annual_select_pay_desc">包年服务可指定两个八字档案全年免费使用本站所有付费服务。支付后可在右上角「我的」菜单中选择指定八字档案。绑定包年后，所选档案将不可修改、不可删除。</p>
         <div class="annual-select-manage-only">
             <p class="annual-select-lock-note" data-i18n="annual_select_lock_note">绑定包年后，所选档案将不可修改、不可删除。</p>
             <div class="annual-plans-container" id="annualPlansContainer"></div>
@@ -2978,6 +3104,59 @@
 
     const STORAGE_KEY = 'bazi_profiles';
     const ACTIVE_KEY = 'bazi_active_id';
+
+    // 限时免费：代码保留，用开关 + 截止日期控制。
+    // 下次再开：ENABLED = true，并把对应 END_MS 改成新的截止时刻（UTC）。
+    const FIRST_FREE_ENABLED = true;
+    /** 北京时间 2026-08-31 23:59:59.999：之后不再发放「首次免费」 */
+    const FIRST_FREE_END_MS = Date.parse('2026-08-31T15:59:59.999Z');
+    /** 北京时间 2026-09-07 23:59:59.999：两张免费额度全部失效 */
+    const ALL_FREE_DOWNLOAD_END_MS = Date.parse('2026-09-07T15:59:59.999Z');
+    /** 进 landing 时的「限时免费」弹窗。下次活动改回 true 即可。 */
+    const INVITE_PROMO_AUTO_OPEN = false;
+    let inviteStatus = null;
+
+    function isFirstFreeOpen() {
+        if (!FIRST_FREE_ENABLED) return false;
+        if (Date.now() > FIRST_FREE_END_MS) return false;
+        if (inviteStatus && typeof inviteStatus.firstFreeOpen === 'boolean') {
+            return inviteStatus.firstFreeOpen;
+        }
+        return true;
+    }
+
+    function isAllFreeExpired() {
+        if (Date.now() > ALL_FREE_DOWNLOAD_END_MS) return true;
+        if (inviteStatus && inviteStatus.allFreeOpen === false) return true;
+        return false;
+    }
+
+    function hasUnusedInviteFreeDownload() {
+        return !!(inviteStatus && inviteStatus.rewardStatus === 'granted');
+    }
+
+    function hasUsedBothFreeDownloads() {
+        try {
+            if (getFreeDlUsedKeys().length >= 2) return true;
+        } catch (_) {}
+        return !!(inviteStatus && inviteStatus.rewardStatus === 'used');
+    }
+
+    function canShowFreeDownloadBtn() {
+        if (isAllFreeExpired()) return false;
+        if (hasUsedBothFreeDownloads()) return false;
+        return isFirstFreeOpen() || hasUnusedInviteFreeDownload();
+    }
+
+    function syncFreeDownloadButtons() {
+        const showFree = canShowFreeDownloadBtn();
+        document.querySelectorAll('.wallpaper-actions[data-free-slot]').forEach((el) => {
+            const free = el.querySelector('.btn-download-free');
+            const preview = el.querySelector('.btn-preview-large');
+            if (free) free.hidden = !showFree;
+            if (preview) preview.hidden = showFree;
+        });
+    }
 
     const defaultProfiles = [
         {
@@ -3878,6 +4057,279 @@
     // 本月壁紙區塊：卡片內容完全由 computeMonthlyInsight() 的計算結果生成——
     // 第一張永遠對應「本月喜用」單一五行，之後 1~2 張對應本月最需要補運的生活領域。
     const wallpaperGrid = document.getElementById('wallpaperGrid');
+    const blindboxGrid = document.getElementById('blindboxGrid');
+    const btnBlindboxDraw = document.getElementById('btnBlindboxDraw');
+    const BLINDBOX_COLLECT_ORDER = ['金', '木', '水', '火', '土'];
+    const emptyBlindboxOwned = () => ({ '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 });
+    let alipayAvailable = false;
+    let pendingDownloadWallpaperId = '';
+    let blindboxState = {
+        draw_count: 0,
+        cards: [],
+        unused_credits: 0,
+        owned: emptyBlindboxOwned(),
+        owned_keys: [],
+        owned_ids: [],
+        downloaded_keys: [],
+        downloaded_ids: [],
+        redeemed: 0,
+        redeem_available: 0,
+        annual_free: false,
+        month_ganzhi: '',
+    };
+    let blindboxLoadPromise = null;
+    let blindboxDrawBusy = false;
+
+    function emptyBlindboxState() {
+        return {
+            draw_count: 0,
+            cards: [],
+            unused_credits: 0,
+            owned: emptyBlindboxOwned(),
+            owned_keys: [],
+            owned_ids: [],
+            downloaded_keys: [],
+            downloaded_ids: [],
+            redeemed: 0,
+            redeem_available: 0,
+            annual_free: false,
+            month_ganzhi: '',
+        };
+    }
+
+    function isBlindboxOwned(r2key, wallpaperId) {
+        const keyLists = [blindboxState.owned_keys, blindboxState.downloaded_keys];
+        const idLists = [blindboxState.owned_ids, blindboxState.downloaded_ids];
+        if (r2key && keyLists.some((list) => Array.isArray(list) && list.indexOf(r2key) >= 0)) return true;
+        if (wallpaperId && idLists.some((list) => Array.isArray(list) && list.indexOf(String(wallpaperId)) >= 0)) return true;
+        return false;
+    }
+
+    function isAnnualBlindboxFree() {
+        return !!blindboxState.annual_free;
+    }
+
+    function countUnusedPaidDrawCredits() {
+        return Number(blindboxState.unused_credits) || 0;
+    }
+
+    function syncPayRedeemButton() {
+        const btn = document.getElementById('btnPayRedeem');
+        if (!btn) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const isHdPay = pendingPayKind === 'wallpaper' || pendingPayKind === 'blindbox-hd';
+        const canRedeem = isHdPay && (Number(blindboxState.redeem_available) || 0) > 0;
+        btn.hidden = !canRedeem;
+        btn.textContent = t('btn_blindbox_redeem');
+        btn.setAttribute('data-i18n', 'btn_blindbox_redeem');
+    }
+
+    function applyBlindboxState(data) {
+        if (!data || typeof data !== 'object') return;
+        blindboxState = {
+            draw_count: Number(data.draw_count) || 0,
+            cards: Array.isArray(data.cards) ? data.cards : [],
+            unused_credits: Number(data.unused_credits) || 0,
+            owned: Object.assign(emptyBlindboxOwned(), data.owned || {}),
+            owned_keys: Array.isArray(data.owned_keys) ? data.owned_keys : [],
+            owned_ids: Array.isArray(data.owned_ids) ? data.owned_ids.map(String) : [],
+            downloaded_keys: Array.isArray(data.downloaded_keys) ? data.downloaded_keys : [],
+            downloaded_ids: Array.isArray(data.downloaded_ids) ? data.downloaded_ids.map(String) : [],
+            redeemed: Number(data.redeemed) || 0,
+            redeem_available: Number(data.redeem_available) || 0,
+            annual_free: !!data.annual_free,
+            month_ganzhi: data.month_ganzhi || '',
+        };
+        renderBlindboxFront();
+        if (typeof syncPayRedeemButton === 'function') syncPayRedeemButton();
+    }
+
+    async function loadBlindboxState() {
+        if (localStorage.getItem('bazi_logged_in') !== '1') {
+            applyBlindboxState(emptyBlindboxState());
+            return blindboxState;
+        }
+        if (blindboxLoadPromise) return blindboxLoadPromise;
+        blindboxLoadPromise = (async () => {
+            try {
+                const headers = await getAuthHeaders();
+                const res = await fetch('/api/blindbox', { method: 'GET', headers });
+                if (res.status === 401) {
+                    applyBlindboxState(emptyBlindboxState());
+                    return blindboxState;
+                }
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'load failed');
+                applyBlindboxState(data);
+            } catch (err) {
+                console.warn('loadBlindboxState', err);
+                renderBlindboxFront();
+            }
+            return blindboxState;
+        })();
+        try {
+            return await blindboxLoadPromise;
+        } finally {
+            blindboxLoadPromise = null;
+        }
+    }
+
+    async function requestBlindboxDraw() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        if (blindboxDrawBusy) return;
+        blindboxDrawBusy = true;
+        if (btnBlindboxDraw) btnBlindboxDraw.disabled = true;
+        try {
+            const headers = await getAuthHeaders();
+            const res = await fetch('/api/blindbox', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ action: 'draw' }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 402) {
+                await loadBlindboxState();
+                openBlindboxDrawPayModal();
+                return;
+            }
+            if (!res.ok) {
+                await loadBlindboxState();
+                if (data.error === 'draw_limit') return;
+                if (data.error === 'pool_too_small' || data.error === 'draw_conflict') {
+                    alert(t('download_failed'));
+                    return;
+                }
+                alert(data.error || t('download_failed'));
+                return;
+            }
+            applyBlindboxState(data);
+        } finally {
+            blindboxDrawBusy = false;
+            updateBlindboxDrawButton();
+        }
+    }
+
+    function renderBlindboxCollectLine() {
+        const line = document.getElementById('blindboxCollectLine');
+        if (!line) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
+        const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
+        const owned = Object.assign(emptyBlindboxOwned(), blindboxState.owned || {});
+        const sep = lang === 'en' ? ', ' : '，';
+        const parts = BLINDBOX_COLLECT_ORDER.map((el) => {
+            const name = wxNameMap[el] || el;
+            return `${name}x${owned[el] || 0}`;
+        });
+        const redeem = String(t('blindbox_collect_redeem') || '').replace('{n}', String(blindboxState.redeemed || 0));
+        line.textContent = `${t('blindbox_collect_prefix')}${parts.join(sep)}${redeem}`;
+    }
+
+    function sealedBlindboxCardHtml(t) {
+        const name = escapeHtml(t('wallpaper_blindbox_name'));
+        const unopened = escapeHtml(t('wallpaper_blindbox_unopened'));
+        return `<article class="wallpaper-card wallpaper-card-blindbox">
+            <div class="wallpaper-preview is-blindbox-sealed" role="img" aria-label="${unopened}">
+                <span class="blindbox-mark" aria-hidden="true">?</span>
+            </div>
+            <div class="wallpaper-meta">
+                <p class="name">${name}</p>
+                <p class="desc">${unopened}</p>
+            </div>
+        </article>`;
+    }
+
+    function openedBlindboxCardHtml(t, card, idx) {
+        const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
+        const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
+        const el = card.element || '';
+        const name = wxNameMap[el] || el;
+        const wxCls = WX_CLASS[el] || '';
+        const nameHtml = wxCls
+            ? `<span class="${wxCls}">${escapeHtml(name)}</span>`
+            : escapeHtml(name);
+        const preview = card.preview_url || '';
+        const previewBtn = `<button type="button" class="btn-download btn-preview-large" data-preview-src="${escapeHtml(preview)}" data-name="${escapeHtml(name)}">${escapeHtml(t('btn_preview_large'))}</button>`;
+        const hdBtn = `<button type="button" class="btn-download btn-download-hd" data-key="blindbox#${idx}" data-el="${escapeHtml(el)}" data-img="${escapeHtml(preview)}" data-r2key="${escapeHtml(card.r2_key || '')}" data-wallpaper-id="${escapeHtml(card.id || '')}" data-name="${escapeHtml(name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
+        const imgHtml = preview
+            ? `<img src="${escapeHtml(preview)}" alt="${escapeHtml(name)}" draggable="false">`
+            : '';
+        return `<article class="wallpaper-card wallpaper-card-blindbox">
+            <div class="wallpaper-preview is-blindbox-opened" role="img" aria-label="${escapeHtml(name)}">${imgHtml}</div>
+            <div class="wallpaper-meta">
+                <p class="name">${nameHtml}</p>
+                <div class="wallpaper-actions">${previewBtn}${hdBtn}</div>
+            </div>
+        </article>`;
+    }
+
+    function updateBlindboxDrawButton() {
+        if (!btnBlindboxDraw) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const draws = Number(blindboxState.draw_count) || 0;
+        btnBlindboxDraw.disabled = draws >= 3;
+        if (draws <= 0) {
+            btnBlindboxDraw.setAttribute('data-i18n', 'btn_blindbox_draw_free');
+            btnBlindboxDraw.textContent = t('btn_blindbox_draw_free');
+        } else if (draws >= 3) {
+            btnBlindboxDraw.setAttribute('data-i18n', 'btn_blindbox_draw_done');
+            btnBlindboxDraw.textContent = t('btn_blindbox_draw_done');
+        } else if (isAnnualBlindboxFree()) {
+            btnBlindboxDraw.setAttribute('data-i18n', 'btn_blindbox_draw_again');
+            btnBlindboxDraw.textContent = t('btn_blindbox_draw_again');
+        } else {
+            const paidKey = alipayAvailable ? 'btn_blindbox_draw_paid_cny' : 'btn_blindbox_draw_paid';
+            btnBlindboxDraw.setAttribute('data-i18n', paidKey);
+            btnBlindboxDraw.textContent = t(paidKey);
+        }
+    }
+
+    function renderBlindboxFront() {
+        if (!blindboxGrid) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const cards = (blindboxState.cards || []).slice(0, 4);
+        let cardsHtml;
+        if (cards.length === 4) {
+            const htmls = cards.map((c, idx) => openedBlindboxCardHtml(t, c, idx));
+            cardsHtml = `
+            <div class="wallpaper-group">
+                <div class="wallpaper-row">${htmls[0]}${htmls[1]}</div>
+            </div>
+            <div class="wallpaper-group">
+                <div class="wallpaper-row">${htmls[2]}${htmls[3]}</div>
+            </div>`;
+        } else {
+            const card = sealedBlindboxCardHtml(t);
+            cardsHtml = `
+            <div class="wallpaper-group">
+                <div class="wallpaper-row">${card}${card}</div>
+            </div>
+            <div class="wallpaper-group">
+                <div class="wallpaper-row">${card}${card}</div>
+            </div>`;
+        }
+        blindboxGrid.innerHTML = cardsHtml;
+        updateBlindboxDrawButton();
+        renderBlindboxCollectLine();
+        syncBlindboxPlaceholderRatio();
+    }
+
+    function syncBlindboxPlaceholderRatio() {
+        if (!blindboxGrid || !wallpaperGrid) return;
+        const img = wallpaperGrid.querySelector('.wallpaper-preview > img');
+        const slots = blindboxGrid.querySelectorAll('.is-blindbox-sealed, .is-blindbox-opened');
+        if (!img || !slots.length) return;
+        const apply = () => {
+            if (!img.naturalWidth || !img.naturalHeight) return;
+            const ratio = `${img.naturalWidth} / ${img.naturalHeight}`;
+            slots.forEach((el) => { el.style.aspectRatio = ratio; });
+        };
+        if (img.complete && img.naturalWidth) apply();
+        else img.addEventListener('load', apply, { once: true });
+    }
+    document.addEventListener('i18n:change', () => {
+        renderBlindboxFront();
+    });
 
     // ── 壁紙池工具函數 ─────────────────────────────────────
     // 简单 32-bit hash，相同字符串永远返回相同值
@@ -4387,16 +4839,17 @@
             const fallbackAttrs = fallbackSrc
                 ? `data-fallback-src="${escapeHtml(fallbackSrc)}" onerror="const f=this.dataset.fallbackSrc;if(f){delete this.dataset.fallbackSrc;this.src=f;}"`
                 : '';
-            const hdBtn = `<button type="button" class="btn-download btn-download-hd" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
-            const freeBtn = idx < 2
-                ? `<button type="button" class="btn-download btn-download-free" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-previewkey="${escapeHtml(c.previewKey||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_free'))}</button>`
-                : '';
-            const previewBtn = idx >= 2
-                ? `<button type="button" class="btn-download btn-preview-large" data-preview-src="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_preview_large'))}</button>`
-                : '';
-            const actions = idx < 2
-                ? `<div class="wallpaper-actions">${freeBtn}${hdBtn}</div>`
-                : `<div class="wallpaper-actions">${previewBtn}${hdBtn}</div>`;
+            const hdBtn = `<button type="button" class="btn-download btn-download-hd" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-wallpaper-id="${escapeHtml(c.id || '')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
+            const previewBtn = `<button type="button" class="btn-download btn-preview-large" data-preview-src="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_preview_large'))}</button>`;
+            let actions;
+            if (idx < 2) {
+                const showFree = canShowFreeDownloadBtn();
+                const freeBtn = `<button type="button" class="btn-download btn-download-free"${showFree ? '' : ' hidden'} data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-previewkey="${escapeHtml(c.previewKey||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_free'))}</button>`;
+                const slotPreview = `<button type="button" class="btn-download btn-preview-large"${showFree ? ' hidden' : ''} data-preview-src="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_preview_large'))}</button>`;
+                actions = `<div class="wallpaper-actions" data-free-slot>${freeBtn}${slotPreview}${hdBtn}</div>`;
+            } else {
+                actions = `<div class="wallpaper-actions">${previewBtn}${hdBtn}</div>`;
+            }
             return `<article class="wallpaper-card">
                 <div class="wallpaper-preview">
                     <img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.name)}" draggable="false" loading="${loading}" decoding="async" fetchpriority="${fetchPriority}" ${fallbackAttrs} />
@@ -4431,6 +4884,7 @@
                 if (img) img.src = blobUrl;
             }).catch(() => {});
         });
+        renderBlindboxFront();
     }
 
 
@@ -4456,16 +4910,72 @@
     const payPriceCurrency = document.getElementById('payPriceCurrency');
     const payPriceUnit = document.getElementById('payPriceUnit');
     const payNotice = document.getElementById('payNotice');
+    const payCreditHint = document.getElementById('payCreditHint');
     let pendingDownloadImg = '';
     let pendingDownloadName = '';
     let pendingDownloadKey = '';
     let pendingDownloadR2Key = '';
-    let alipayAvailable = false;
+    let pendingPayKind = 'wallpaper'; // wallpaper | blindbox-hd | blindbox-draw
+    let pendingBlindboxHdCreditCount = 0;
+
+    function setPayCreditHint(creditCount) {
+        if (!payCreditHint) return;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const n = Number(creditCount) || 0;
+        if (n >= 2) {
+            const key = alipayAvailable ? 'pay_blindbox_credit_hint_double_cny' : 'pay_blindbox_credit_hint_double';
+            payCreditHint.hidden = false;
+            payCreditHint.setAttribute('data-i18n', key);
+            payCreditHint.textContent = t(key);
+        } else if (n === 1) {
+            const key = alipayAvailable ? 'pay_blindbox_credit_hint_cny' : 'pay_blindbox_credit_hint';
+            payCreditHint.hidden = false;
+            payCreditHint.setAttribute('data-i18n', key);
+            payCreditHint.textContent = t(key);
+        } else {
+            payCreditHint.hidden = true;
+            payCreditHint.removeAttribute('data-i18n');
+            payCreditHint.textContent = '';
+        }
+    }
+
+    function applyPayCurrencyLabel() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        if (!payPriceCurrency) return;
+        if (alipayAvailable) {
+            payPriceCurrency.setAttribute('data-i18n', 'pay_currency_cny');
+            payPriceCurrency.textContent = t('pay_currency_cny');
+        } else {
+            payPriceCurrency.setAttribute('data-i18n', 'pay_currency_usd');
+            payPriceCurrency.textContent = t('pay_currency_usd');
+        }
+    }
 
     function applyPayPrice() {
+        if (pendingPayKind === 'blindbox-draw') {
+            applyBlindboxDrawPayPrice();
+            return;
+        }
         const t = window.I18N ? window.I18N.t : (k) => k;
-        if (payPriceCurrency) payPriceCurrency.textContent = '美元';
-        if (payPrice) payPrice.textContent = '$5.99';
+        pendingBlindboxHdCreditCount = pendingPayKind === 'blindbox-hd' ? countUnusedPaidDrawCredits() : 0;
+        applyPayCurrencyLabel();
+        if (payPrice) {
+            if (pendingPayKind === 'blindbox-hd') {
+                if (alipayAvailable) {
+                    payPrice.textContent = pendingBlindboxHdCreditCount >= 2
+                        ? '¥6'
+                        : (pendingBlindboxHdCreditCount === 1 ? '¥12.5' : '¥19');
+                } else {
+                    payPrice.textContent = pendingBlindboxHdCreditCount >= 2
+                        ? '$1.01'
+                        : (pendingBlindboxHdCreditCount === 1 ? '$2.00' : '$2.99');
+                }
+            } else if (alipayAvailable) {
+                payPrice.textContent = '¥39';
+            } else {
+                payPrice.textContent = '$5.99';
+            }
+        }
         if (payPriceUnit) {
             payPriceUnit.setAttribute('data-i18n', 'pay_per_image');
             payPriceUnit.textContent = t('pay_per_image');
@@ -4474,7 +4984,102 @@
             payNotice.setAttribute('data-i18n', 'pay_notice');
             payNotice.textContent = t('pay_notice');
         }
+        setPayCreditHint(pendingBlindboxHdCreditCount);
+        syncPayRedeemButton();
+        const wrap = document.querySelector('#payModal .pay-wallpaper-preview');
+        if (wrap) wrap.style.display = '';
     }
+
+    function applyBlindboxDrawPayPrice() {
+        pendingPayKind = 'blindbox-draw';
+        pendingBlindboxHdCreditCount = 0;
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        applyPayCurrencyLabel();
+        if (payPrice) payPrice.textContent = alipayAvailable ? '¥6.5' : '$0.99';
+        if (payPriceUnit) {
+            payPriceUnit.setAttribute('data-i18n', 'pay_per_draw');
+            payPriceUnit.textContent = t('pay_per_draw');
+        }
+        if (payNotice) {
+            payNotice.setAttribute('data-i18n', 'pay_notice_blindbox');
+            payNotice.textContent = t('pay_notice_blindbox');
+        }
+        setPayCreditHint(0);
+        syncPayRedeemButton();
+        const wrap = document.querySelector('#payModal .pay-wallpaper-preview');
+        if (wrap) wrap.style.display = 'none';
+        if (payWallpaperName) payWallpaperName.textContent = t('pay_blindbox_draw_name');
+        if (payPreviewImg) {
+            payPreviewImg.removeAttribute('src');
+            payPreviewImg.alt = '';
+        }
+    }
+
+    function openBlindboxDrawPayModal() {
+        applyBlindboxDrawPayPrice();
+        payModal.classList.add('open');
+    }
+
+    btnBlindboxDraw?.addEventListener('click', () => {
+        if (!requireLogin()) return;
+        const n = Number(blindboxState.draw_count) || 0;
+        if (n >= 3) return;
+        if (n === 0 || isAnnualBlindboxFree()) {
+            requestBlindboxDraw();
+            return;
+        }
+        openBlindboxDrawPayModal();
+    });
+
+    blindboxGrid?.addEventListener('click', (e) => {
+        const previewBtn = e.target.closest('.btn-preview-large');
+        if (previewBtn) {
+            const src = previewBtn.getAttribute('data-preview-src') || '';
+            if (!src) return;
+            const name = previewBtn.getAttribute('data-name') || '';
+            const previewLargeModal = document.getElementById('previewLargeModal');
+            const previewLargeImg = document.getElementById('previewLargeImg');
+            if (previewLargeModal && previewLargeImg) {
+                previewLargeImg.src = src;
+                previewLargeImg.alt = name;
+                previewLargeModal.classList.add('open');
+            }
+            return;
+        }
+        const hdBtn = e.target.closest('.btn-download-hd');
+        if (!hdBtn) return;
+        if (!requireLogin()) return;
+        const name = hdBtn.getAttribute('data-name') || '';
+        const img = hdBtn.getAttribute('data-img') || '';
+        const r2key = hdBtn.getAttribute('data-r2key') || '';
+        pendingDownloadImg = img;
+        pendingDownloadName = name;
+        pendingDownloadKey = hdBtn.getAttribute('data-key') || '';
+        pendingDownloadR2Key = r2key;
+        pendingDownloadWallpaperId = hdBtn.getAttribute('data-wallpaper-id') || '';
+        pendingPayKind = 'blindbox-hd';
+        if (isAnnualBlindboxFree() || isBlindboxOwned(r2key, pendingDownloadWallpaperId)) {
+            startOriginalDownload({ r2key, name, previewImg: img }).then(() => loadBlindboxState());
+            return;
+        }
+        if (img) {
+            payPreviewImg.src = img;
+            payPreviewImg.alt = name;
+            const wrap = document.querySelector('#payModal .pay-wallpaper-preview');
+            if (wrap) wrap.style.display = '';
+        } else if (payPreviewImg) {
+            payPreviewImg.removeAttribute('src');
+            const wrap = document.querySelector('#payModal .pay-wallpaper-preview');
+            if (wrap) wrap.style.display = 'none';
+        }
+        payWallpaperName.textContent = name;
+        applyPayPrice();
+        if (!img) {
+            const wrap = document.querySelector('#payModal .pay-wallpaper-preview');
+            if (wrap) wrap.style.display = 'none';
+        }
+        payModal.classList.add('open');
+    });
 
     const ANNUAL_PLANS_KEY = 'bazi_annual_plans';
     const ANNUAL_PROFILES_KEY = 'bazi_annual_profile_ids'; // legacy
@@ -4576,6 +5181,7 @@
             localStorage.setItem(ANNUAL_PROFILES_KEY, JSON.stringify(allIds.slice(0, 2)));
         } catch (_) {}
         updateAnnualNavBtn();
+        try { updateBlindboxDrawButton(); } catch (_) {}
     }
 
     function clearLocalAnnualPlans() {
@@ -4730,6 +5336,14 @@
     function isActiveProfileAnnualBound() {
         return isProfileAnnualLocked(activeId);
     }
+    try {
+        localStorage.removeItem('bazi_mock_login');
+        if (localStorage.getItem('bazi_logged_email') === 'mock@local') {
+            localStorage.removeItem('bazi_logged_in');
+            localStorage.removeItem('bazi_logged_email');
+        }
+    } catch (_) {}
+    loadBlindboxState();
 
     function removeProfileFromAnnualPlans(profileId) {
         const plans = loadAnnualPlans().map((plan) => ({
@@ -4829,6 +5443,7 @@
     async function startFreeDownload(btn) {
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (freeDlBusy) return;
+        if (!canShowFreeDownloadBtn()) return;
         if (!requireLogin()) return;
         const r2key = btn.getAttribute('data-r2key') || '';
         const previewKey = btn.getAttribute('data-previewkey') || '';
@@ -4849,6 +5464,7 @@
 
             if (usedKeys.length >= 2) {
                 alert(t('free_dl_exhausted'));
+                syncFreeDownloadButtons();
                 freeDlBusy = false;
                 btn.disabled = false;
                 btn.textContent = prevText;
@@ -4896,6 +5512,7 @@
                     openInviteModal('free_second');
                 } else {
                     alert(t('free_dl_exhausted'));
+                    syncFreeDownloadButtons();
                 }
                 freeDlBusy = false;
                 btn.disabled = false;
@@ -4917,6 +5534,8 @@
             if (!alreadyUsedThis) {
                 claimedKey = r2key;
                 setFreeDlUsedKeys(usedKeys.concat(r2key));
+                syncFreeDownloadButtons();
+                refreshInviteStatus().then(() => syncFreeDownloadButtons());
             }
         } catch (_) {
             hideCheckoutReturnModal();
@@ -4935,7 +5554,7 @@
     /**
      * @returns {'ok'|'missing'|'auth'|'payment'|'fail'}
      */
-    async function startOriginalDownload({ r2key, name, previewImg, silentPaymentAlert = false }) {
+    async function startOriginalDownload({ r2key, name, previewImg, silentPaymentAlert = false, redeem = false }) {
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return 'auth';
         if (!r2key) {
@@ -4961,6 +5580,7 @@
                     preview_url: previewImg || '',
                     wallpaper_name: name || '',
                     month_ganzhi: ganZhi ? ganZhi.month : '',
+                    redeem: !!redeem,
                 }),
             });
             lastStatus = res.status;
@@ -5002,6 +5622,9 @@
             const filename = baseName + guessExtFromUrl(fileUrl, '');
             triggerDirectDownload(fileUrl, filename);
         }
+        if (pendingPayKind === 'blindbox-hd') {
+            loadBlindboxState();
+        }
         return 'ok';
     }
 
@@ -5037,6 +5660,7 @@
             el.hidden = !!show;
         });
         applyPayPrice();
+        updateBlindboxDrawButton();
     }
 
     async function detectMainlandChina() {
@@ -5196,8 +5820,16 @@
                 if (!isAnnualActive()) ensureLocalAnnualFromCheckout(status);
                 updateAnnualNavBtn();
                 refresh();
+                await loadBlindboxState();
                 hideCheckoutReturnModal();
                 openAnnualSelectModal('manage');
+                return;
+            }
+
+            if (status.productType === 'blindbox_draw') {
+                showCheckoutReturnMsg('pay_success_download');
+                await loadBlindboxState();
+                setTimeout(hideCheckoutReturnModal, 800);
                 return;
             }
 
@@ -5207,6 +5839,7 @@
                 if (!it?.r2Key) continue;
                 await downloadAfterPayment(it);
             }
+            if (status.productType === 'blindbox') await loadBlindboxState();
             setTimeout(hideCheckoutReturnModal, 800);
         } catch (err) {
             hideCheckoutReturnModal();
@@ -5525,6 +6158,8 @@
         pendingDownloadName = name;
         pendingDownloadKey = key;
         pendingDownloadR2Key = r2key;
+        pendingDownloadWallpaperId = btn.getAttribute('data-wallpaper-id') || '';
+        pendingPayKind = 'wallpaper';
         // 当前档案已绑定包年：跳过价格窗，直接发起原图下载
         if (isActiveProfileAnnualBound()) {
             startOriginalDownload({ r2key, name, previewImg: img });
@@ -5579,16 +6214,23 @@
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return;
         if (provider === 'alipay' && !alipayAvailable) return;
+        if (pendingPayKind === 'blindbox-draw') {
+            payModal.classList.remove('open');
+            await startCheckout({ provider, productType: 'blindbox_draw', items: [] });
+            return;
+        }
         if (!pendingDownloadR2Key) {
             alert(t('download_missing_key'));
             return;
         }
         payModal.classList.remove('open');
+        const isBlindboxHd = pendingPayKind === 'blindbox-hd';
         await startCheckout({
             provider,
-            productType: 'single',
+            productType: isBlindboxHd ? 'blindbox' : 'single',
             items: [{
                 r2_key: pendingDownloadR2Key,
+                wallpaper_id: pendingDownloadWallpaperId || null,
                 preview_url: pendingDownloadImg,
                 wallpaper_name: pendingDownloadName,
             }],
@@ -5598,6 +6240,24 @@
     document.getElementById('btnPayStripe')?.addEventListener('click', () => payCurrentWallpaper('stripe'));
     document.getElementById('btnPayPaypal')?.addEventListener('click', () => payCurrentWallpaper('paypal'));
     document.getElementById('btnPayAlipay')?.addEventListener('click', () => payCurrentWallpaper('alipay'));
+    document.getElementById('btnPayRedeem')?.addEventListener('click', async () => {
+        if (!requireLogin()) return;
+        if (pendingPayKind !== 'wallpaper' && pendingPayKind !== 'blindbox-hd') return;
+        if ((Number(blindboxState.redeem_available) || 0) < 1) return;
+        if (!pendingDownloadR2Key) {
+            const t = window.I18N ? window.I18N.t : (k) => k;
+            alert(t('download_missing_key'));
+            return;
+        }
+        payModal.classList.remove('open');
+        await startOriginalDownload({
+            r2key: pendingDownloadR2Key,
+            name: pendingDownloadName,
+            previewImg: pendingDownloadImg,
+            redeem: true,
+        });
+        await loadBlindboxState();
+    });
 
     let profiles = loadProfiles();
     const _isLoggedIn = localStorage.getItem('bazi_logged_in') === '1';
@@ -6357,6 +7017,13 @@
 
     const AUTH_KEY = 'bazi_logged_in';
     const AUTH_EMAIL_KEY = 'bazi_logged_email';
+    try {
+        localStorage.removeItem('bazi_mock_login');
+        if (localStorage.getItem(AUTH_EMAIL_KEY) === 'mock@local') {
+            localStorage.removeItem(AUTH_KEY);
+            localStorage.removeItem(AUTH_EMAIL_KEY);
+        }
+    } catch (_) {}
 
     const btnLogin = document.getElementById('btnLogin');
     const userMenuWrap = document.getElementById('userMenuWrap');
@@ -6386,9 +7053,8 @@
     let codeCountdownTimer = null;
     let authSubmitting = false;
 
-    // ─── 邀请码活动（下线时删除本段） ─────────────────────
+    // ─── 邀请码活动（用开关控制，下线勿删代码） ─────────────────────
     const INVITE_DEVICE_KEY = 'ew_invite_device_id';
-    let inviteStatus = null;
     let inviteStatusPromise = null;
     const inviteModal = document.getElementById('inviteModal');
     const inviteModalTitle = document.getElementById('inviteModalTitle');
@@ -6463,6 +7129,7 @@
     async function refreshInviteStatus() {
         if (!isLoggedIn()) {
             inviteStatus = null;
+            syncFreeDownloadButtons();
             return null;
         }
         if (inviteStatusPromise) return inviteStatusPromise;
@@ -6478,6 +7145,7 @@
                     inviteStatus = { enabled: false };
                     const btn = document.getElementById('btnInviteReward');
                     if (btn) btn.style.display = 'none';
+                    syncFreeDownloadButtons();
                     return inviteStatus;
                 }
                 if (!res.ok) return inviteStatus;
@@ -6486,6 +7154,7 @@
                 const btn = document.getElementById('btnInviteReward');
                 if (btn) btn.style.display = data.enabled === false ? 'none' : '';
                 renderInviteModal();
+                syncFreeDownloadButtons();
                 return data;
             } catch (_) {
                 return inviteStatus;
@@ -6538,6 +7207,7 @@
         hydrateAnnualFromCloud();
         refreshInviteStatus();
         flushEmailSubscribePref();
+        loadBlindboxState();
     }
 
     function clearLoggedIn() {
@@ -6550,6 +7220,8 @@
         inviteStatus = null;
         updateAuthUI();
         resetToGuestProfiles();
+        syncFreeDownloadButtons();
+        loadBlindboxState();
     }
 
     function updateAuthUI() {
@@ -6558,6 +7230,7 @@
         userMenuWrap.style.display = logged ? '' : 'none';
         userMenuEmail.textContent = logged ? getLoggedEmail() : '';
         updateAnnualNavBtn();
+        renderBlindboxFront();
     }
 
     function isValidEmail(email) {
@@ -6641,6 +7314,7 @@
                 if (event === 'SIGNED_IN') {
                     hydrateAnnualFromCloud();
                     flushEmailSubscribePref();
+                    loadBlindboxState();
                 }
             }
         } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
@@ -6653,6 +7327,7 @@
         hydrateAnnualFromCloud();
         refreshInviteStatus();
         flushEmailSubscribePref();
+        loadBlindboxState();
     }
     try { localStorage.removeItem('ew_download_history'); } catch (_) {}
 
@@ -7405,7 +8080,6 @@
     });
 
     (function setupInvitePromo() {
-        const END_MS = Date.parse('2026-08-31T15:59:59.999Z');
         const modal = document.getElementById('invitePromoModal');
         if (!modal) return;
         function closePromo() {
@@ -7417,11 +8091,31 @@
         });
         try {
             const q = new URLSearchParams(location.search);
+            if (!INVITE_PROMO_AUTO_OPEN) return;
             if (q.get('checkout') || q.get('login') === '1' || q.get('invite') === '1' || q.get('account') === '1') return;
-            if (Date.now() > END_MS) return;
+            if (!isFirstFreeOpen()) return;
             if (isLoggedIn()) return;
         } catch (_) { return; }
         modal.classList.add('open');
+    })();
+
+    (function scheduleFreeDownloadCutoffs() {
+        const timers = [];
+        if (FIRST_FREE_ENABLED) timers.push(FIRST_FREE_END_MS);
+        timers.push(ALL_FREE_DOWNLOAD_END_MS);
+        timers.forEach((endMs) => {
+            const remain = endMs - Date.now();
+            if (remain <= 0) {
+                syncFreeDownloadButtons();
+                return;
+            }
+            if (remain < 2147483647) {
+                setTimeout(() => {
+                    document.getElementById('invitePromoModal')?.classList.remove('open');
+                    syncFreeDownloadButtons();
+                }, remain + 1);
+            }
+        });
     })();
     document.getElementById('btnAccount').addEventListener('click', () => {
         if (!requireLogin()) return;

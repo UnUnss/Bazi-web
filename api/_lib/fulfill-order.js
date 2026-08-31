@@ -1,4 +1,10 @@
 import { getServiceSupabase } from './supabase.js';
+import {
+  applyDraw,
+  consumeCredits,
+  getCurrentMonthGanZhi,
+  hasActiveAnnual,
+} from './blindbox.js';
 
 function addOneYearYMD(startYmd) {
   const [y, m, d] = String(startYmd).split('-').map(Number);
@@ -108,6 +114,20 @@ export async function markOrderPaidAndFulfill(orderId, {
     return { ok: false, error: 'Order update conflict' };
   }
 
+  const meta = updated.meta && typeof updated.meta === 'object' ? updated.meta : {};
+  const month = meta.month_ganzhi || getCurrentMonthGanZhi();
+  try {
+    if (updated.product_type === 'blindbox_draw' && updated.user_id && month) {
+      await applyDraw(sb, updated.user_id, month);
+    }
+    if (updated.product_type === 'blindbox' && updated.user_id && month) {
+      const creditCount = Number(meta.credit_count || 0);
+      if (creditCount > 0) await consumeCredits(sb, updated.user_id, month, creditCount);
+    }
+  } catch (err) {
+    console.error('fulfill blindbox side-effect', err);
+  }
+
   return { ok: true, order: updated, alreadyPaid: false };
 }
 
@@ -123,10 +143,16 @@ function profileIdsInclude(profileIds, profileId) {
  * - active annual AND current profileId is one of the (up to 2) bound profiles, or
  * - paid order containing this r2_key
  */
-export async function userCanDownloadKey({ userId, email, r2Key, profileId }) {
+export async function userCanDownloadKey({ userId, email, r2Key, profileId, wallpaperPool }) {
   const sb = getServiceSupabase();
   const emailNorm = String(email || '').trim().toLowerCase();
   const today = todayYMD();
+
+  // 盲盒原图：有效包年按账号免费，不必绑定档案
+  if (wallpaperPool === 'blindbox') {
+    const annual = await hasActiveAnnual(sb, { userId, email });
+    if (annual) return true;
+  }
 
   // Active annual plan + bound profile only (not account-wide)
   if (profileId) {

@@ -1,4 +1,4 @@
-// 限时邀请码活动。下线时删除本文件、api/invite.js、migration。
+// 限时活动用开关 / 截止日期控制，不要删代码，方便以后再开。
 // 邀请奖励只能兑换带水印的免费图，不能兑换原图。
 import { randomBytes } from 'node:crypto';
 import { getServiceSupabase } from './supabase.js';
@@ -6,6 +6,13 @@ import { getServiceSupabase } from './supabase.js';
 export const INVITE_CAMPAIGN_ENABLED = true;
 /** 北京时间 2026-08-31 23:59:59.999 */
 export const INVITE_CAMPAIGN_END_MS = Date.parse('2026-08-31T15:59:59.999Z');
+
+/** 新用户首次免费水印下载。下次活动：true + 更新 FIRST_FREE_END_MS。立刻全关：false。 */
+export const FIRST_FREE_ENABLED = true;
+export const FIRST_FREE_END_MS = INVITE_CAMPAIGN_END_MS;
+
+/** 北京时间 2026-09-07 23:59:59.999：两张免费额度全部失效（含未使用的邀请奖励） */
+export const ALL_FREE_DOWNLOAD_END_MS = Date.parse('2026-09-07T15:59:59.999Z');
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_RE = /^[A-HJ-NP-Z2-9]{8}$/;
@@ -17,6 +24,14 @@ export function isInviteBindOpen() {
 
 export function isInviteFeatureOn() {
   return INVITE_CAMPAIGN_ENABLED;
+}
+
+export function isFirstFreeOpen() {
+  return FIRST_FREE_ENABLED && Date.now() <= FIRST_FREE_END_MS;
+}
+
+export function isAllFreeOpen() {
+  return Date.now() <= ALL_FREE_DOWNLOAD_END_MS;
 }
 
 export function normalizeInviteCode(raw) {
@@ -39,6 +54,8 @@ export function publicInviteState(row, extra = {}) {
   return {
     enabled: isInviteFeatureOn(),
     bindOpen: isInviteBindOpen(),
+    firstFreeOpen: isFirstFreeOpen(),
+    allFreeOpen: isAllFreeOpen(),
     inviteCode: row?.invite_code || '',
     successCount: Number(row?.success_count || 0),
     rewardStatus: row?.reward_status || 'none',

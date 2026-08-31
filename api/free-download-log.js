@@ -21,8 +21,8 @@ export default async function handler(req, res) {
     if (!result.ok && result.error === 'need_invite') {
       return res.status(403).json({ error: 'need_invite' });
     }
-    if (!result.ok && result.error === 'exhausted') {
-      return res.status(403).json({ error: 'exhausted' });
+    if (!result.ok && (result.error === 'exhausted' || result.error === 'ended')) {
+      return res.status(403).json({ error: result.error });
     }
     if (!result.ok && result.error === 'no_user') {
       return res.status(401).json({ error: 'Login required' });

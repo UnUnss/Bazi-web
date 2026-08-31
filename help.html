@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=11" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="auth-session.js"></script>
-    <script src="i18n.js?v=43"></script>
+    <script src="i18n.js?v=54"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -504,7 +504,7 @@
                     <div class="user-menu-email" id="userMenuEmail"></div>
                     <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">包年服务</button>
                     <button type="button" id="btnInviteReward" data-i18n="nav_invite_reward">邀請碼獎勵</button>
-                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">本月下載記錄</button>
+                    <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
                 </div>
@@ -542,20 +542,31 @@
         <p>「本月最佳補運」基於同一套月運推演，將喜用五行與忌神分別對應所主的生活領域，定位出本月氣場最宜補充、相對較弱的板塊，作為重點滋補與主動調和的方向。</p>
 
         <h2>5. 下載本月手機桌布</h2>
-        <p>「本月專屬手機桌布」會依喜用與補運給出對應圖。點擊「下載高清無水印原圖」後，以單張價格（US$5.99 / ¥39）直接支付；包年服務請到右上角「用戶」→「包年服務」購買。</p>
+        <p>本月指的是流月（節氣月），非公曆月。「本月專屬手機桌布」會依喜用與補運給出對應圖。點擊「下載高清無水印原圖」後，以單張價格（US$5.99 / ¥39）直接支付；包年服務可直接下載指定八字檔案每月專屬手機桌布。</p>
         <ul>
-            <li>支付成功後會自動開始下載；若失敗，可到右上角「用戶」→「本月下載記錄」重新下載。</li>
+            <li>支付成功後會自動開始下載；若失敗，可到右上角「用戶」→「下載記錄」重新下載。</li>
             <li>所有用戶均可使用 Stripe、PayPal；中國大陸境內用戶關閉 VPN 並重新整理頁面後，還可選擇支付寶支付。</li>
         </ul>
 
-        <h2>6. 包年服務</h2>
-        <p>包年可解鎖全站付費下載。所有登入用戶均可在「用戶」→「包年服務」查看或購買。購買後最多指定兩個八字檔案；綁定後這些檔案不可修改、不可刪除，也可稍後再選。</p>
+        <h2>6. 本月五行盲盒</h2>
+        <p>本月指的是流月（節氣月），非公曆月。專屬手機桌布下方為「本月五行盲盒」。盲盒只看五行、不含補運，與上方 4 張專屬圖分屬兩套圖庫，不會抽到同一張。抽取必須先登入。每個帳號每流月最多開啟 <strong>3 次</strong>，同一帳號下多份八字檔案共用這 3 次。</p>
+        <ul>
+            <li>每次抽取同時開出 4 張；第 2、3 次會整組換成新的 4 張，頁面只展示當前這一組。</li>
+            <li>五行從金、木、水、火、土完全隨機抽出。同一抽的 4 張圖不會重複；允許同一五行。</li>
+            <li><strong>非包年用戶：</strong>第 1 次免費開啟；第 2、3 次每次 US$0.99 / ¥6.5。開啟後下載原圖為 US$2.99 / ¥19。若該次為付費開啟，可用該筆開啟費抵扣一次，實付 US$2.00 / ¥12.5。第 3 次開啟後，若第 2 次尚未抵扣，可在同一張原圖上疊加兩筆開啟費，實付 US$1.01 / ¥6（即 US$2.99 − US$0.99 − US$0.99，¥19 − ¥6.5 − ¥6.5）。跨流月作廢。</li>
+            <li><strong>包年用戶：</strong>每個流月可免費開啟 3 次，每次開出的 4 張均可免費下載原圖。</li>
+            <li>集齊金、木、水、火、土各至少 1 張已購盲盒原圖（付費下載，或包年免費下載均算），可兌換 1 次免費下載高清無水印原圖，可選當前盲盒 4 張或本月專屬 4 張之一。每套可領 1 次，可重複湊套；每張已購圖只計入一套。標題下方會顯示已集齊數量與已兌換張數。</li>
+            <li>下載記錄中，專屬桌布按流月顯示；盲盒記錄跨流月保留，可重新下載。</li>
+        </ul>
 
-        <h2>7. 邀請碼獎勵（限時）</h2>
+        <h2>7. 包年服務</h2>
+        <p>包年服務可指定兩個八字檔案全年免費使用本站所有付費服務。所有登入用戶均可在「用戶」→「包年服務」查看或購買。購買後可指定最多兩個八字檔案，也可稍後再選；綁定後這些檔案不可修改、不可刪除。已綁定的檔案可免費下載本月專屬手機桌布。五行盲盒按帳號生效：每個流月可免費開啟 3 次，每次開出的 4 張均可免費下載原圖，無需綁定檔案。</p>
+
+        <h2>8. 邀請碼獎勵（限時）</h2>
         <p>即日起至 2026 年 8 月 31 日，成功邀請 3 位新用戶完成註冊，可再免費下載一張帶水印的專屬手機桌布。邀請獎勵不能兌換無水印原圖。</p>
         <p>登入後打開「用戶」→「邀請碼獎勵」，可填寫好友的邀請碼，或複製自己的邀請碼分享。活動截止後邀請機制取消，已獲得的帶水印免費下載仍然有效。</p>
 
-        <h2>8. 帳號管理</h2>
+        <h2>9. 帳號管理</h2>
         <p>在「用戶」→「帳號管理」可更改密碼或註銷帳號。註銷後帳號與雲端檔案無法恢復。其他問題可到「聯絡我們」寫信至 support@elementawall.com。</p>
     </div>
 
@@ -585,20 +596,31 @@
         <p>「本月最佳补运」基于同一套月运推演，将喜用五行与忌神分别对应所主的生活领域，定位出本月气场最宜补充、相对较弱的板块，作为重点滋补与主动调和的方向。</p>
 
         <h2>5. 下载本月壁纸</h2>
-        <p>「本月专属壁纸」会按喜用与补运给出对应图。点击「下载高清无水印原图」后，以单张价格（US$5.99 / ¥39）直接支付；包年服务请到右上角「用户」→「包年服务」购买。</p>
+        <p>本月指的是流月（节气月），非公历月。「本月专属壁纸」会按喜用与补运给出对应图。点击「下载高清无水印原图」后，以单张价格（US$5.99 / ¥39）直接支付；包年服务可直接下载指定八字档案每月专属壁纸。</p>
         <ul>
-            <li>支付成功后会自动开始下载；若失败，可到右上角「用户」→「本月下载记录」重新下载。</li>
+            <li>支付成功后会自动开始下载；若失败，可到右上角「用户」→「下载记录」重新下载。</li>
             <li>所有用户均可使用 Stripe、PayPal；中国大陆境内用户关闭 VPN 并刷新页面后，还可选择支付宝支付。</li>
         </ul>
 
-        <h2>6. 包年服务</h2>
-        <p>包年可解锁全站付费下载。所有登录用户均可在「用户」→「包年服务」查看或购买。购买后最多指定两个八字档案；绑定后这些档案不可修改、不可删除，也可稍后再选。</p>
+        <h2>6. 本月五行盲盒</h2>
+        <p>本月指的是流月（节气月），非公历月。专属壁纸下方为「本月五行盲盒」。盲盒只看五行、不含补运，与上方 4 张专属图分属两套图库，不会抽到同一张。抽取必须先登录。每个账号每流月最多开启 <strong>3 次</strong>，同一账号下多份八字档案共用这 3 次。</p>
+        <ul>
+            <li>每次抽取同时开出 4 张；第 2、3 次会整组换成新的 4 张，页面只展示当前这一组。</li>
+            <li>五行从金、木、水、火、土完全随机抽出。同一抽的 4 张图不会重复；允许同一五行。</li>
+            <li><strong>非包年用户：</strong>第 1 次免费开启；第 2、3 次每次 US$0.99 / ¥6.5。开启后下载原图为 US$2.99 / ¥19。若该次为付费开启，可用该笔开启费抵扣一次，实付 US$2.00 / ¥12.5。第 3 次开启后，若第 2 次尚未抵扣，可在同一张原图上叠加两笔开启费，实付 US$1.01 / ¥6（即 US$2.99 − US$0.99 − US$0.99，¥19 − ¥6.5 − ¥6.5）。跨流月作废。</li>
+            <li><strong>包年用户：</strong>每个流月可免费开启 3 次，每次开出的 4 张均可免费下载原图。</li>
+            <li>集齐金、木、水、火、土各至少 1 张已购盲盒原图（付费下载，或包年免费下载均算），可兑换 1 次免费下载高清无水印原图，可选当前盲盒 4 张或本月专属 4 张之一。每套可领 1 次，可重复凑套；每张已购图只计入一套。标题下方会显示已集齐数量与已兑换张数。</li>
+            <li>下载记录中，专属壁纸按流月显示；盲盒记录跨流月保留，可重新下载。</li>
+        </ul>
 
-        <h2>7. 邀请码奖励（限时）</h2>
+        <h2>7. 包年服务</h2>
+        <p>包年服务可指定两个八字档案全年免费使用本站所有付费服务。所有登录用户均可在「用户」→「包年服务」查看或购买。购买后可指定最多两个八字档案，也可稍后再选；绑定后这些档案不可修改、不可删除。已绑定的档案可免费下载本月专属壁纸。五行盲盒按账号生效：每个流月可免费开启 3 次，每次开出的 4 张均可免费下载原图，无需绑定档案。</p>
+
+        <h2>8. 邀请码奖励（限时）</h2>
         <p>即日起至 2026 年 8 月 31 日，成功邀请 3 位新用户完成注册，可再免费下载一张带水印的专属壁纸。邀请奖励不能兑换无水印原图。</p>
         <p>登录后打开「用户」→「邀请码奖励」，可填写好友的邀请码，或复制自己的邀请码分享。活动截止后邀请机制取消，已获得的带水印免费下载仍然有效。</p>
 
-        <h2>8. 账号管理</h2>
+        <h2>9. 账号管理</h2>
         <p>在「用户」→「账号管理」可更改密码或注销账号。注销后账号与云端档案无法恢复。其他问题可到「联系我们」写信至 support@elementawall.com。</p>
     </div>
 
@@ -628,20 +650,31 @@
         <p>“Best Supportive Boost” draws from the same monthly reading and maps each favorable and unfavorable element to its corresponding Ten God, then to the life affairs each Ten God governs. This pinpoints the domains where the chart’s energy is most depleted or under pressure from clashes and drains this month—the areas that benefit most from proactive reinforcement and intentional adjustment.</p>
 
         <h2>5. Download this month’s wallpapers</h2>
-        <p>This Month’s Wallpapers are matched to your favorable elements and boosts. Tap Download HD Original (No Watermark) to pay for a single image (US$5.99 / ¥39). The annual plan is available under User → Annual Plan.</p>
+        <p>“This month” means the solar month (jieqi month), not the Gregorian calendar month. This Month’s Wallpapers are matched to your favorable elements and boosts. Tap Download HD Original (No Watermark) to pay for a single image (US$5.99 / ¥39). With an annual plan, you can download each month’s exclusive wallpapers for the bound BaZi profiles at no extra charge.</p>
         <ul>
-            <li>Downloads start automatically after payment. If one fails, go to User → This Month’s Downloads to retry.</li>
+            <li>Downloads start automatically after payment. If one fails, go to User → Downloads to retry.</li>
             <li>All users can pay with Stripe or PayPal. Users in mainland China can also choose Alipay after turning off VPN and refreshing the page.</li>
         </ul>
 
-        <h2>6. Annual plan</h2>
-        <p>The annual plan unlocks paid downloads site-wide. Every signed-in user can open User → Annual Plan to view or purchase it. After purchase, bind up to two BaZi profiles. Bound profiles cannot be edited or deleted. You can also choose them later.</p>
+        <h2>6. This month’s Element Mystery Box</h2>
+        <p>“This month” means the solar month (jieqi month), not the Gregorian calendar month. Below the exclusive wallpapers is This Month’s Element Mystery Box. Boxes use Five Elements only (no boost tags) and come from a separate library, so they never overlap with the four exclusive images. You must sign in to draw. Each account may open the box up to <strong>3 times</strong> per solar month; multiple BaZi profiles on one account share these 3 draws.</p>
+        <ul>
+            <li>Each draw opens 4 images at once. The 2nd and 3rd draws replace the whole set; the page only shows the current four.</li>
+            <li>Metal, Wood, Water, Fire, and Earth are fully random. The four images in one draw cannot share the same file; the same element is allowed.</li>
+            <li><strong>Without an annual plan:</strong> the first open is free; the 2nd and 3rd cost US$0.99 / ¥6.5 each. HD originals are US$2.99 / ¥19. A paid open credits once toward one original (US$2.00 / ¥12.5). After the 3rd open, if the 2nd credit is still unused, both credits can stack on the same original (US$2.99 − US$0.99 − US$0.99 / ¥19 − ¥6.5 − ¥6.5), paying US$1.01 / ¥6. Credit expires at the end of the solar month.</li>
+            <li><strong>Annual members:</strong> 3 free opens per solar month, and all 4 images from each draw can be downloaded as HD originals for free.</li>
+            <li>Collect at least one purchased mystery-box original of each element (Metal, Wood, Water, Fire, Earth). Paid downloads and annual free downloads both count. Each complete set redeems one free HD original—choose from the current four mystery-box images or this month’s four exclusive wallpapers. Sets can be completed again; each purchased image counts toward only one set. Progress and redeemed counts appear under the section title.</li>
+            <li>In Downloads, exclusive wallpapers are listed by solar month; mystery-box records are kept across months and can be re-downloaded.</li>
+        </ul>
 
-        <h2>7. Invite rewards (limited time)</h2>
+        <h2>7. Annual plan</h2>
+        <p>The annual plan lets you designate two BaZi profiles to use all paid features on this site for free for one year. Every signed-in user can open User → Annual Plan to view or purchase it. After purchase, bind up to two BaZi profiles, or choose them later. Bound profiles cannot be edited or deleted. Bound profiles can download this month’s exclusive wallpapers for free. The mystery box is account-wide: 3 free opens per solar month, and all 4 images from each draw download for free—no profile binding required.</p>
+
+        <h2>8. Invite rewards (limited time)</h2>
         <p>Through August 31, 2026, invite 3 new users who complete sign-up to download one more watermarked exclusive wallpaper for free. Invite rewards cannot redeem the original unwatermarked image.</p>
         <p>After signing in, open User → Invite Rewards to enter a friend’s code or copy yours. When the campaign ends, inviting stops, but unused watermarked free downloads remain valid.</p>
 
-        <h2>8. Account</h2>
+        <h2>9. Account</h2>
         <p>Under User → Account you can change your password or delete your account. Deletion cannot be undone. For other questions, go to Contact Us or email support@elementawall.com.</p>
     </div>
 </div>

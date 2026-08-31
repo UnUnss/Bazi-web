@@ -1,12 +1,20 @@
 /** Server-side price table (cents). Never trust client amounts. */
 export const PRODUCT_PRICES_CENTS = {
   single: 599,
+  blindbox: 299,
+  blindbox_draw: 99,
+  blindbox_credited: 200,
+  blindbox_double_credited: 101,
   annual: 21999,
 };
 
 /** Alipay / Z-Pay amounts in 分 (¥39 → 3900). */
 export const PRODUCT_PRICES_CNY_CENTS = {
   single: 3900,
+  blindbox: 1900,
+  blindbox_draw: 650,
+  blindbox_credited: 1250,
+  blindbox_double_credited: 600,
   annual: 143900,
 };
 
@@ -14,17 +22,23 @@ const PRODUCT_LABELS = {
   single: 'Mobile Wallpaper',
   mixed:  'Mobile Wallpaper Pack',
   annual: 'Mobile Wallpaper Annual Subscription',
+  blindbox: 'Element Mystery Box Original',
+  blindbox_draw: 'Element Mystery Box Open',
 };
 
 const PRODUCT_LABELS_ZH = {
   single: '手机壁纸原图',
   mixed:  '手机壁纸原图打包',
   annual: '壁纸包年服务',
+  blindbox: '五行盲盒原图',
+  blindbox_draw: '五行盲盒开启',
 };
 
 /** Checkout line-item name shown on Stripe/PayPal. */
 export function productLabel(productType, itemCount) {
   if (productType === 'annual') return PRODUCT_LABELS.annual;
+  if (productType === 'blindbox_draw') return PRODUCT_LABELS.blindbox_draw;
+  if (productType === 'blindbox') return PRODUCT_LABELS.blindbox;
   const n = Number(itemCount);
   if (n === 1) return PRODUCT_LABELS.single;
   if (Number.isInteger(n) && n >= 1) return `Mobile Wallpaper ×${n}`;
@@ -34,6 +48,8 @@ export function productLabel(productType, itemCount) {
 /** Checkout name shown on Alipay / Z-Pay (Chinese, required by the gateway). */
 export function productLabelZh(productType, itemCount) {
   if (productType === 'annual') return PRODUCT_LABELS_ZH.annual;
+  if (productType === 'blindbox_draw') return PRODUCT_LABELS_ZH.blindbox_draw;
+  if (productType === 'blindbox') return PRODUCT_LABELS_ZH.blindbox;
   const n = Number(itemCount);
   if (n === 1) return PRODUCT_LABELS_ZH.single;
   if (Number.isInteger(n) && n >= 1) return `手机壁纸原图×${n}张`;
