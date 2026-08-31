@@ -51,10 +51,10 @@
         汇迹正楷 CooperZhengKai：UI 子集优先；子集没有的字回退到完整 CooperZhengKai。
         城市名等地点文案仍可走系统字体（见 .loc-select）。
     -->
-    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=11" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=11" />
+    <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=12" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=12" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=57"></script>
+    <script src="i18n.js?v=61"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -2800,9 +2800,9 @@
             <span class="pay-price" id="payPrice">$5.99</span><span class="pay-price-currency" id="payPriceCurrency">美元</span>
             <span class="pay-price-unit" id="payPriceUnit" data-i18n="pay_per_image">/ 張</span>
                 </div>
-        <p class="pay-credit-hint" id="payCreditHint" hidden></p>
         <p class="pay-notice" id="payNotice" data-i18n="pay_notice">支付成功後將會自動下載手機桌布，
 若下載失敗可在導航欄「用戶——下載記錄」重新下載</p>
+        <p class="pay-credit-hint" id="payCreditHint" hidden></p>
 
         <div class="pay-provider-row">
             <p class="pay-provider-hint" data-i18n="pay_provider_hint">大陆境内用户可关闭VPN刷新本页面即可选择支付宝人民币结算。</p>
@@ -4255,11 +4255,13 @@
             const name = wxNameMap[el] || el;
             return `${name}x${owned[el] || 0}`;
         });
-        let text = `${t('blindbox_collect_prefix')}${parts.join(sep)}`;
+        const ownedText = `${t('blindbox_collect_prefix')}${parts.join(sep)}`;
         if (!isAnnualBlindboxFree()) {
-            text += String(t('blindbox_collect_redeem') || '').replace('{n}', String(blindboxState.redeemed || 0));
+            const redeemText = String(t('blindbox_collect_redeem') || '').replace('{n}', String(blindboxState.redeemed || 0));
+            line.innerHTML = `${escapeHtml(ownedText)}<br>${escapeHtml(redeemText)}`;
+        } else {
+            line.textContent = ownedText;
         }
-        line.textContent = text;
     }
 
     function sealedBlindboxCardHtml(t) {
