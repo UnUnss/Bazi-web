@@ -29,7 +29,7 @@ const PRODUCT_LABELS = {
 const PRODUCT_LABELS_ZH = {
   single: '手机壁纸原图',
   mixed:  '手机壁纸原图打包',
-  annual: '壁纸包年服务',
+  annual: '壁纸年度会员',
   blindbox: '五行盲盒原图',
   blindbox_draw: '五行盲盒开启',
 };
