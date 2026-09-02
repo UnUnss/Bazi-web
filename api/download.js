@@ -105,7 +105,33 @@ async function recordDownload(sb, {
   if (error) console.error('download_records insert failed', error);
 }
 
+/** 壁纸下载次数：免费水印图 + 付费/包年/兑换原图（含专属与盲盒）。 */
+async function wallpaperDownloadCount(sb) {
+  const [freeRes, paidRes] = await Promise.all([
+    sb.from('free_download_logs').select('id', { count: 'exact', head: true }),
+    sb.from('download_records').select('id', { count: 'exact', head: true }),
+  ]);
+  if (freeRes.error && paidRes.error) {
+    throw new Error(paidRes.error.message || freeRes.error.message || 'count failed');
+  }
+  const free = freeRes.error ? 0 : (freeRes.count || 0);
+  const paid = paidRes.error ? 0 : (paidRes.count || 0);
+  return Math.max(0, free + paid);
+}
+
 export default async function handler(req, res) {
+  if (req.method === 'GET') {
+    try {
+      const sb = getServiceSupabase();
+      const count = await wallpaperDownloadCount(sb);
+      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+      return res.status(200).json({ count });
+    } catch (err) {
+      console.error('download stats error:', err);
+      return res.status(500).json({ error: 'Failed to load download stats' });
+    }
+  }
+
   if (req.method !== 'POST') return res.status(405).end();
 
   const auth = await assertUser(req);

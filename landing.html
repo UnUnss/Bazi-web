@@ -54,7 +54,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=12" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=12" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=61"></script>
+    <script src="i18n.js?v=62"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -495,48 +495,6 @@
 
         /* ─── 操作按鈕 ─────────────────────────────────── */
 
-        .help-book-wrap {
-            position: absolute;
-            left: 50%;
-            top: 6px;
-            transform: translateX(-50%);
-            z-index: 1;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            text-decoration: none;
-            color: var(--ink-soft);
-        }
-
-        .help-book-btn {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 1px solid var(--line);
-            background: rgba(255, 252, 245, 0.6);
-            color: var(--ink);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: background 0.2s;
-        }
-
-        .help-book-label {
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            white-space: nowrap;
-            line-height: 1;
-        }
-
-        .help-book-wrap:hover .help-book-btn {
-            background: rgba(255, 252, 245, 0.9);
-        }
-
-        .help-book-wrap:hover .help-book-label {
-            color: var(--ink);
-        }
-
         .action-row {
             display: flex;
             align-items: center;
@@ -833,11 +791,16 @@
 
         .blindbox-collect-line {
             text-align: center;
-            font-size: 13px;
-            letter-spacing: 0.08em;
+            font-size: 12px;
+            letter-spacing: 0.05em;
             color: var(--ink-soft);
+            opacity: 0.75;
             line-height: 1.7;
             padding: 0 24px 4px;
+        }
+
+        .blindbox-collect-line[hidden] {
+            display: none;
         }
 
         .blindbox-draw-wrap {
@@ -2452,9 +2415,7 @@
             }
 
             .blindbox-collect-line {
-                font-size: 12px;
                 padding: 0 14px 2px;
-                letter-spacing: 0.04em;
             }
 
             .blindbox-draw-wrap {
@@ -2529,6 +2490,7 @@
             </button>
             <div class="about-menu" id="aboutMenu" role="menu">
                 <a href="/about" data-i18n="nav_about">關於我們</a>
+                <a href="/help" data-i18n="nav_help">使用幫助</a>
                 <a href="/contact" data-i18n="nav_contact">聯絡我們</a>
                 <a href="/policy" data-i18n="nav_policy">用戶服務與隱私協議</a>
             </div>
@@ -2568,17 +2530,6 @@
 </nav>
 
 <div class="content-wrap">
-<a href="/help" class="help-book-wrap" data-i18n-aria-label="nav_help" aria-label="使用幫助">
-    <span class="help-book-btn" aria-hidden="true">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="1.7">
-            <path d="M4 5.4c2.4-1.15 5-.9 8 .5 3-1.4 5.6-1.65 8-.5v13.2c-2.4-1.15-5-.9-8 .5-3-1.4-5.6-1.65-8-.5V5.4z"
-                  stroke-linejoin="round" />
-            <path d="M12 5.9v13.2" stroke-linecap="round" />
-        </svg>
-    </span>
-    <span class="help-book-label" data-i18n="nav_help">使用幫助</span>
-</a>
 <main class="hero">
     <section class="brand-seo">
         <h1>ElementaWall</h1>
@@ -2668,6 +2619,7 @@
 
 <section class="wallpaper-section">
     <h2 class="wallpaper-title" data-i18n="wallpaper_section_title">本月專屬手機桌布</h2>
+    <p class="blindbox-collect-line" id="wallpaperDownloadStat" hidden></p>
 
     <!-- 卡片內容由 JS 依據 bazi_logic.js 的本月喜用五行／弱勢領域計算結果動態生成，見下方 renderWallpapers() -->
     <div class="wallpaper-grid" id="wallpaperGrid"></div>
@@ -3104,6 +3056,31 @@
 
     const STORAGE_KEY = 'bazi_profiles';
     const ACTIVE_KEY = 'bazi_active_id';
+
+    let wallpaperDownloadCount = null;
+    function renderWallpaperDownloadStat() {
+        const t = window.I18N ? window.I18N.t : (k) => k;
+        const el = document.getElementById('wallpaperDownloadStat');
+        if (!el) return;
+        if (wallpaperDownloadCount == null) {
+            el.hidden = true;
+            el.textContent = '';
+            return;
+        }
+        el.hidden = false;
+        el.textContent = String(t('help_download_stat') || '').replace('{n}', String(wallpaperDownloadCount));
+    }
+    async function loadWallpaperDownloadCount() {
+        try {
+            const res = await fetch('/api/download');
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data || typeof data.count !== 'number') return;
+            wallpaperDownloadCount = data.count;
+            renderWallpaperDownloadStat();
+        } catch (_) {}
+    }
+    loadWallpaperDownloadCount();
+    document.addEventListener('i18n:change', renderWallpaperDownloadStat);
 
     // 限时免费：代码保留，用开关 + 截止日期控制。
     // 下次再开：ENABLED = true，并把对应 END_MS 改成新的截止时刻（UTC）。
@@ -4059,7 +4036,7 @@
     const wallpaperGrid = document.getElementById('wallpaperGrid');
     const blindboxGrid = document.getElementById('blindboxGrid');
     const btnBlindboxDraw = document.getElementById('btnBlindboxDraw');
-    const BLINDBOX_COLLECT_ORDER = ['金', '木', '水', '火', '土'];
+    const BLINDBOX_COLLECT_ORDER = ['金', '水', '木', '火', '土'];
     const emptyBlindboxOwned = () => ({ '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 });
     let alipayAvailable = false;
     let pendingDownloadWallpaperId = '';
