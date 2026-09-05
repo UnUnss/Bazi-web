@@ -83,7 +83,21 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
 #previewTestOverlay button { padding:8px 24px; background:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
 .filter-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; border: 1px solid #ddd; background: #fff; cursor: pointer; color: #555; }
 .filter-btn.active { background: #1c1c1c; color: #fff; border-color: #1c1c1c; }
+#managedGrid .wp-card { position: relative; }
 #managedGrid .wp-card .thumb { cursor: default; }
+#managedGrid .wp-card.selected { outline: 2px solid #1c1c1c; outline-offset: -2px; }
+.wp-check { position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; z-index: 2; accent-color: #1c1c1c; cursor: pointer; }
+.batch-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; }
+.date-filter { font-size: 12px; color: #555; display: flex; align-items: center; gap: 6px; }
+.date-filter select { padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; background: #fff; }
+.btn-batch { padding: 6px 12px; font-size: 12px; background: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; color: #444; }
+.btn-batch:disabled { opacity: .45; cursor: default; }
+.btn-batch-del { padding: 6px 14px; font-size: 12px; background: #fff; border: 1px solid #f0c0c0; color: #c33; border-radius: 4px; cursor: pointer; }
+.btn-batch-del:hover { background: #fff5f5; }
+.btn-batch-del:disabled { opacity: .45; cursor: default; }
+.batch-count { font-size: 12px; color: #888; }
+.folder-select { font-size: 12px; color: #888; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+.folder-select input { accent-color: #1c1c1c; }
 .empty-hint { color: #bbb; font-size: 13px; text-align: center; padding: 60px 0; }
 
 /* 按文件夹编号分组 */
@@ -190,6 +204,17 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
         <button type="button" class="btn-regen btn-check" id="btnCheckFreePreviews">检查免费水印</button>
         <button type="button" class="btn-regen" id="btnForceFreeRegen">强制生成全部免费水印</button>
       </div>
+    </div>
+    <div class="batch-bar">
+      <label class="date-filter">上传日期
+        <select id="dateFilter">
+          <option value="">全部日期</option>
+        </select>
+      </label>
+      <button type="button" class="btn-batch" id="btnSelectVisible">全选当前</button>
+      <button type="button" class="btn-batch" id="btnClearSelect">取消勾选</button>
+      <span class="batch-count" id="batchCount">已选 0 张</span>
+      <button type="button" class="btn-batch-del" id="btnBatchDelete" disabled>批量删除</button>
     </div>
     <div id="manageEmpty" class="empty-hint">暂无已上传壁纸</div>
     <div class="folder-groups" id="managedGrid"></div>
@@ -973,7 +998,57 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
 // ════════════════════════════════════════════
 let allUploaded = [];
 let activeFilter = '全部';
+let activeDate = '';
+let selectedIds = new Set();
 let previewBust = '';
+const DELETE_CHUNK = 10;
+
+function uploadDateKey(w) {
+  if (!w || !w.uploaded_at) return '';
+  const d = new Date(w.uploaded_at);
+  if (isNaN(d.getTime())) return String(w.uploaded_at).slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+function visibleManagedList() {
+  let list = activeFilter === '全部'
+    ? allUploaded.slice()
+    : activeFilter === '盲盒'
+      ? allUploaded.filter(isBlindboxWallpaper)
+      : allUploaded.filter((w) => w.element === activeFilter && !isBlindboxWallpaper(w));
+  if (activeDate) list = list.filter((w) => uploadDateKey(w) === activeDate);
+  return list;
+}
+
+function refreshDateFilterOptions() {
+  const sel = document.getElementById('dateFilter');
+  if (!sel) return;
+  const counts = new Map();
+  for (const w of allUploaded) {
+    const key = uploadDateKey(w);
+    if (!key) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const dates = [...counts.keys()].sort((a, b) => b.localeCompare(a));
+  if (activeDate && !counts.has(activeDate)) activeDate = '';
+  sel.innerHTML = `<option value="">全部日期</option>` +
+    dates.map((d) => `<option value="${esc(d)}">${esc(d)}（${counts.get(d)} 张）</option>`).join('');
+  sel.value = activeDate;
+}
+
+function updateBatchBar() {
+  const visible = new Set(visibleManagedList().map((w) => w.id).filter(Boolean));
+  const n = [...selectedIds].filter((id) => visible.has(id)).length;
+  const countEl = document.getElementById('batchCount');
+  const delBtn = document.getElementById('btnBatchDelete');
+  if (countEl) countEl.textContent = `已选 ${n} 张`;
+  if (delBtn) delBtn.disabled = n === 0;
+}
 
 function wallpaperDisplayUrl(w) {
   const key = w.preview_key || w.r2_key || '';
@@ -1005,6 +1080,9 @@ async function loadUploaded() {
       preview_url: wallpaperDisplayUrl(w),
     }));
   }
+  const valid = new Set(allUploaded.map((w) => w.id).filter(Boolean));
+  selectedIds = new Set([...selectedIds].filter((id) => valid.has(id)));
+  refreshDateFilterOptions();
   renderManaged();
 }
 
@@ -1024,7 +1102,13 @@ function isBlindboxWallpaper(w) {
 function wallpaperCardHtml(w) {
   const tags = Array.isArray(w.tags) ? w.tags : [];
   const boxBadge = isBlindboxWallpaper(w) ? '<span class="tag el-tag">盲盒</span>' : '';
-  return `<div class="wp-card" data-id="${esc(w.id || '')}">
+  const checked = w.id && selectedIds.has(w.id) ? ' checked' : '';
+  const selectedCls = w.id && selectedIds.has(w.id) ? ' selected' : '';
+  const check = w.id
+    ? `<input type="checkbox" class="wp-check" data-id="${esc(w.id)}"${checked} />`
+    : '';
+  return `<div class="wp-card${selectedCls}" data-id="${esc(w.id || '')}">
+    ${check}
     <img class="thumb" src="${esc(w.preview_url || w.r2_url || '')}" alt="${esc(w.filename || '')}" loading="lazy" onerror="this.style.display='none'" />
     <div class="card-info">
       <div class="card-name" title="${esc(w.filename || '')}">${esc(w.filename || '')}</div>
@@ -1041,14 +1125,14 @@ function wallpaperCardHtml(w) {
 function renderManaged() {
   const grid  = document.getElementById('managedGrid');
   const empty = document.getElementById('manageEmpty');
-  const list = activeFilter === '全部'
-    ? allUploaded
-    : activeFilter === '盲盒'
-      ? allUploaded.filter(isBlindboxWallpaper)
-      : allUploaded.filter((w) => w.element === activeFilter && !isBlindboxWallpaper(w));
+  const list = visibleManagedList();
   if (!list.length) {
     grid.innerHTML = '';
+    empty.textContent = (activeFilter !== '全部' || activeDate)
+      ? '当前筛选没有壁纸'
+      : '暂无已上传壁纸';
     empty.style.display = 'block';
+    updateBatchBar();
     return;
   }
   empty.style.display = 'none';
@@ -1074,8 +1158,15 @@ function renderManaged() {
       ? `<span class="tag el-${meta.element}">${esc(meta.element)}</span>${meta.pool === 'blindbox' ? '<span class="tag el-tag">盲盒</span>' : meta.tags.map(t => `<span class="tag el-tag">${esc(t)}</span>`).join('')}`
       : (items[0]?.element ? `<span class="tag el-${esc(items[0].element)}">${esc(items[0].element)}</span>` : '');
     const title = key === '未知' ? '未知文件夹' : folderGroupTitle(key);
-    return `<div class="folder-group">
+    const folderIds = items.map((w) => w.id).filter(Boolean);
+    const allOn = folderIds.length > 0 && folderIds.every((id) => selectedIds.has(id));
+    const someOn = folderIds.some((id) => selectedIds.has(id));
+    return `<div class="folder-group" data-folder="${esc(String(key))}">
       <div class="folder-group-header">
+        <label class="folder-select">
+          <input type="checkbox" class="folder-check" data-folder="${esc(String(key))}"${allOn ? ' checked' : ''}${someOn && !allOn ? ' data-indeterminate="1"' : ''} />
+          全选
+        </label>
         <span class="folder-group-title">${title}</span>
         <span class="folder-group-meta">${tagsHtml}</span>
         <span class="folder-group-count">${items.length} 张</span>
@@ -1083,9 +1174,87 @@ function renderManaged() {
       <div class="card-grid">${items.map(wallpaperCardHtml).join('')}</div>
     </div>`;
   }).join('');
+
+  grid.querySelectorAll('.folder-check[data-indeterminate="1"]').forEach((el) => {
+    el.indeterminate = true;
+  });
+  updateBatchBar();
+}
+
+function setSelected(id, on) {
+  if (!id) return;
+  if (on) selectedIds.add(id);
+  else selectedIds.delete(id);
+}
+
+function folderVisibleIds(folderKey) {
+  return visibleManagedList()
+    .filter((w) => String(resolveFolderNum(w) ?? '未知') === String(folderKey))
+    .map((w) => w.id)
+    .filter(Boolean);
+}
+
+function applySelectionUi() {
+  document.querySelectorAll('#managedGrid .wp-card[data-id]').forEach((card) => {
+    const id = card.getAttribute('data-id');
+    const on = selectedIds.has(id);
+    card.classList.toggle('selected', on);
+    const box = card.querySelector('.wp-check');
+    if (box) box.checked = on;
+  });
+  document.querySelectorAll('.folder-check').forEach((el) => {
+    const ids = folderVisibleIds(el.getAttribute('data-folder'));
+    const allOn = ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    const someOn = ids.some((id) => selectedIds.has(id));
+    el.checked = allOn;
+    el.indeterminate = someOn && !allOn;
+  });
+  updateBatchBar();
+}
+
+async function deleteWallpapers(ids, onProgress) {
+  const unique = [...new Set(ids.filter(Boolean))];
+  let done = 0;
+  const failed = [];
+  const headers = await getAdminAuthHeaders();
+  for (let i = 0; i < unique.length; i += DELETE_CHUNK) {
+    const chunk = unique.slice(i, i + DELETE_CHUNK);
+    const res = await fetch('/api/wallpaper-delete', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ids: chunk }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (Array.isArray(body.deleted)) {
+      body.deleted.forEach((id) => selectedIds.delete(id));
+      done += body.deleted.length;
+    }
+    if (Array.isArray(body.failed)) failed.push(...body.failed);
+    if (!res.ok && !body.deleted?.length) {
+      throw new Error(body.error || `删除失败: ${res.status}`);
+    }
+    if (onProgress) onProgress(Math.min(unique.length, i + chunk.length), unique.length);
+  }
+  return { done, failed, total: unique.length };
 }
 
 document.getElementById('managedGrid').addEventListener('click', async (e) => {
+  const folderCheck = e.target.closest('.folder-check');
+  if (folderCheck) {
+    const ids = folderVisibleIds(folderCheck.getAttribute('data-folder'));
+    const on = folderCheck.checked;
+    ids.forEach((id) => setSelected(id, on));
+    applySelectionUi();
+    return;
+  }
+
+  const check = e.target.closest('.wp-check');
+  if (check) {
+    setSelected(check.getAttribute('data-id'), check.checked);
+    applySelectionUi();
+    return;
+  }
+
   const btn = e.target.closest('.btn-del');
   if (!btn) return;
   const id = btn.getAttribute('data-id');
@@ -1098,15 +1267,7 @@ document.getElementById('managedGrid').addEventListener('click', async (e) => {
   btn.disabled = true;
   btn.textContent = '删除中…';
   try {
-    const res = await fetch('/api/wallpaper-delete', {
-      method: 'POST',
-      headers: await getAdminAuthHeaders(),
-      body: JSON.stringify({ id }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `删除失败: ${res.status}`);
-    }
+    await deleteWallpapers([id]);
     await loadUploaded();
   } catch (err) {
     console.error(err);
@@ -1122,6 +1283,51 @@ document.getElementById('filterBar').addEventListener('click', e => {
   activeFilter = btn.dataset.el;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.el === activeFilter));
   renderManaged();
+});
+
+document.getElementById('dateFilter').addEventListener('change', (e) => {
+  activeDate = e.target.value || '';
+  renderManaged();
+});
+
+document.getElementById('btnSelectVisible').addEventListener('click', () => {
+  visibleManagedList().forEach((w) => { if (w.id) selectedIds.add(w.id); });
+  applySelectionUi();
+});
+
+document.getElementById('btnClearSelect').addEventListener('click', () => {
+  selectedIds.clear();
+  applySelectionUi();
+});
+
+document.getElementById('btnBatchDelete').addEventListener('click', async () => {
+  const visible = new Set(visibleManagedList().map((w) => w.id).filter(Boolean));
+  const ids = [...selectedIds].filter((id) => visible.has(id));
+  if (!ids.length) return;
+  if (!confirm(`确定删除已选的 ${ids.length} 张壁纸？\n将同时删除 R2 原图、预览图和数据库记录，不可恢复。`)) return;
+
+  const auth = await assertAdminSession();
+  if (!auth.ok) { alert('请先登录'); return; }
+
+  const btn = document.getElementById('btnBatchDelete');
+  btn.disabled = true;
+  const prev = btn.textContent;
+  try {
+    const result = await deleteWallpapers(ids, (done, total) => {
+      btn.textContent = `删除中 ${done}/${total}…`;
+    });
+    await loadUploaded();
+    if (result.failed.length) {
+      alert(`已删除 ${result.done} 张，失败 ${result.failed.length} 张`);
+    }
+  } catch (err) {
+    console.error(err);
+    alert(err.message || '批量删除失败');
+    await loadUploaded();
+  } finally {
+    btn.textContent = prev;
+    updateBatchBar();
+  }
 });
 
 function previewDest(w) {

@@ -132,6 +132,8 @@ async function handleMeta(req, res) {
   return res.status(200).json({ ok: true });
 }
 
+const DELETE_BATCH_LIMIT = 10;
+
 async function deleteR2Key(key) {
   if (!key) return;
   await s3.send(new DeleteObjectCommand({
@@ -140,40 +142,80 @@ async function deleteR2Key(key) {
   }));
 }
 
+function previewFreeKeyOf(row) {
+  if (row.preview_key && String(row.preview_key).includes('/preview/')) {
+    return String(row.preview_key).replace('/preview/', '/preview-free/');
+  }
+  if (row.r2_key) {
+    const m = String(row.r2_key).match(/^wallpapers\/(\d+)\/(.+)$/);
+    if (m) {
+      const base = m[2].replace(/\.[^.]+$/, '') + '.jpg';
+      return `wallpapers/${m[1]}/preview-free/${base}`;
+    }
+  }
+  return '';
+}
+
+async function deleteOneWallpaper(id) {
+  const { data: row, error: fetchErr } = await adminSb
+    .from('wallpapers')
+    .select('id, r2_key, preview_key')
+    .eq('id', id)
+    .single();
+  if (fetchErr || !row) {
+    const err = new Error('Not found');
+    err.status = 404;
+    throw err;
+  }
+
+  try { await deleteR2Key(row.r2_key); } catch (e) { console.error('R2 delete original', e); }
+  try { await deleteR2Key(row.preview_key); } catch (e) { console.error('R2 delete preview', e); }
+  try { await deleteR2Key(previewFreeKeyOf(row)); } catch (e) { console.error('R2 delete preview-free', e); }
+
+  const { error: delErr } = await adminSb.from('wallpapers').delete().eq('id', id);
+  if (delErr) {
+    console.error('wallpaper-delete DB error:', delErr);
+    const err = new Error('Database error');
+    err.status = 500;
+    throw err;
+  }
+}
+
+function normalizeDeleteIds(body) {
+  const raw = Array.isArray(body?.ids) ? body.ids : (body?.id ? [body.id] : []);
+  const ids = [...new Set(raw.map((x) => String(x || '').trim()).filter(Boolean))];
+  if (!ids.length) return { error: 'Missing id' };
+  if (ids.length > DELETE_BATCH_LIMIT) return { error: `Too many ids (max ${DELETE_BATCH_LIMIT})` };
+  if (ids.some((id) => !UUID_RE.test(id))) return { error: 'Invalid id' };
+  return { ids };
+}
+
 async function handleDelete(req, res) {
-  const { id } = req.body || {};
-  if (!id) return res.status(400).json({ error: 'Missing id' });
-  if (!UUID_RE.test(String(id))) return res.status(400).json({ error: 'Invalid id' });
+  const parsed = normalizeDeleteIds(req.body || {});
+  if (parsed.error) return res.status(400).json({ error: parsed.error });
 
   try {
-    const { data: row, error: fetchErr } = await adminSb
-      .from('wallpapers')
-      .select('id, r2_key, preview_key')
-      .eq('id', id)
-      .single();
-    if (fetchErr || !row) return res.status(404).json({ error: 'Not found' });
-
-    let previewFreeKey = '';
-    if (row.preview_key && String(row.preview_key).includes('/preview/')) {
-      previewFreeKey = String(row.preview_key).replace('/preview/', '/preview-free/');
-    } else if (row.r2_key) {
-      const m = String(row.r2_key).match(/^wallpapers\/(\d+)\/(.+)$/);
-      if (m) {
-        const base = m[2].replace(/\.[^.]+$/, '') + '.jpg';
-        previewFreeKey = `wallpapers/${m[1]}/preview-free/${base}`;
+    const deleted = [];
+    const failed = [];
+    for (const id of parsed.ids) {
+      try {
+        await deleteOneWallpaper(id);
+        deleted.push(id);
+      } catch (e) {
+        failed.push({ id, error: e.message || 'Server error' });
       }
     }
-
-    try { await deleteR2Key(row.r2_key); } catch (e) { console.error('R2 delete original', e); }
-    try { await deleteR2Key(row.preview_key); } catch (e) { console.error('R2 delete preview', e); }
-    try { await deleteR2Key(previewFreeKey); } catch (e) { console.error('R2 delete preview-free', e); }
-
-    const { error: delErr } = await adminSb.from('wallpapers').delete().eq('id', id);
-    if (delErr) {
-      console.error('wallpaper-delete DB error:', delErr);
-      return res.status(500).json({ error: 'Database error' });
+    if (!deleted.length && failed.length === 1 && failed[0].error === 'Not found') {
+      return res.status(404).json({ error: 'Not found' });
     }
-    return res.status(200).json({ ok: true });
+    if (!deleted.length) {
+      return res.status(500).json({ error: failed[0]?.error || 'Server error', failed });
+    }
+    return res.status(200).json({
+      ok: failed.length === 0,
+      deleted,
+      failed,
+    });
   } catch (err) {
     console.error('wallpaper-delete error:', err);
     return res.status(500).json({ error: 'Server error' });
