@@ -15,9 +15,9 @@ import { paypalFetch } from '../_lib/paypal.js';
 import { orderIdToOutTradeNo, zpayConfigured } from '../_lib/zpay.js';
 import { userCanDownloadKey } from '../_lib/fulfill-order.js';
 import {
-  getCurrentMonthGanZhi,
   getOrCreateMonth,
   hasActiveAnnual,
+  resolveDisplayedMonthGanZhi,
   unusedCreditCount,
 } from '../_lib/blindbox.js';
 
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
   if (productType === 'annual') {
     amountCents = useCny ? amountForProductCny('annual') : amountForProduct('annual');
   } else if (productType === 'blindbox_draw') {
-    const month = getCurrentMonthGanZhi();
+    const month = resolveDisplayedMonthGanZhi(body.month_ganzhi);
     if (!month) return res.status(500).json({ error: 'Month unavailable' });
     const annual = await hasActiveAnnual(sb, { userId: auth.userId, email: auth.email });
     if (annual) return res.status(400).json({ error: 'Annual plan already covers draws' });
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
       wallpaperPool: 'blindbox',
     });
     if (alreadyOwned) return res.status(400).json({ error: 'Already owned' });
-    const month = getCurrentMonthGanZhi();
+    const month = resolveDisplayedMonthGanZhi(body.month_ganzhi);
     const row = month ? await getOrCreateMonth(sb, auth.userId, month) : null;
     const currentIds = (row?.current_ids || []).map(String);
     if (wall?.id && currentIds.length && currentIds.indexOf(String(wall.id)) < 0) {

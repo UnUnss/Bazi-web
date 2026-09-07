@@ -4095,7 +4095,11 @@
 
     function writeBlindboxCache(state) {
         try {
-            if (!state || !(state.cards || []).length) return;
+            const displayMonth = (getCurrentYearMonthGanZhi() || {}).month || '';
+            if (!state || !(state.cards || []).length || (displayMonth && state.month_ganzhi !== displayMonth)) {
+                sessionStorage.removeItem(BLINDBOX_CACHE_KEY);
+                return;
+            }
             sessionStorage.setItem(BLINDBOX_CACHE_KEY, JSON.stringify(state));
         } catch (_) {}
     }
@@ -4151,10 +4155,15 @@
     function applyBlindboxState(data) {
         if (!data || typeof data !== 'object') return;
         const prev = blindboxState;
+        const nextMonth = data.month_ganzhi != null ? (data.month_ganzhi || '') : (prev.month_ganzhi || '');
+        const monthChanged = !!(nextMonth && prev.month_ganzhi && nextMonth !== prev.month_ganzhi);
+        const prevCards = monthChanged ? [] : (prev.cards || []);
+        const prevDraw = monthChanged ? 0 : prev.draw_count;
+        const prevCredits = monthChanged ? 0 : prev.unused_credits;
         blindboxState = {
-            draw_count: data.draw_count != null ? Number(data.draw_count) || 0 : prev.draw_count,
-            cards: Array.isArray(data.cards) ? data.cards : (prev.cards || []),
-            unused_credits: data.unused_credits != null ? Number(data.unused_credits) || 0 : prev.unused_credits,
+            draw_count: data.draw_count != null ? Number(data.draw_count) || 0 : prevDraw,
+            cards: Array.isArray(data.cards) ? data.cards : prevCards,
+            unused_credits: data.unused_credits != null ? Number(data.unused_credits) || 0 : prevCredits,
             owned: Object.assign(emptyBlindboxOwned(), data.owned != null ? data.owned : (prev.owned || {})),
             owned_keys: Array.isArray(data.owned_keys) ? data.owned_keys : (prev.owned_keys || []),
             owned_ids: Array.isArray(data.owned_ids) ? data.owned_ids.map(String) : (prev.owned_ids || []),
@@ -4163,7 +4172,7 @@
             redeemed: data.redeemed != null ? Number(data.redeemed) || 0 : prev.redeemed,
             redeem_available: data.redeem_available != null ? Number(data.redeem_available) || 0 : prev.redeem_available,
             annual_free: data.annual_free != null ? !!data.annual_free : !!prev.annual_free,
-            month_ganzhi: data.month_ganzhi != null ? (data.month_ganzhi || '') : (prev.month_ganzhi || ''),
+            month_ganzhi: nextMonth,
         };
         if (localStorage.getItem('bazi_logged_in') === '1') writeBlindboxCache(blindboxState);
         renderBlindboxFront();
@@ -4177,12 +4186,18 @@
             return blindboxState;
         }
         const cached = readBlindboxCache();
-        if (cached && !(blindboxState.cards || []).length) applyBlindboxState(cached);
+        const displayMonth = (getCurrentYearMonthGanZhi() || {}).month || '';
+        if (cached && displayMonth && cached.month_ganzhi !== displayMonth) {
+            clearBlindboxCache();
+        } else if (cached && !(blindboxState.cards || []).length) {
+            applyBlindboxState(cached);
+        }
         if (blindboxLoadPromise) return blindboxLoadPromise;
         blindboxLoadPromise = (async () => {
             try {
                 const headers = await getAuthHeaders();
-                const res = await fetch('/api/blindbox', { method: 'GET', headers });
+                const qs = displayMonth ? `?month_ganzhi=${encodeURIComponent(displayMonth)}` : '';
+                const res = await fetch(`/api/blindbox${qs}`, { method: 'GET', headers });
                 if (res.status === 401) {
                     applyBlindboxState(emptyBlindboxState());
                     return blindboxState;
@@ -4210,10 +4225,11 @@
         if (btnBlindboxDraw) btnBlindboxDraw.disabled = true;
         try {
             const headers = await getAuthHeaders();
+            const month = (getCurrentYearMonthGanZhi() || {}).month || '';
             const res = await fetch('/api/blindbox', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ action: 'draw' }),
+                body: JSON.stringify({ action: 'draw', month_ganzhi: month }),
             });
             const data = await res.json().catch(() => ({}));
             if (res.status === 402) {
@@ -5704,6 +5720,7 @@
                     provider,
                     product_type: productType,
                     items: items || [],
+                    month_ganzhi: (getCurrentYearMonthGanZhi() || {}).month || '',
                 }),
             });
             const data = await res.json().catch(() => ({}));

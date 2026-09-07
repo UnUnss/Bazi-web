@@ -2,6 +2,8 @@ import { Solar } from 'lunar-javascript';
 
 export const COLLECT_ORDER = ['金', '木', '水', '火', '土'];
 const FOLDER_ELEMENT = { 141: '水', 142: '木', 143: '火', 144: '土', 145: '金' };
+const GAN = '甲乙丙丁戊己庚辛壬癸';
+const ZHI = '子丑寅卯辰巳午未申酉戌亥';
 
 export function getCurrentMonthGanZhi() {
   try {
@@ -14,6 +16,33 @@ export function getCurrentMonthGanZhi() {
   } catch (_) {
     return '';
   }
+}
+
+function isMonthGanZhi(value) {
+  const s = String(value || '').trim();
+  return s.length === 2 && GAN.indexOf(s[0]) >= 0 && ZHI.indexOf(s[1]) >= 0;
+}
+
+function monthGanZhiAtUtcOffsetHours(now, offsetHours) {
+  const local = new Date(now.getTime() + offsetHours * 3600000);
+  const ec = Solar.fromYmdHms(
+    local.getUTCFullYear(), local.getUTCMonth() + 1, local.getUTCDate(),
+    local.getUTCHours(), local.getUTCMinutes(), local.getUTCSeconds()
+  ).getLunar().getEightChar();
+  return ec.getMonthGan() + ec.getMonthZhi();
+}
+
+/** 采用页面专属壁纸正在显示的流月；仅接受此刻各时区墙上时钟可能算出的月柱。 */
+export function resolveDisplayedMonthGanZhi(displayedMonth, now = new Date()) {
+  const requested = String(displayedMonth || '').trim();
+  if (isMonthGanZhi(requested)) {
+    const allowed = new Set();
+    for (let h = -12; h <= 14; h++) {
+      try { allowed.add(monthGanZhiAtUtcOffsetHours(now, h)); } catch (_) {}
+    }
+    if (allowed.has(requested)) return requested;
+  }
+  return getCurrentMonthGanZhi();
 }
 
 function todayYMD() {
@@ -329,8 +358,8 @@ export function publicCard(row, r2Public) {
   };
 }
 
-export async function buildBlindboxState(sb, { userId, email }) {
-  const month = getCurrentMonthGanZhi();
+export async function buildBlindboxState(sb, { userId, email, monthGanZhi }) {
+  const month = resolveDisplayedMonthGanZhi(monthGanZhi);
   const [annualFree, stats, redeemed, row] = await Promise.all([
     hasActiveAnnual(sb, { userId, email }),
     getOwnedBlindboxStats(sb, userId),

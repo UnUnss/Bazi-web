@@ -3,10 +3,10 @@ import { getServiceSupabase } from './_lib/supabase.js';
 import {
   applyDraw,
   buildBlindboxState,
-  getCurrentMonthGanZhi,
   getOrCreateMonth,
   hasActiveAnnual,
   publicCard,
+  resolveDisplayedMonthGanZhi,
   unusedCreditCount,
 } from './_lib/blindbox.js';
 
@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       const state = await buildBlindboxState(sb, {
         userId: auth.userId,
         email: auth.email,
+        monthGanZhi: req.query?.month_ganzhi || req.query?.monthGanZhi || '',
       });
       return res.status(200).json(state);
     } catch (err) {
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const month = getCurrentMonthGanZhi();
+    const month = resolveDisplayedMonthGanZhi((req.body || {}).month_ganzhi);
     if (!month) return res.status(500).json({ error: 'Month unavailable' });
     const [annualFree, row] = await Promise.all([
       hasActiveAnnual(sb, { userId: auth.userId, email: auth.email }),

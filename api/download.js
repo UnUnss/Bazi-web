@@ -6,7 +6,6 @@
 // 可选：record_history=true 时由服务端写入 download_records（避免浏览器直连 Supabase 失败）
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Solar } from 'lunar-javascript';
 import { assertUser } from './_lib/auth.js';
 import { getServiceSupabase } from './_lib/supabase.js';
 import { userCanDownloadKey } from './_lib/fulfill-order.js';
@@ -16,6 +15,7 @@ import {
   getRedeemCount,
   hasActiveAnnual,
   redeemAvailable,
+  resolveDisplayedMonthGanZhi,
 } from './_lib/blindbox.js';
 
 const s3 = new S3Client({
@@ -29,25 +29,11 @@ const s3 = new S3Client({
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-/** 与 landing / download-history 一致的当前节气月干支 */
-function getCurrentMonthGanZhi() {
-  try {
-    const now = new Date();
-    const ec = Solar.fromYmdHms(
-      now.getFullYear(), now.getMonth() + 1, now.getDate(),
-      now.getHours(), now.getMinutes(), now.getSeconds()
-    ).getLunar().getEightChar();
-    return ec.getMonthGan() + ec.getMonthZhi();
-  } catch (_) {
-    return '';
-  }
-}
-
 /** 已有下载记录 → 允许重新下载。专属图仅本流月；盲盒不限流月。 */
-async function userHasDownloadRecord(sb, { userId, email, r2Key, currentMonthOnly }) {
+async function userHasDownloadRecord(sb, { userId, email, r2Key, currentMonthOnly, monthGanzhi }) {
   if (!r2Key) return false;
   const emailNorm = String(email || '').trim().toLowerCase();
-  const month = currentMonthOnly ? getCurrentMonthGanZhi() : '';
+  const month = currentMonthOnly ? resolveDisplayedMonthGanZhi(monthGanzhi) : '';
   if (currentMonthOnly && !month) return false;
 
   async function find(column, value) {
@@ -236,7 +222,7 @@ export default async function handler(req, res) {
       return res.status(402).json({ error: 'No redeem credit' });
     }
     if (isBlindbox) {
-      const month = getCurrentMonthGanZhi();
+      const month = resolveDisplayedMonthGanZhi(monthGanzhi);
       const row = month ? await getOrCreateMonth(sb, auth.userId, month) : null;
       const currentIds = (row?.current_ids || []).map(String);
       if (!wallpaperId || currentIds.indexOf(String(wallpaperId)) < 0) {
@@ -261,6 +247,7 @@ export default async function handler(req, res) {
       email: auth.email,
       r2Key: originalKey,
       currentMonthOnly: !isBlindbox,
+      monthGanzhi,
     });
   }
   if (!allowed) {
@@ -286,6 +273,7 @@ export default async function handler(req, res) {
       email: auth.email,
       r2Key: originalKey,
       currentMonthOnly: !isBlindbox,
+      monthGanzhi,
     });
     const shouldRecord = downloadSource === 'redeem'
       || ((recordHistory || downloadSource === 'annual') && !alreadyRecorded);
