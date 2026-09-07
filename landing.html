@@ -3302,6 +3302,7 @@
         localStorage.removeItem('bazi_monthly_insight_v1');
         localStorage.removeItem('bazi_monthly_insight_v3');
         localStorage.removeItem('bazi_wallpaper_meta_v1');
+        localStorage.removeItem('bazi_wallpaper_meta_v3');
     } catch (_) {}
 
     function readInsightCache(profileId, ymKey) {
@@ -4526,7 +4527,7 @@
     // 普通浏览表现为单张裂图，无痕模式没有这份缓存所以正常。
     const _wallpaperCache = {};
     const _wallpaperInflight = {};
-    const WP_META_LS_KEY = 'bazi_wallpaper_meta_v3';
+    const WP_META_LS_KEY = 'bazi_wallpaper_meta_v4';
     const WP_META_TTL_MS = 24 * 60 * 60 * 1000; // 24h
     // 方案B锁定后新壁纸不影响当月，revalidate 与 TTL 对齐，等缓存自然过期再拉取
     const WP_META_REVALIDATE_MS = WP_META_TTL_MS; // 24h，等同于禁用后台 revalidate
