@@ -4845,9 +4845,8 @@
             const fetchPriority = idx === 0 ? 'high' : 'auto';
             // preview_key 对应文件不存在时，回退到 r2_key 原图，避免卡片空白。
             const fallbackSrc = c.isPreview && c.r2key ? `${R2_PUBLIC_URL}/${c.r2key}` : '';
-            const fallbackAttrs = fallbackSrc
-                ? `data-fallback-src="${escapeHtml(fallbackSrc)}" onerror="const f=this.dataset.fallbackSrc;if(f){delete this.dataset.fallbackSrc;this.src=f;}"`
-                : '';
+            // stage 0→1：加 ?cb= 时间戳绕过 HTTP 缓存重试；stage 1→2：换 fallback 原图
+            const fallbackAttrs = `data-fallback-src="${escapeHtml(fallbackSrc)}" onerror="(function(img){const s=+(img.dataset.errStage||0);if(s===0){img.dataset.errStage=1;const b=img.src.split('?')[0];img.src=b+'?cb='+Date.now();}else if(s===1){img.dataset.errStage=2;const f=img.dataset.fallbackSrc;if(f){img.src=f;}}})(this)"`;
             const hdBtn = `<button type="button" class="btn-download btn-download-hd" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-wallpaper-id="${escapeHtml(c.id || '')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
             const previewBtn = `<button type="button" class="btn-download btn-preview-large" data-preview-src="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_preview_large'))}</button>`;
             let actions;
