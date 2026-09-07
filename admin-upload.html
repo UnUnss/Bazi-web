@@ -228,6 +228,8 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f4; c
 const SUPABASE_URL  = 'https://yyiecrsibflscgjxmvbn.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_v-LV28YijQFfr2wAHFajmw_GkfU9u1A';
 const R2_PUBLIC_URL = 'https://pub-9caba4113e9842559ae43c91003a0b05.r2.dev';
+/** 上传时是否生成免费水印图。下次活动改回 true。 */
+const GENERATE_FREE_WATERMARK = false;
 
 // 文件夹编号 → 五行 + 运势标签映射表（1–140 补运匹配；141–145 盲盒）
 const FOLDER_MAP = {
@@ -938,7 +940,7 @@ document.getElementById('btnUpload').addEventListener('click', async () => {
 
       // 3) 补一个运：同步生成免费水印预览图
       const isSingle = FOLDER_MAP[item.folderNum] && FOLDER_MAP[item.folderNum].tags.length === 1;
-      if (isSingle) {
+      if (GENERATE_FREE_WATERMARK && isSingle) {
         try {
           const freeBlob = await makeFreePreviewBlob(item.file);
           await presignAndPut({

@@ -3,12 +3,12 @@
 import { randomBytes } from 'node:crypto';
 import { getServiceSupabase } from './supabase.js';
 
-export const INVITE_CAMPAIGN_ENABLED = true;
+export const INVITE_CAMPAIGN_ENABLED = false;
 /** 北京时间 2026-08-31 23:59:59.999 */
 export const INVITE_CAMPAIGN_END_MS = Date.parse('2026-08-31T15:59:59.999Z');
 
 /** 新用户首次免费水印下载。下次活动：true + 更新 FIRST_FREE_END_MS。立刻全关：false。 */
-export const FIRST_FREE_ENABLED = true;
+export const FIRST_FREE_ENABLED = false;
 export const FIRST_FREE_END_MS = INVITE_CAMPAIGN_END_MS;
 
 /** 北京时间 2026-09-07 23:59:59.999：两张免费额度全部失效（含未使用的邀请奖励） */

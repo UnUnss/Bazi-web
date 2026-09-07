@@ -2519,7 +2519,7 @@
                 <div class="user-menu" id="userMenu" role="menu">
                     <div class="user-menu-email" id="userMenuEmail"></div>
                     <button type="button" id="btnAnnualService" data-i18n="nav_annual_service" style="display:none;">年度会员</button>
-                    <button type="button" id="btnInviteReward" data-i18n="nav_invite_reward">邀請碼獎勵</button>
+                    <button type="button" id="btnInviteReward" data-i18n="nav_invite_reward" style="display:none;">邀請碼獎勵</button>
                     <button type="button" id="btnDownloadHistory" data-i18n="nav_download_history">下載記錄</button>
                     <button type="button" id="btnAccount" data-i18n="nav_account">帳號管理</button>
                     <button type="button" id="btnLogout" data-i18n="nav_logout">退出</button>
@@ -3084,7 +3084,9 @@
 
     // 限时免费：代码保留，用开关 + 截止日期控制。
     // 下次再开：ENABLED = true，并把对应 END_MS 改成新的截止时刻（UTC）。
-    const FIRST_FREE_ENABLED = true;
+    const FIRST_FREE_ENABLED = false;
+    /** 立刻全关免费下载按钮。下次活动改回 true，并配合 FIRST_FREE / 邀请开关。 */
+    const FREE_DOWNLOAD_BTN_ENABLED = false;
     /** 北京时间 2026-08-31 23:59:59.999：之后不再发放「首次免费」 */
     const FIRST_FREE_END_MS = Date.parse('2026-08-31T15:59:59.999Z');
     /** 北京时间 2026-09-07 23:59:59.999：两张免费额度全部失效 */
@@ -3120,6 +3122,7 @@
     }
 
     function canShowFreeDownloadBtn() {
+        if (!FREE_DOWNLOAD_BTN_ENABLED) return false;
         if (isAllFreeExpired()) return false;
         if (hasUsedBothFreeDownloads()) return false;
         return isFirstFreeOpen() || hasUnusedInviteFreeDownload();
@@ -4867,10 +4870,9 @@
             const hdBtn = `<button type="button" class="btn-download btn-download-hd" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-wallpaper-id="${escapeHtml(c.id || '')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_hd'))}</button>`;
             const previewBtn = `<button type="button" class="btn-download btn-preview-large" data-preview-src="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_preview_large'))}</button>`;
             let actions;
-            if (idx < 2) {
-                const showFree = canShowFreeDownloadBtn();
-                const freeBtn = `<button type="button" class="btn-download btn-download-free"${showFree ? '' : ' hidden'} data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-previewkey="${escapeHtml(c.previewKey||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_free'))}</button>`;
-                const slotPreview = `<button type="button" class="btn-download btn-preview-large"${showFree ? ' hidden' : ''} data-preview-src="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_preview_large'))}</button>`;
+            if (idx < 2 && canShowFreeDownloadBtn()) {
+                const freeBtn = `<button type="button" class="btn-download btn-download-free" data-key="${escapeHtml(cardKey)}" data-img="${escapeHtml(remote)}" data-r2key="${escapeHtml(c.r2key||'')}" data-previewkey="${escapeHtml(c.previewKey||'')}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_download_free'))}</button>`;
+                const slotPreview = `<button type="button" class="btn-download btn-preview-large" hidden data-preview-src="${escapeHtml(c.img)}" data-name="${escapeHtml(c.name)}">${escapeHtml(t('btn_preview_large'))}</button>`;
                 actions = `<div class="wallpaper-actions" data-free-slot>${freeBtn}${slotPreview}${hdBtn}</div>`;
             } else {
                 actions = `<div class="wallpaper-actions">${previewBtn}${hdBtn}</div>`;
@@ -8170,8 +8172,11 @@
             accountParams.delete('invite');
             const next = accountParams.toString();
             history.replaceState({}, '', location.pathname + (next ? `?${next}` : '') + location.hash);
-            if (isLoggedIn()) openInviteModal();
-            else requireLogin();
+            refreshInviteStatus().then((st) => {
+                if (!st || st.enabled === false) return;
+                if (isLoggedIn()) openInviteModal();
+                else requireLogin();
+            });
         }
     } catch (_) {}
 
