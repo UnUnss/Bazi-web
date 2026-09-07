@@ -47,6 +47,20 @@
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <meta name="application-name" content="ElementaWall">
     <meta name="description" content="ElementaWall 根據生辰八字，為你定制每月運勢手機桌布。支援 Google 與郵箱登入，提供個人化手機桌布推薦與下載。">
+    <meta name="keywords" content="運勢,运势,fortune,顯化,显化,manifestation,能量,energy,能量壁紙,能量壁纸,energy wallpaper,八字,BaZi,手機桌布,壁纸,ElementaWall">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "ElementaWall",
+      "url": "https://www.elementawall.com/landing",
+      "applicationCategory": "LifestyleApplication",
+      "operatingSystem": "Web",
+      "inLanguage": ["zh-TW", "zh-CN", "en"],
+      "description": "ElementaWall 根據生辰八字，為你定制每月運勢手機桌布。支援 Google 與郵箱登入，提供個人化手機桌布推薦與下載。",
+      "keywords": "運勢,运势,fortune,顯化,显化,manifestation,能量,energy,能量壁紙,能量壁纸,energy wallpaper,八字,BaZi"
+    }
+    </script>
     <!--
         汇迹正楷 CooperZhengKai：UI 子集优先；子集没有的字回退到完整 CooperZhengKai。
         城市名等地点文案仍可走系统字体（见 .loc-select）。
@@ -54,7 +68,7 @@
     <link rel="preload" href="assets/fonts/cooper-zhengkai/files/CooperZhengKai-1.4.woff2?v=12" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="assets/fonts/cooper-zhengkai/style.css?v=12" />
     <!-- 多语言字典（data-i18n 驱动），default lang 见 i18n.js -->
-    <script src="i18n.js?v=63"></script>
+    <script src="i18n.js?v=65"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -2533,8 +2547,9 @@
 <main class="hero">
     <section class="brand-seo">
         <h1>ElementaWall</h1>
-        <p>ElementaWall is an app that creates personalized monthly fortune wallpapers based on your BaZi (Four Pillars) birth chart. Users can browse, select, and download wallpapers matched to their chart.</p>
-        <p>ElementaWall 根據生辰八字，為你定制每月運勢手機桌布，並提供個人化手機桌布推薦與下載。</p>
+        <p>ElementaWall creates personalized monthly fortune wallpapers from your BaZi (Four Pillars) birth chart to support manifestation, energy alignment, and monthly fortune. Browse, select, and download energy wallpapers matched to your chart.</p>
+        <p>ElementaWall 根據生辰八字，為你定制每月運勢手機桌布，協助顯化與能量調和，並提供個人化能量桌布推薦與下載。</p>
+        <p>ElementaWall 根据生辰八字，为你定制每月运势壁纸，协助显化与能量调和，并提供个性化能量壁纸推荐与下载。</p>
         <p>Sign in with Google or email to save your profiles, sync wallpaper history, and manage your account. When you use Google Sign-In, ElementaWall requests basic profile and email information only to create and authenticate your account; we do not use Google user data for advertising.</p>
         <p>使用 Google 或郵箱登入後，可保存八字檔案、同步手機桌布記錄並管理帳號。透過 Google 登入時，ElementaWall 僅請求基本資料與電子郵件用於建立與驗證帳號，不會將 Google 用戶資料用於廣告。</p>
         <p><a href="/policy">Privacy Policy / 用戶服務與隱私協議</a> · <a href="/about">About ElementaWall / 關於我們</a> · <a href="/contact">Contact / 聯絡我們</a></p>
@@ -4506,19 +4521,19 @@
             }
         });
     }
-    // 壁纸缓存：内存 + localStorage（跨刷新）+ Cache API（预览图）
+    // 壁纸缓存：内存 + localStorage（跨刷新）。
+    // 不再用 Cache API 把 img.src 换成 blob：iOS Safari 会把失败/截断响应长期留下，
+    // 普通浏览表现为单张裂图，无痕模式没有这份缓存所以正常。
     const _wallpaperCache = {};
     const _wallpaperInflight = {};
     const WP_META_LS_KEY = 'bazi_wallpaper_meta_v3';
     const WP_META_TTL_MS = 24 * 60 * 60 * 1000; // 24h
     // 方案B锁定后新壁纸不影响当月，revalidate 与 TTL 对齐，等缓存自然过期再拉取
     const WP_META_REVALIDATE_MS = WP_META_TTL_MS; // 24h，等同于禁用后台 revalidate
-    const WP_IMG_CACHE = 'bazi-wp-preview-v3';
-    let _wpBlobUrls = [];
     if ('caches' in window) {
         caches.keys().then((names) => {
             names.forEach((name) => {
-                if (name.startsWith('bazi-wp-preview-') && name !== WP_IMG_CACHE) {
+                if (name.startsWith('bazi-wp-preview-')) {
                     caches.delete(name).catch(() => {});
                 }
             });
@@ -4552,13 +4567,6 @@
         } catch (_) {}
     }
 
-    function revokeWallpaperBlobs() {
-        _wpBlobUrls.forEach((u) => {
-            try { URL.revokeObjectURL(u); } catch (_) {}
-        });
-        _wpBlobUrls = [];
-    }
-
     function withTimeout(promise, ms) {
         let timer;
         return Promise.race([
@@ -4567,30 +4575,6 @@
                 timer = setTimeout(() => reject(new Error('timeout')), ms);
             }),
         ]);
-    }
-
-    async function cachedPreviewSrc(url) {
-        if (!url || !('caches' in window)) return url;
-        try {
-            const cache = await withTimeout(caches.open(WP_IMG_CACHE), 2500);
-            let res = await cache.match(url);
-            if (!res) {
-                const net = await withTimeout(
-                    fetch(url, { mode: 'cors', credentials: 'omit', cache: 'force-cache' }),
-                    4000
-                );
-                if (!net.ok) return url;
-                try { await cache.put(url, net.clone()); } catch (_) {}
-                res = net;
-            }
-            const blob = await withTimeout(res.blob(), 2500);
-            if (!blob || !blob.size) return url;
-            const obj = URL.createObjectURL(blob);
-            _wpBlobUrls.push(obj);
-            return obj;
-        } catch (_) {
-            return url;
-        }
     }
 
     // 必须在首次 refresh()/renderWallpapers 之前创建：否则首屏会因 TDZ/_sb 未就绪查库失败，
@@ -4842,9 +4826,6 @@
 
         if (renderSeq !== _wallpaperRenderSeq) return;
 
-        // 先用远程 URL 立刻渲染卡片：喜用/补运已同步更新，壁纸区不应再被 Cache API 卡住。
-        // Safari 上 caches/fetch 偶发挂起时，旧逻辑会导致「上方 insight 已变、下方壁纸仍要手动刷新」。
-        revokeWallpaperBlobs();
         cards = (cards || []).map((c) => ({
             ...c,
             remoteImg: c.remoteImg || c.img,
@@ -4898,19 +4879,6 @@
                 <div class="wallpaper-row">${cardHtmls.slice(2, 4).join('')}</div>
             </div>
         `;
-        // 后台把预览图写入 Cache API，成功后再替换 src；失败不影响已展示的卡片
-        const paintedSeq = renderSeq;
-        const imgs = wallpaperGrid.querySelectorAll('.wallpaper-preview > img');
-        cards.forEach((c, idx) => {
-            const remote = c.remoteImg;
-            if (!remote) return;
-            cachedPreviewSrc(remote).then((blobUrl) => {
-                if (paintedSeq !== _wallpaperRenderSeq) return;
-                if (!blobUrl || blobUrl === remote) return;
-                const img = imgs[idx];
-                if (img) img.src = blobUrl;
-            }).catch(() => {});
-        });
         syncBlindboxPlaceholderRatio();
     }
 
