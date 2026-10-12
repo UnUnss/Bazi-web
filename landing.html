@@ -3361,7 +3361,16 @@
                     // 舊版 demo-1（1984 北京）替換為新預設，避免本地緩存一直顯示舊盤
                     let migrated = false;
                     const next = parsed.map((p) => {
-                        if (!p || p.id !== 'demo-1') return p;
+                        if (!p) return p;
+                        // 修復舊版本中山東/湖南被存成美國西岸經度的髒數據
+                        if (p.birthplaceLon != null) {
+                            const cleanLon = sanitizeBirthplaceLon(p.birthplaceLon, p.countryCode);
+                            if (cleanLon !== p.birthplaceLon) {
+                                migrated = true;
+                                p = Object.assign({}, p, { birthplaceLon: cleanLon });
+                            }
+                        }
+                        if (p.id !== 'demo-1') return p;
                         // 舊版 demo（1984 北京 / 暱稱「本人」）替換為新預設
                         if (p.birthDate === '1984/01/15' || p.nickname === '本人') {
                             migrated = true;
@@ -3401,6 +3410,16 @@
         return headers;
     }
 
+    function sanitizeBirthplaceLon(lon, countryCode) {
+        const n = parseFloat(lon);
+        if (!Number.isFinite(n)) return null;
+        // 用 lonInCountry 过滤；lonInCountry 依赖 DOM 读取国家，这里直接传 iso2 复用逻辑
+        if (countryCode === 'CN' || countryCode === 'TW' || countryCode === 'HK' || countryCode === 'MO') {
+            return (n >= 73 && n <= 135) ? n : null;
+        }
+        return n;
+    }
+
     function profileRowToClient(row) {
         return {
             id: row.id,
@@ -3409,7 +3428,7 @@
             birthDate: row.birth_date,
             birthTime: row.birth_time,
             birthplace: row.birthplace,
-            birthplaceLon: row.birthplace_lon,
+            birthplaceLon: sanitizeBirthplaceLon(row.birthplace_lon, row.country_code),
             utcOffset: row.utc_offset,
             useTrueSolarTime: !!row.use_true_solar_time,
             useDST: !!row.use_dst,
@@ -6694,6 +6713,29 @@
     // 選擇中國大陸時，排除數據庫把 HK/MO/TW 當作中國州的條目
     const CN_EXCLUDE_STATES = new Set(['HK', 'MO', 'TW']);
 
+    // country-state-city@3.2.1 把山東、湖南標到了美國（奧克蘭、堪薩斯一帶）。
+    // 在線查詢失敗時會用這裡的省座標，必須先改成省境內的經緯度。
+    const STATE_COORD_FIX = {
+        CN_SD: { lat: 36.4, lon: 118.4 },
+        CN_HN: { lat: 27.6167, lon: 111.4833 },
+    };
+
+    function fixedStateLatLon(iso2, isoCode, latitude, longitude) {
+        return STATE_COORD_FIX[`${iso2}_${isoCode}`] || {
+            lat: latitude,
+            lon: longitude,
+        };
+    }
+
+    // 中國、港澳台的經度應在東經約 73–135。用來丟掉被標到西半球的髒座標。
+    function lonInCountry(iso2, lon) {
+        if (!Number.isFinite(lon)) return false;
+        if (iso2 === 'CN' || iso2 === 'TW' || iso2 === 'HK' || iso2 === 'MO') {
+            return lon >= 73 && lon <= 135;
+        }
+        return lon >= -180 && lon <= 180;
+    }
+
     // 將省/州填入 locState
     function renderStateOptions(iso2) {
         resetSelect(locStateSel, 'loc_placeholder_state');
@@ -6714,9 +6756,10 @@
         }
         states.forEach(s => {
             const opt = document.createElement('option');
+            const coord = fixedStateLatLon(iso2, s.isoCode, s.latitude, s.longitude);
             opt.value = s.isoCode;
-            opt.dataset.lat = s.latitude  || '';
-            opt.dataset.lon = s.longitude || '';
+            opt.dataset.lat = coord.lat ?? '';
+            opt.dataset.lon = coord.lon ?? '';
             opt.textContent = getStateDisplay(s, iso2);
             locStateSel.appendChild(opt);
         });
@@ -8417,6 +8460,9 @@
                 const stateCode = locStateSel.value;
                 const stateName = locStateSel.options[locStateSel.selectedIndex]?.textContent || stateCode;
 
+                // 地點已改時不要沿用舊經度，否則查詢失敗會把上一個地點的經度寫到新地名上
+                finalLon = null;
+                finalUtcOffset = undefined;
                 if (iso2 && (city || stateCode)) {
                     const q = city ? `${city}, ${stateName}` : stateName;
                     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=${iso2.toLowerCase()}`;
@@ -8424,12 +8470,13 @@
                         const res  = await fetch(url, { headers: { 'Accept-Language': 'zh,en' }, signal: AbortSignal.timeout(8000) });
                         const data = await res.json();
                         if (data && data.length > 0) {
-                            finalLon = parseFloat(data[0].lon);
+                            const lon = parseFloat(data[0].lon);
+                            if (lonInCountry(iso2, lon)) finalLon = lon;
                         }
                     } catch (_) { /* 网络失败，使用省级坐标 */ }
 
-                    // Nominatim 失败时回退到省级坐标
-                    if (finalLon === null && _stateLatLon) {
+                    // 在線查詢失敗時回退到省級座標；座標不在該國範圍內則不用
+                    if (finalLon === null && _stateLatLon && lonInCountry(iso2, _stateLatLon.lon)) {
                         finalLon = _stateLatLon.lon;
                     }
 
@@ -8448,6 +8495,12 @@
             _profileSaving = false;
             if (saveBtn) saveBtn.textContent = saveBtnPrevText;
             alert(window.I18N ? window.I18N.t('alert_fill_required') : '請填寫完整信息');
+            return;
+        }
+        if (useTrueSolarTime && finalLon == null) {
+            _profileSaving = false;
+            if (saveBtn) saveBtn.textContent = saveBtnPrevText;
+            alert(window.I18N ? window.I18N.t('alert_birthplace_lon_failed') : '暫時查不到這個地點的經度，請檢查網路後再保存');
             return;
         }
 
