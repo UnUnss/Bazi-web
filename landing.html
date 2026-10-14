@@ -8465,14 +8465,12 @@
                 finalUtcOffset = undefined;
                 if (iso2 && (city || stateCode)) {
                     const q = city ? `${city}, ${stateName}` : stateName;
-                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=${iso2.toLowerCase()}`;
+                    const url = `/api/geocode?q=${encodeURIComponent(q)}&country=${encodeURIComponent(iso2)}`;
                     try {
-                        const res  = await fetch(url, { headers: { 'Accept-Language': 'zh,en' }, signal: AbortSignal.timeout(8000) });
+                        const res  = await fetch(url, { signal: AbortSignal.timeout(12000) });
                         const data = await res.json();
-                        if (data && data.length > 0) {
-                            const lon = parseFloat(data[0].lon);
-                            if (lonInCountry(iso2, lon)) finalLon = lon;
-                        }
+                        const lon = parseFloat(data && data.lon);
+                        if (lonInCountry(iso2, lon)) finalLon = lon;
                     } catch (_) { /* 网络失败，使用省级坐标 */ }
 
                     // 在線查詢失敗時回退到省級座標；座標不在該國範圍內則不用
