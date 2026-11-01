@@ -53,9 +53,6 @@ export default async function handler(req, res) {
     if (row.draw_count >= 3) {
       return res.status(400).json({ error: 'draw_limit' });
     }
-    if (row.draw_count >= 1 && !annualFree) {
-      return res.status(402).json({ error: 'Payment required' });
-    }
     const drawn = await applyDraw(sb, auth.userId, month);
     return res.status(200).json({
       month_ganzhi: month,

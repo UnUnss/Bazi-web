@@ -10,11 +10,7 @@ import { assertUser } from './_lib/auth.js';
 import { getServiceSupabase } from './_lib/supabase.js';
 import { userCanDownloadKey } from './_lib/fulfill-order.js';
 import {
-  getOrCreateMonth,
-  getOwnedElementCounts,
-  getRedeemCount,
   hasActiveAnnual,
-  redeemAvailable,
   resolveDisplayedMonthGanZhi,
 } from './_lib/blindbox.js';
 
@@ -91,7 +87,7 @@ async function recordDownload(sb, {
   if (error) console.error('download_records insert failed', error);
 }
 
-/** 壁纸下载次数：免费水印图 + 付费/包年/兑换原图（含专属与盲盒）。 */
+/** 壁纸下载次数：免费水印图 + 付费/包年原图（含专属与盲盒）。 */
 async function wallpaperDownloadCount(sb) {
   const [freeRes, paidRes] = await Promise.all([
     sb.from('free_download_logs').select('id', { count: 'exact', head: true }),
@@ -132,7 +128,6 @@ export default async function handler(req, res) {
     preview_url: previewUrl,
     wallpaper_name: wallpaperName,
     month_ganzhi: monthGanzhi,
-    redeem: useRedeem,
   } = body;
   if (!r2_key || typeof r2_key !== 'string') {
     return res.status(400).json({ error: 'Missing r2_key' });
@@ -208,39 +203,6 @@ export default async function handler(req, res) {
     });
     if (annual) downloadSource = 'annual';
   }
-  if (!allowed && useRedeem) {
-    const annual = await hasActiveAnnual(sb, {
-      userId: auth.userId,
-      email: auth.email,
-    });
-    if (annual) {
-      return res.status(402).json({ error: 'Redeem disabled during annual plan' });
-    }
-    const owned = await getOwnedElementCounts(sb, auth.userId);
-    const redeemed = await getRedeemCount(sb, auth.userId);
-    if (redeemAvailable(owned, redeemed) < 1) {
-      return res.status(402).json({ error: 'No redeem credit' });
-    }
-    if (isBlindbox) {
-      const month = resolveDisplayedMonthGanZhi(monthGanzhi);
-      const row = month ? await getOrCreateMonth(sb, auth.userId, month) : null;
-      const currentIds = (row?.current_ids || []).map(String);
-      if (!wallpaperId || currentIds.indexOf(String(wallpaperId)) < 0) {
-        return res.status(400).json({ error: 'Not in current draw' });
-      }
-    }
-    const { error: redeemErr } = await sb.from('blindbox_redeems').insert({
-      user_id: auth.userId,
-      r2_key: originalKey,
-      wallpaper_id: wallpaperId,
-    });
-    if (redeemErr) {
-      console.error('blindbox redeem insert', redeemErr);
-      return res.status(500).json({ error: 'Redeem failed' });
-    }
-    allowed = true;
-    downloadSource = 'redeem';
-  }
   if (!allowed) {
     allowed = await userHasDownloadRecord(sb, {
       userId: auth.userId,
@@ -267,7 +229,7 @@ export default async function handler(req, res) {
       { expiresIn: 300 }
     );
 
-    // 签发成功后再记下载记录；已有记录的重新下载不重复写入（兑换每次都记）
+    // 签发成功后再记下载记录；已有记录的重新下载不重复写入
     const alreadyRecorded = await userHasDownloadRecord(sb, {
       userId: auth.userId,
       email: auth.email,
@@ -275,8 +237,7 @@ export default async function handler(req, res) {
       currentMonthOnly: !isBlindbox,
       monthGanzhi,
     });
-    const shouldRecord = downloadSource === 'redeem'
-      || ((recordHistory || downloadSource === 'annual') && !alreadyRecorded);
+    const shouldRecord = (recordHistory || downloadSource === 'annual') && !alreadyRecorded;
     if (shouldRecord) {
       await recordDownload(sb, {
         userId: auth.userId,

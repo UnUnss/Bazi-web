@@ -18,7 +18,6 @@ import {
   getOrCreateMonth,
   hasActiveAnnual,
   resolveDisplayedMonthGanZhi,
-  unusedCreditCount,
 } from '../_lib/blindbox.js';
 
 function normalizeItems(rawItems) {
@@ -56,16 +55,7 @@ export default async function handler(req, res) {
   if (productType === 'annual') {
     amountCents = useCny ? amountForProductCny('annual') : amountForProduct('annual');
   } else if (productType === 'blindbox_draw') {
-    const month = resolveDisplayedMonthGanZhi(body.month_ganzhi);
-    if (!month) return res.status(500).json({ error: 'Month unavailable' });
-    const annual = await hasActiveAnnual(sb, { userId: auth.userId, email: auth.email });
-    if (annual) return res.status(400).json({ error: 'Annual plan already covers draws' });
-    const row = await getOrCreateMonth(sb, auth.userId, month);
-    if (row.draw_count < 1) return res.status(400).json({ error: 'First draw is free' });
-    if (row.draw_count >= 3) return res.status(400).json({ error: 'draw_limit' });
-    amountCents = useCny ? amountForProductCny('blindbox_draw') : amountForProduct('blindbox_draw');
-    orderMeta.kind = 'blindbox_draw';
-    orderMeta.month_ganzhi = month;
+    return res.status(400).json({ error: 'Mystery box draws are free' });
   } else if (productType === 'blindbox') {
     if (items.length !== 1) return res.status(400).json({ error: 'One wallpaper required' });
     const annual = await hasActiveAnnual(sb, { userId: auth.userId, email: auth.email });
@@ -91,15 +81,11 @@ export default async function handler(req, res) {
     if (wall?.id && currentIds.length && currentIds.indexOf(String(wall.id)) < 0) {
       return res.status(400).json({ error: 'Wallpaper is not in the current draw' });
     }
-    const credits = unusedCreditCount(row);
-    const priceKey = credits >= 2
-      ? 'blindbox_double_credited'
-      : (credits === 1 ? 'blindbox_credited' : 'blindbox');
-    amountCents = useCny ? amountForProductCny(priceKey) : amountForProduct(priceKey);
+    amountCents = useCny ? amountForProductCny('blindbox') : amountForProduct('blindbox');
     productType = 'blindbox';
     orderMeta.kind = 'blindbox_hd';
     orderMeta.month_ganzhi = month;
-    orderMeta.credit_count = credits;
+    orderMeta.credit_count = 0;
   } else {
     // Wallpaper: price by item count, $5.99 / ¥39 each. Ignore client product_type.
     if (!items.length) {

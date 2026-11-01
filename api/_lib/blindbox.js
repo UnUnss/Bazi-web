@@ -374,7 +374,7 @@ export async function buildBlindboxState(sb, { userId, email, monthGanZhi }) {
     downloaded_keys: stats.downloaded_keys,
     downloaded_ids: stats.downloaded_ids,
     redeemed,
-    redeem_available: annualFree ? 0 : redeemAvailable(owned, redeemed),
+    redeem_available: 0,
     annual_free: annualFree,
   };
   if (!month || !row) {

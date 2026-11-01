@@ -1,20 +1,14 @@
 /** Server-side price table (cents). Never trust client amounts. */
 export const PRODUCT_PRICES_CENTS = {
   single: 599,
-  blindbox: 299,
-  blindbox_draw: 99,
-  blindbox_credited: 200,
-  blindbox_double_credited: 101,
+  blindbox: 290,
   annual: 21999,
 };
 
 /** Alipay / Z-Pay amounts in 分 (¥39 → 3900). */
 export const PRODUCT_PRICES_CNY_CENTS = {
   single: 3900,
-  blindbox: 1900,
-  blindbox_draw: 650,
-  blindbox_credited: 1250,
-  blindbox_double_credited: 600,
+  blindbox: 290,
   annual: 143900,
 };
 

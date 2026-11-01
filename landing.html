@@ -2640,10 +2640,10 @@
     <div class="wallpaper-grid" id="wallpaperGrid"></div>
 
     <h2 class="wallpaper-title wallpaper-blindbox-title" data-i18n="wallpaper_blindbox_title">本月五行盲盒</h2>
-    <p class="blindbox-collect-line" id="blindboxCollectLine"></p>
+    <p class="blindbox-collect-line" id="blindboxCollectLine" hidden></p>
     <div class="wallpaper-grid" id="blindboxGrid"></div>
     <div class="blindbox-draw-wrap">
-        <button type="button" class="btn-download btn-blindbox-draw" id="btnBlindboxDraw" data-i18n="btn_blindbox_draw_free">抽盲盒（每月首抽免費開啟）</button>
+        <button type="button" class="btn-download btn-blindbox-draw" id="btnBlindboxDraw" data-i18n="btn_blindbox_draw_free">抽盲盒</button>
     </div>
 </section>
 </div>
@@ -2788,7 +2788,6 @@
                 <img src="assets/pay/支付宝logo.png" alt="支付宝">
             </button>
         </div>
-        <button type="button" class="btn-pay-redeem" id="btnPayRedeem" hidden data-i18n="btn_blindbox_redeem">使用免費下載兌換</button>
     </div>
 </div>
 
@@ -4074,7 +4073,6 @@
     const wallpaperGrid = document.getElementById('wallpaperGrid');
     const blindboxGrid = document.getElementById('blindboxGrid');
     const btnBlindboxDraw = document.getElementById('btnBlindboxDraw');
-    const BLINDBOX_COLLECT_ORDER = ['金', '水', '木', '火', '土'];
     const emptyBlindboxOwned = () => ({ '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 });
     let alipayAvailable = false;
     let pendingDownloadWallpaperId = '';
@@ -4156,21 +4154,6 @@
         return !!blindboxState.annual_free;
     }
 
-    function countUnusedPaidDrawCredits() {
-        return Number(blindboxState.unused_credits) || 0;
-    }
-
-    function syncPayRedeemButton() {
-        const btn = document.getElementById('btnPayRedeem');
-        if (!btn) return;
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        const isHdPay = pendingPayKind === 'wallpaper' || pendingPayKind === 'blindbox-hd';
-        const canRedeem = isHdPay && (Number(blindboxState.redeem_available) || 0) > 0;
-        btn.hidden = !canRedeem;
-        btn.textContent = t('btn_blindbox_redeem');
-        btn.setAttribute('data-i18n', 'btn_blindbox_redeem');
-    }
-
     function applyBlindboxState(data) {
         if (!data || typeof data !== 'object') return;
         const prev = blindboxState;
@@ -4195,7 +4178,6 @@
         };
         if (localStorage.getItem('bazi_logged_in') === '1') writeBlindboxCache(blindboxState);
         renderBlindboxFront();
-        if (typeof syncPayRedeemButton === 'function') syncPayRedeemButton();
     }
 
     async function loadBlindboxState() {
@@ -4253,7 +4235,7 @@
             const data = await res.json().catch(() => ({}));
             if (res.status === 402) {
                 await loadBlindboxState();
-                openBlindboxDrawPayModal();
+                alert(t('download_failed'));
                 return;
             }
             if (!res.ok) {
@@ -4276,23 +4258,8 @@
     function renderBlindboxCollectLine() {
         const line = document.getElementById('blindboxCollectLine');
         if (!line) return;
-        line.hidden = false;
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        const lang = (window.I18N && window.I18N.getLanguage()) || 'zh-TW';
-        const wxNameMap = WX_NAME[lang] || WX_NAME['zh-TW'];
-        const owned = Object.assign(emptyBlindboxOwned(), blindboxState.owned || {});
-        const sep = lang === 'en' ? ', ' : '，';
-        const parts = BLINDBOX_COLLECT_ORDER.map((el) => {
-            const name = wxNameMap[el] || el;
-            return `${name}x${owned[el] || 0}`;
-        });
-        const ownedText = `${t('blindbox_collect_prefix')}${parts.join(sep)}`;
-        if (!isAnnualBlindboxFree()) {
-            const redeemText = String(t('blindbox_collect_redeem') || '').replace('{n}', String(blindboxState.redeemed || 0));
-            line.innerHTML = `${escapeHtml(ownedText)}<br>${escapeHtml(redeemText)}`;
-        } else {
-            line.textContent = ownedText;
-        }
+        line.hidden = true;
+        line.textContent = '';
     }
 
     function sealedBlindboxCardHtml(t) {
@@ -4344,13 +4311,9 @@
         } else if (draws >= 3) {
             btnBlindboxDraw.setAttribute('data-i18n', 'btn_blindbox_draw_done');
             btnBlindboxDraw.textContent = t('btn_blindbox_draw_done');
-        } else if (isAnnualBlindboxFree()) {
+        } else {
             btnBlindboxDraw.setAttribute('data-i18n', 'btn_blindbox_draw_again');
             btnBlindboxDraw.textContent = t('btn_blindbox_draw_again');
-        } else {
-            const paidKey = alipayAvailable ? 'btn_blindbox_draw_paid_cny' : 'btn_blindbox_draw_paid';
-            btnBlindboxDraw.setAttribute('data-i18n', paidKey);
-            btnBlindboxDraw.textContent = t(paidKey);
         }
     }
 
@@ -4983,24 +4946,12 @@
     }
 
     function applyPayPrice() {
-        if (pendingPayKind === 'blindbox-draw') {
-            applyBlindboxDrawPayPrice();
-            return;
-        }
         const t = window.I18N ? window.I18N.t : (k) => k;
-        pendingBlindboxHdCreditCount = pendingPayKind === 'blindbox-hd' ? countUnusedPaidDrawCredits() : 0;
+        pendingBlindboxHdCreditCount = 0;
         applyPayCurrencyLabel();
         if (payPrice) {
             if (pendingPayKind === 'blindbox-hd') {
-                if (alipayAvailable) {
-                    payPrice.textContent = pendingBlindboxHdCreditCount >= 2
-                        ? '¥6'
-                        : (pendingBlindboxHdCreditCount === 1 ? '¥12.5' : '¥19');
-                } else {
-                    payPrice.textContent = pendingBlindboxHdCreditCount >= 2
-                        ? '$1.01'
-                        : (pendingBlindboxHdCreditCount === 1 ? '$2.00' : '$2.99');
-                }
+                payPrice.textContent = alipayAvailable ? '¥2.90' : '$2.90';
             } else if (alipayAvailable) {
                 payPrice.textContent = '¥39';
             } else {
@@ -5016,60 +4967,15 @@
             payNotice.textContent = t('pay_notice');
         }
         setPayCreditHint(pendingBlindboxHdCreditCount);
-        syncPayRedeemButton();
         const wrap = document.querySelector('#payModal .pay-wallpaper-preview');
         if (wrap) wrap.style.display = '';
-    }
-
-    function applyBlindboxDrawPayPrice() {
-        pendingPayKind = 'blindbox-draw';
-        pendingBlindboxHdCreditCount = 0;
-        const t = window.I18N ? window.I18N.t : (k) => k;
-        applyPayCurrencyLabel();
-        if (payPrice) payPrice.textContent = alipayAvailable ? '¥6.5' : '$0.99';
-        if (payPriceUnit) {
-            payPriceUnit.setAttribute('data-i18n', 'pay_per_draw');
-            payPriceUnit.textContent = t('pay_per_draw');
-        }
-        if (payNotice) {
-            payNotice.setAttribute('data-i18n', 'pay_notice_blindbox');
-            payNotice.textContent = t('pay_notice_blindbox');
-        }
-        if (payCreditHint) {
-            const draws = Number(blindboxState.draw_count) || 0;
-            const unused = countUnusedPaidDrawCredits();
-            const stack = draws >= 2 && unused >= 1;
-            const key = stack
-                ? (alipayAvailable ? 'pay_blindbox_draw_credit_note_stack_cny' : 'pay_blindbox_draw_credit_note_stack')
-                : (alipayAvailable ? 'pay_blindbox_draw_credit_note_cny' : 'pay_blindbox_draw_credit_note');
-            payCreditHint.hidden = false;
-            payCreditHint.setAttribute('data-i18n', key);
-            payCreditHint.textContent = t(key);
-        }
-        syncPayRedeemButton();
-        const wrap = document.querySelector('#payModal .pay-wallpaper-preview');
-        if (wrap) wrap.style.display = 'none';
-        if (payWallpaperName) payWallpaperName.textContent = t('pay_blindbox_draw_name');
-        if (payPreviewImg) {
-            payPreviewImg.removeAttribute('src');
-            payPreviewImg.alt = '';
-        }
-    }
-
-    function openBlindboxDrawPayModal() {
-        applyBlindboxDrawPayPrice();
-        payModal.classList.add('open');
     }
 
     btnBlindboxDraw?.addEventListener('click', () => {
         if (!requireLogin()) return;
         const n = Number(blindboxState.draw_count) || 0;
         if (n >= 3) return;
-        if (n === 0 || isAnnualBlindboxFree()) {
-            requestBlindboxDraw();
-            return;
-        }
-        openBlindboxDrawPayModal();
+        requestBlindboxDraw();
     });
 
     blindboxGrid?.addEventListener('click', (e) => {
@@ -6256,11 +6162,6 @@
         const t = window.I18N ? window.I18N.t : (k) => k;
         if (!requireLogin()) return;
         if (provider === 'alipay' && !alipayAvailable) return;
-        if (pendingPayKind === 'blindbox-draw') {
-            payModal.classList.remove('open');
-            await startCheckout({ provider, productType: 'blindbox_draw', items: [] });
-            return;
-        }
         if (!pendingDownloadR2Key) {
             alert(t('download_missing_key'));
             return;
@@ -6282,24 +6183,6 @@
     document.getElementById('btnPayStripe')?.addEventListener('click', () => payCurrentWallpaper('stripe'));
     document.getElementById('btnPayPaypal')?.addEventListener('click', () => payCurrentWallpaper('paypal'));
     document.getElementById('btnPayAlipay')?.addEventListener('click', () => payCurrentWallpaper('alipay'));
-    document.getElementById('btnPayRedeem')?.addEventListener('click', async () => {
-        if (!requireLogin()) return;
-        if (pendingPayKind !== 'wallpaper' && pendingPayKind !== 'blindbox-hd') return;
-        if ((Number(blindboxState.redeem_available) || 0) < 1) return;
-        if (!pendingDownloadR2Key) {
-            const t = window.I18N ? window.I18N.t : (k) => k;
-            alert(t('download_missing_key'));
-            return;
-        }
-        payModal.classList.remove('open');
-        await startOriginalDownload({
-            r2key: pendingDownloadR2Key,
-            name: pendingDownloadName,
-            previewImg: pendingDownloadImg,
-            redeem: true,
-        });
-        await loadBlindboxState();
-    });
 
     let profiles = loadProfiles();
     const _isLoggedIn = localStorage.getItem('bazi_logged_in') === '1';
